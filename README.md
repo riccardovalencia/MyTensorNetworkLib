@@ -11,7 +11,7 @@ C++17: This library requires a C++17-compliant compiler.
 ## Installation
 Clone the repository:
 ```bash
-git clone https://github.com/rvalencia1995/MyTensorNetworkLib.git
+git clone https://github.com/riccardovalencia/MyTensorNetworkLib.git
 ```
 
 
