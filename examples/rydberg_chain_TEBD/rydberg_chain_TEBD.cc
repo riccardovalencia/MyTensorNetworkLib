@@ -5,6 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <filesystem>
+#include <random>
 #include "../../spin_boson.h"
 
 using namespace std;
@@ -19,9 +20,14 @@ namespace fs = std::filesystem;
 // Atoms sit at alternating distances d1, d2, so that V1 = 1/d1^6 and V2 = 1/d2^6.
 // Detunings are set to the anti-blockade condition Delta = -V on even/odd sites.
 // The initial state is a "kink": the first M atoms in the Rydberg state, the rest in the ground state.
-// (Clean version, without disorder, of the model in Eq. 1 of https://arxiv.org/abs/2309.12392)
+// Model in Eq. 1 of https://arxiv.org/abs/2309.12392 (sigmax > 0 reproduces Fig. S1 there).
 //
-// Usage: ./rydberg_chain_TEBD [N] [M] [V2] [Omega] [T] [dt] [maxDim]
+// Optional spatial disorder (e.g. finite temperature in the traps): each atom is displaced from its ideal
+// position by gaussian noise of width sigmax along the chain, sigmay = sigmax and sigmaz = 5*sigmax
+// (transverse trap 5 times weaker). The actual interactions V_j are computed from the displaced positions.
+// sigmax = 0 gives the clean chain. seed selects the disorder realization.
+//
+// Usage: ./rydberg_chain_TEBD [N] [M] [V2] [Omega] [T] [dt] [maxDim] [sigmax] [seed]
 // Output: data/<file_root>.txt     -> t, fidelity with initial state, half-chain entropy, max bond dimension
 //         data/<file_root>_nj.txt  -> t, Rydberg density n_j on each site
 
@@ -35,6 +41,8 @@ int main(int argc, char* argv[])
     double T      = argc > 5 ? atof(argv[5]) : 10.;
     double dt     = argc > 6 ? atof(argv[6]) : 0.05;
     int    maxDim = argc > 7 ? atoi(argv[7]) : 64;
+    double sigmax = argc > 8 ? atof(argv[8]) : 0.;     // disorder on atomic positions (units of d1)
+    int    seed   = argc > 9 ? atoi(argv[9]) : 1;      // disorder realization
 
     double V1        = 1.;
     double cut_off   = 1E-12;
@@ -68,6 +76,22 @@ int main(int argc, char* argv[])
         x += (j % 2 == 0) ? d1 : d2;
     }
 
+    if(sigmax > 0)
+    {
+        default_random_engine generator;
+        generator.seed(seed);
+        normal_distribution<double> noise_x(0, sigmax);
+        normal_distribution<double> noise_y(0, sigmax);
+        normal_distribution<double> noise_z(0, 5*sigmax);
+
+        for(vector<double>& r : rj)
+        {
+            r[0] += noise_x(generator);
+            r[1] += noise_y(generator);
+            r[2] += noise_z(generator);
+        }
+    }
+
     vector<double> Vj = compute_potential(rj, 6.);
 
     vector<double> Deltaj, Omegaj;
@@ -84,6 +108,7 @@ int main(int argc, char* argv[])
 
     fs::create_directories("data");
     string file_root = tinyformat::format("data/rydberg_N%d_M%d_V2_%.2f_Om_%.3f_D%d", N, M, V2, Omega, maxDim);
+    if(sigmax > 0) file_root += tinyformat::format("_sigmax%.5f_seed%d", sigmax, seed);
 
     ofstream save_file(file_root + ".txt");
     save_file << "# t . fidelity . entropy . MaxD\n";
