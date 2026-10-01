@@ -4,8 +4,7 @@
  *
  * X, Y, Z are Pauli matrices. Unless stated otherwise the gate lists implement one
  * second-order Trotter step of length dt: a forward sweep with dt/2 followed by the reversed
- * sweep. Apply TebdGate lists with apply_gate (mps/gates.h) and BondGate lists with
- * ITensor's gateTEvol.
+ * sweep. Apply them with tebd_step (dynamics/time_evolution.h) or apply_gates (mps/gates.h).
  */
 #ifndef MYTN_MODELS_SPIN_CHAIN_H
 #define MYTN_MODELS_SPIN_CHAIN_H
@@ -27,10 +26,6 @@ using namespace itensor;
 vector<TebdGate>
 make_spin_chain_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt);
 
-/** @brief Same as make_spin_chain_gates, as ITensor BondGate (for gateTEvol). */
-vector<BondGate>
-make_spin_chain_bond_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt);
-
 /**
  * @brief Gates of make_spin_chain_gates plus the anti-hermitian term -i/2 sum_k gamma_k L_k^dag L_k
  *        (effective non-hermitian Hamiltonian of quantum trajectories).
@@ -38,7 +33,7 @@ make_spin_chain_bond_gates(const SiteSet sites , const vector<double> J, const v
  * @param Lj_sites Site of each jump operator.
  * @param gamma    Rate of each jump operator.
  */
-vector<BondGate>
+vector<TebdGate>
 make_spin_chain_effective_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const vector<int> Lj_sites, const vector<double> gamma, const double dt);
 
 /**
@@ -65,5 +60,12 @@ make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double
  */
 ITensor
 make_ising_bond_hamiltonian( const SpinHalf sites , const int N , const double J , const double hx , const double hz , const int b );
+
+/**
+ * @brief Second-order Trotter step of the Ising chain of make_ising_bond_hamiltonian,
+ *        H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ]: forward sweep with dt/2, then the reversed sweep.
+ */
+vector<TebdGate>
+make_ising_gates( const SpinHalf sites , const int N , const double J , const double hx , const double hz , const double dt );
 
 #endif

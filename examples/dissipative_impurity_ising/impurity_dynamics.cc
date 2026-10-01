@@ -26,7 +26,6 @@ namespace fs = std::filesystem;
 // 3. Autocorrelation <Z_1(t) Z_1(0)> in the stationary state up to time T (quantum regression
 //    theorem: Z_1 is applied to the ket and the state is evolved further).
 //
-// With Jzzz = 0 the coherent part uses two-site gates, otherwise three-site gates.
 //
 // Output (data/): <root>.txt (t, maxD, Tr rho), <root>_xj.txt (t, <X_1>, ..., <X_N>),
 //                 <root>_Tness<Tness>_z1z1.txt (t, Re, Im, |.| of <Z_1(t) Z_1(0)>)
@@ -98,28 +97,12 @@ int main(int argc, char* argv[])
     vector<double> h     = {hx, 0., 0.};
     double dt_coherent = dissipative ? dt/2. : dt;
 
-    vector<BondGate>   gates_2sites;
-    vector<TebdGate> gates_3sites;
-    if(Jzzz == 0.) gates_2sites = make_spin_impurity_gates(sites, J_NN, h, Lj, gamma, dt_coherent);
-    else           gates_3sites = make_spin_impurity_nnn_gates(sites, J_NN, J_NNN, h, dt_coherent);
+    // two-site gates for nearest-neighbour couplings only, three-site gates otherwise
+    vector<TebdGate> gates = (Jzzz == 0.) ? make_spin_impurity_gates(sites, J_NN, h, Lj, gamma, dt_coherent)
+                                          : make_spin_impurity_nnn_gates(sites, J_NN, J_NNN, h, dt_coherent);
 
     vector<DissipativeGate> gates_D;
     if(dissipative) gates_D = make_impurity_dissipative_gates(sites, Lj, gamma, dt);
-
-    auto coherent_step = [&](MPS& state)
-    {
-        if(Jzzz == 0.) gateTEvol(gates_2sites, dt, dt, state, args);
-        else for(TebdGate g : gates_3sites) state = apply_gate(state, g.gate(), g.sites(), args);
-    };
-    auto time_step = [&](MPS& state)
-    {
-        coherent_step(state);
-        if(dissipative)
-        {
-            for(DissipativeGate g : gates_D) state = apply_dissipative_gate(state, g, args);
-            coherent_step(state);
-        }
-    };
 
     // ---------------------------------
     // Output
@@ -139,7 +122,7 @@ int main(int argc, char* argv[])
     int total_steps   = int(Tness / dt + 1E-9);
     for(int k = 1 ; k <= total_steps ; k++)
     {
-        time_step(rho);
+        rho = tebd_step(rho, gates, gates_D, args);
         if(k % steps_measure != 0) continue;
 
         double t = k*dt;
@@ -165,7 +148,7 @@ int main(int argc, char* argv[])
     total_steps    = int(T / dt + 1E-9);
     for(int k = 1 ; k <= total_steps ; k++)
     {
-        time_step(rho);
+        rho = tebd_step(rho, gates, gates_D, args);
         if(k % steps_corr != 0) continue;
 
         complex<double> c = measure_magnetization_purified(&rho, "z", false, 1)[0];

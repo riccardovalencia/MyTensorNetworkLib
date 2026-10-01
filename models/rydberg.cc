@@ -242,7 +242,7 @@ make_pxp_gates(const SiteSet sites , const double omega, const double dt)
 		ITensor X2 = 2*op(sites,"Sx",j+1);
 		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
 		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(sites,jn,dt/2.,omega*P1*X2*P3);
+		TebdGate g = TebdGate(jn,dt/2.,omega*P1*X2*P3);
 		gates.push_back(g);
 	}
 
@@ -253,7 +253,7 @@ make_pxp_gates(const SiteSet sites , const double omega, const double dt)
 		ITensor X2 = 2*op(sites,"Sx",j+1);
 		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
 		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(sites,jn,dt/2.,omega*P1*X2*P3);
+		TebdGate g = TebdGate(jn,dt/2.,omega*P1*X2*P3);
 		gates.push_back(g);
 	}
 
@@ -264,7 +264,7 @@ make_pxp_gates(const SiteSet sites , const double omega, const double dt)
 		ITensor X2 = 2*op(sites,"Sx",j+1);
 		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
 		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(sites,jn,dt/2.,omega*P1*X2*P3);
+		TebdGate g = TebdGate(jn,dt/2.,omega*P1*X2*P3);
 		gates.push_back(g);
 	}
 
@@ -331,7 +331,7 @@ make_rydberg_gates_nn(const SiteSet sites , const vector<double> Deltaj, const v
 
 
 		vector<int> jn = {j,j+1};
-		TebdGate g = TebdGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(jn,dt/2.,H);
 		gates.push_back(g);
 	}
 
@@ -433,7 +433,7 @@ make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const 
 		ITensor H = H_NN + H1;
 
 		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(jn,dt/2.,H);
 		gates.push_back(g);
 	}
 
@@ -509,7 +509,7 @@ make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const 
 		ITensor H = H_NN + H1;
 
 		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(jn,dt/2.,H);
 		gates.push_back(g);
 	}
 
@@ -585,7 +585,7 @@ make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const 
 		ITensor H = H_NN + H1;
 
 		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(jn,dt/2.,H);
 		gates.push_back(g);
 	}
 

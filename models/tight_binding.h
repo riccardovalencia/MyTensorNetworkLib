@@ -6,6 +6,7 @@
 #define MYTN_MODELS_TIGHT_BINDING_H
 
 #include <itensor/all.h>
+#include "../mps/gates.h"
 
 using namespace std;
 using namespace itensor;
@@ -40,7 +41,7 @@ make_single_particle_hamiltonian_impurity(const int N , const vector<double> J, 
  * @brief Second-order Trotter gates of free spinful fermions (Electron sites):
  *        hoppings J_j between j and j+1 for both spins, fields hup_j n_{j,up} + hdn_j n_{j,dn}.
  */
-vector<BondGate>
+vector<TebdGate>
 make_free_fermion_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
 
 #endif

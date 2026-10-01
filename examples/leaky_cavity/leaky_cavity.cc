@@ -92,19 +92,13 @@ int main(int argc, char* argv[])
     // Gates: built on the physical chain and copied on ket and bra
 
     double dt_coherent = dissipative ? dt/2. : dt;
-    vector<BondGate> local_single = make_light_matter_gates(sites_single, omega0, h, g/sqrt(N), dt_coherent, "short-range", coupling, V);
-    vector<BondGate> pm_single    = make_light_matter_gates(sites_single, omega0, h, g/sqrt(N), dt_coherent, "long-range",  coupling);
-    vector<TebdGate> gates_local = make_purified_gates(local_single, sites_single, sites);
-    vector<TebdGate> gates_pm    = make_purified_gates(pm_single,    sites_single, sites);
+    // local gates, then the photon-matter gates (the boson travels through the spins with swaps)
+    vector<TebdGate> gates_single = make_light_matter_gates(sites_single, omega0, h, g/sqrt(N), dt_coherent, "short-range", coupling, V);
+    for(TebdGate gate : make_light_matter_gates(sites_single, omega0, h, g/sqrt(N), dt_coherent, "long-range", coupling)) gates_single.push_back(gate);
+    vector<TebdGate> gates = make_purified_gates(gates_single, sites_single, sites);
 
     vector<DissipativeGate> gates_D;
     if(dissipative) gates_D = make_impurity_dissipative_gates(sites, Lj, kappa, dt);
-
-    auto coherent_step = [&]()
-    {
-        for(TebdGate gate : gates_local) rho = apply_local_gate_purified(rho, gate, args);
-        for(TebdGate gate : gates_pm)    rho = apply_photon_matter_gate_purified(rho, gate, args);
-    };
 
     // ---------------------------------
     // Output
@@ -127,12 +121,7 @@ int main(int argc, char* argv[])
     {
         double t = (k+1)*dt;
 
-        coherent_step();
-        if(dissipative)
-        {
-            for(DissipativeGate gate : gates_D) rho = apply_dissipative_gate(rho, gate, args);
-            coherent_step();
-        }
+        rho = tebd_step(rho, gates, gates_D, args);
 
         if((k+1) % steps_measure != 0) continue;
 

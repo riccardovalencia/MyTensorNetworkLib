@@ -14,28 +14,37 @@ using namespace std;
 using namespace itensor;
 
 /**
- * @brief Unitary gate exp(-i dt h) acting on one, two or three consecutive sites.
+ * @brief Gate acting on one, two or three consecutive sites of an MPS.
  *
- * The exponential is computed once, at construction.
+ * Built either from a local Hamiltonian term h, as exp(-i dt h) (h hermitian), or from an already
+ * exponentiated gate. If swap_after() is true, apply_gate swaps the first two sites after applying
+ * the gate (used to move a site, e.g. a cavity mode, along the chain, see models/light_matter.h).
  */
 class TebdGate
 {
 private:
     ITensor gate_;
-    vector<int> jn_;
-    SiteSet sites_;
+    vector<int> sites_;
+    bool swap_after_;
 public:
     /**
-     * @param sites Site set of the MPS the gate acts on.
-     * @param j     Sites the gate acts on, e.g. {j, j+1} or {j, j+1, j+2}.
+     * @param sites Sites the gate acts on, e.g. {j, j+1} or {j, j+1, j+2}.
      * @param dt    Time step.
-     * @param h     Local Hamiltonian term, with indices (s_j, s_j') for every site in j.
+     * @param h     Local hermitian Hamiltonian term, with indices (s_j, s_j') for every site in sites.
      */
-	TebdGate(const SiteSet sites, vector<int> j, const double dt, const ITensor h);
-    /** @return The gate exp(-i dt h). */
+    TebdGate(vector<int> sites, const double dt, const ITensor h);
+    /**
+     * @param sites      Sites the gate acts on.
+     * @param gate       Gate with unprimed (input) and primed (output) site indices.
+     * @param swap_after Swap the first two sites after applying the gate.
+     */
+    TebdGate(vector<int> sites, const ITensor gate, bool swap_after = false);
+    /** @return The gate. */
     ITensor gate();
     /** @return The sites the gate acts on. */
     vector<int> sites();
+    /** @return Whether the first two sites are swapped after the gate. */
+    bool swap_after();
     /** @brief Replace the stored gate, e.g. after mapping it onto different site indices. */
     void set_gate(ITensor new_gate);
 };
@@ -50,18 +59,16 @@ class DissipativeGate
 {
 private:
     ITensor gate_;
-    vector<int> jnket_;
-    vector<int> jnbra_;
-    SiteSet sites_;
+    vector<int> ket_sites_;
+    vector<int> bra_sites_;
 public:
     /**
-     * @param sites Site set of the purified state.
      * @param jket  Sites acted on in the ket.
      * @param jbra  Sites acted on in the bra.
      * @param dt    Time step.
      * @param h     Lindblad superoperator term acting on jket and jbra.
      */
-	DissipativeGate(const SiteSet sites, vector<int> jket, vector<int> jbra, const double dt, const ITensor h);
+    DissipativeGate(vector<int> jket, vector<int> jbra, const double dt, const ITensor h);
     /** @return dt*h (linear approximation of the exponential). */
     ITensor gate();
     /** @return The sites acted on in the ket. */
@@ -101,20 +108,32 @@ public:
 /**
  * @brief Apply a one-, two- or three-site gate on consecutive sites of an MPS.
  *
- * Moves the orthogonality center to jn[0], applies the gate and splits the result back with
- * truncated SVDs. The state is not normalized.
+ * Moves the orthogonality center to the first site, applies the gate and splits the result back
+ * with truncated SVDs. The state is not normalized.
  *
- * @code
- * for(TebdGate g : gates) psi = apply_gate(psi, g.gate(), g.sites(), {"Cutoff=",1E-12,"MaxDim=",64});
- * @endcode
- *
- * @param psi  State to evolve (taken by value).
- * @param gate Gate with unprimed/primed site indices of the sites jn.
- * @param jn   Consecutive sites the gate acts on (1 to 3 sites).
- * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
+ * @param psi   State to evolve (taken by value).
+ * @param gate  Gate with unprimed/primed site indices of the sites it acts on.
+ * @param sites Consecutive sites the gate acts on (1 to 3 sites, in any order).
+ * @param args  SVD parameters; "Cutoff" and "MaxDim" are required.
  * @return The evolved MPS.
  */
 MPS
-apply_gate(MPS psi, const ITensor gate, const vector<int> jn, const Args args);
+apply_gate(MPS psi, const ITensor gate, vector<int> sites, const Args args);
+
+/**
+ * @brief Apply a TebdGate (followed by a swap of its first two sites if gate.swap_after()).
+ * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
+ */
+MPS
+apply_gate(MPS psi, TebdGate gate, const Args args);
+
+/**
+ * @brief Apply a list of gates in order.
+ * @code
+ * psi = apply_gates(psi, make_rydberg_gates_nnn(sites, Delta, Omega, V, dt), {"Cutoff=",1E-12,"MaxDim=",64});
+ * @endcode
+ */
+MPS
+apply_gates(MPS psi, vector<TebdGate> gates, const Args args);
 
 #endif

@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
 
         if(k == total_steps) break;
 
-        for(TebdGate g : gates) psi = apply_gate(psi, g.gate(), g.sites(), TEBD_args);
+        psi = tebd_step(psi, gates, TEBD_args);
 
         psi.position(1);
         psi.normalize();

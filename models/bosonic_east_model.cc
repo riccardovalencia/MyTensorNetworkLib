@@ -154,10 +154,10 @@ make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int siz
 // Build a full TEBD time step under the bosonic quantum east hamiltonian with only next-neighbour density-density interaction
 // i.e. H = - 0.5 \sum_i n_i (exp(-s)\sigma_i+1^x - U n_i+1 - 1) where we do not fix any symmetry sector. 
 // deprecated the usage of open function since 21.03.22 -> use 
-vector<BondGate>
+vector<TebdGate>
 make_bosonic_east_model_gates(const SiteSet sites, const int size, const double dt, const double J, const double c , const string dynamics ,const double gamma)
 {
-    vector<BondGate> gates;
+    vector<TebdGate> gates;
 
 	for(int j = 1; j <= size-1; j++)
 		{
@@ -170,7 +170,7 @@ make_bosonic_east_model_gates(const SiteSet sites, const int size, const double 
 			{
 			hterm = make_bosonic_east_model_bond_hamiltonian_dephasing( sites , size , J , c , gamma, j );
 			}
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm).gate()); 
 		gates.push_back(g);
 		}
 
@@ -185,22 +185,22 @@ make_bosonic_east_model_gates(const SiteSet sites, const int size, const double 
 			{
 			hterm = make_bosonic_east_model_bond_hamiltonian_dephasing( sites , size , J , c , gamma, j );
 			}
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm).gate()); 
 		gates.push_back(g);
 		}
     return gates;
 }
 
 
-vector<BondGate>
+vector<TebdGate>
 make_bosonic_east_model_gates_open(const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd )
 {
-    vector<BondGate> gates;
+    vector<TebdGate> gates;
 	for(int j = 1; j <= size-1; j++)
 		{
 		ITensor hterm;
 		hterm = make_bosonic_east_model_bond_hamiltonian_jumps( sites , size , J , c , j , Lj, Ljd);
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm).gate()); 
 		gates.push_back(g);
 		}
 
@@ -208,7 +208,7 @@ make_bosonic_east_model_gates_open(const SiteSet sites, const int size, const do
 		{
 		ITensor hterm;
 		hterm = make_bosonic_east_model_bond_hamiltonian_jumps( sites , size , J , c , j ,Lj, Ljd);
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm).gate()); 
 		gates.push_back(g);
 		}
     return gates;

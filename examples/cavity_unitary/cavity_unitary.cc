@@ -46,20 +46,10 @@ int main(int argc, char* argv[])
     MPS psi    = make_spin_boson_state(sites, 0, theta, 0.);
     MPS psi_t0 = psi;
 
-    // local terms (no swaps) and photon-matter gates between the boson and each spin
-    vector<BondGate> gates_local = make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "short-range", coupling);
-    vector<BondGate> gates_pm    = make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "long-range",  coupling);
-
-    // two-site gate on (j, j+1): center on j, normalize, apply, split with a truncated SVD
-    auto apply = [&](const ITensor& gate, int j)
-    {
-        psi.position(j);
-        psi.normalize();
-        ITensor AA = psi(j)*psi(j+1)*gate;
-        auto [U,S,V] = svd(noPrime(AA), inds(psi(j)), {"Cutoff=", cut_off, "MaxDim=", maxDim});
-        psi.set(j, U);
-        psi.set(j+1, S*V);
-    };
+    // local gates, then the photon-matter gates: the boson travels through the chain with swaps
+    vector<TebdGate> gates = make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "short-range", coupling);
+    for(TebdGate gate : make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "long-range", coupling)) gates.push_back(gate);
+    Args args = {"Cutoff=", cut_off, "MaxDim=", maxDim};
 
     fs::create_directories("data");
     string root = tinyformat::format("data/cavity_unitary_%s_N%d_maxocc%d_omega%.2f_h%.2f_g%.2f", coupling, N, max_occ, omega0, h, g);
@@ -70,19 +60,9 @@ int main(int argc, char* argv[])
     {
         double t = (k+1)*dt;
 
-        for(BondGate g : gates_local) apply(g.gate(), g.i1());
-        for(BondGate g : gates_pm)
-        {
-            // the gate acts on (boson, spin) = (j-1, j); then the boson moves one site forward
-            int j = g.i2();
-            psi.position(j);
-            psi.normalize();
-            ITensor AA = psi(j-1)*psi(j)*g.gate();
-            auto [U,S,V] = svd(noPrime(AA), inds(psi(j-1)), {"Cutoff=", cut_off, "MaxDim=", maxDim});
-            psi.set(j-1, U);
-            psi.set(j, S*V);
-            swap_sites(&psi, j-1, j, cut_off, maxDim);
-        }
+        psi = tebd_step(psi, gates, args);
+        psi.position(1);
+        psi.normalize();
 
         if((k+1) % steps_measure != 0) continue;
 

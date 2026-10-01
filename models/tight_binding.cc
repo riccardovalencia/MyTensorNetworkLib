@@ -114,14 +114,14 @@ make_single_particle_hamiltonian_impurity(const int N , const vector<double> J, 
 
 // Simulation of free spinful fermions 
 
-vector<BondGate>
+vector<TebdGate>
 make_free_fermion_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
 { 
 
 
 	int N = length(sites);
 
-    vector<BondGate> gates;
+    vector<TebdGate> gates;
 	
 	for(int j=1 ; j <= N-1 ; j+=1)
 	{
@@ -181,17 +181,17 @@ make_free_fermion_gates(const SiteSet sites , const vector<double> J, const vect
 
 
 		H = H_S + H_SS ;
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
 		gates.push_back(g);
 			
 	}
 
 
-	vector<BondGate> gates_reversed = gates;
+	vector<TebdGate> gates_reversed = gates;
 	
 	reverse(gates_reversed.begin(), gates_reversed.end());
 
-	for(BondGate g : gates_reversed) gates.push_back(g);
+	for(TebdGate g : gates_reversed) gates.push_back(g);
 
 	return gates;
 }

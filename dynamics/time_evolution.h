@@ -1,17 +1,6 @@
 /**
  * @file time_evolution.h
- * @brief Time-evolution drivers for the purified density matrix (impurity geometry, see
- *        models/impurity.h): coherent gates plus dissipation on the central bond.
- *
- * Common parameters:
- * - psi_t            : initial purified state (returned evolved);
- * - gates_D          : dissipative gates, applied to first order in dt;
- * - TEBD_args        : SVD parameters, "Cutoff" and "MaxDim" required;
- * - dissipative      : apply gates_D (otherwise unitary evolution);
- * - dt, T, t_start   : time step, total time, initial time;
- * - steps_save_state : every steps_save_state steps the state is written to "<file_root>_psi_t<t>";
- *                      the evolution stops early if the bond dimension exceeds "MaxDim";
- * - normalize        : rescale to Tr(rho) = 1 after each step.
+ * @brief One TEBD time step, for pure states and for purified density matrices.
  */
 #ifndef MYTN_DYNAMICS_TIME_EVOLUTION_H
 #define MYTN_DYNAMICS_TIME_EVOLUTION_H
@@ -23,26 +12,29 @@ using namespace std;
 using namespace itensor;
 
 /**
- * @brief Lindblad evolution with short-range coherent gates and dissipation: each step applies
- *        the coherent gates (gateTEvol), the dissipative gates and, if dissipative, the coherent gates again.
- * @param gates Coherent gates on the purified state.
+ * @brief One time step: the coherent gates and, if dissipative_gates is not empty, the dissipative
+ *        gates followed by the coherent gates again (symmetric splitting; build the coherent gates
+ *        with dt/2 in that case).
+ *
+ * @code
+ * for(int k = 0 ; k < steps ; k++)
+ * {
+ *     psi = tebd_step(psi, gates, gates_D, {"Cutoff=", 1E-12, "MaxDim=", 64});
+ *     // measure ...
+ * }
+ * @endcode
+ *
+ * @param psi               State (pure state or purified density matrix).
+ * @param gates             Coherent gates, applied in order (apply_gate).
+ * @param dissipative_gates Dissipative gates of the purified density matrix (apply_dissipative_gate).
+ * @param args              SVD parameters; "Cutoff" and "MaxDim" are required.
+ * @return The evolved state (not normalized).
  */
 MPS
-tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
+tebd_step(MPS psi, const vector<TebdGate>& gates, const vector<DissipativeGate>& dissipative_gates, const Args args);
 
-/**
- * @brief Lindblad evolution with long-range coherent gates (boson coupled to every spin, applied
- *        with swap_sites) and dissipation on the boson.
- * @param gates_H Coherent gates on the purified state.
- */
+/** @brief One time step of a closed system: the coherent gates in order. */
 MPS
-tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
-
-/**
- * @brief Lindblad evolution with the coherent part given as an MPO H, applied to first order in dt.
- * @param H Hamiltonian MPO acting on the purified state.
- */
-MPS
-mpo_lindblad_time_evolve(MPS psi_t, MPO H , vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
+tebd_step(MPS psi, const vector<TebdGate>& gates, const Args args);
 
 #endif

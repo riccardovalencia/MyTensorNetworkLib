@@ -24,11 +24,11 @@ using namespace itensor;
  * @param hdn   On-site fields for down electrons.
  * @param dt    Time step.
  */
-vector<BondGate>
+vector<TebdGate>
 make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
 
 /** @brief Same model with the bath in its energy basis (inputs ordered on the physical sites 1..N). */
-vector<BondGate>
+vector<TebdGate>
 make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
 
 /**
@@ -39,7 +39,7 @@ make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double
  * @param Lj    Jump operators of the impurity.
  * @param gamma Dissipation rate.
  */
-vector<BondGate>
+vector<TebdGate>
 make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const double gamma, const double dt);
 
 /** @brief As above, with next-nearest-neighbour couplings J_NNN (three-site gates). */

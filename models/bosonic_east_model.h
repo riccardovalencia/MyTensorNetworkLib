@@ -20,6 +20,7 @@
 #define MYTN_MODELS_BOSONIC_EAST_MODEL_H
 
 #include <itensor/all.h>
+#include "../mps/gates.h"
 
 using namespace std;
 using namespace itensor;
@@ -142,15 +143,15 @@ ITensor
 make_bosonic_east_model_bond_hamiltonian_jumps( const SiteSet sites , const int size , const double J , const double c , const int j, vector<ITensor> &Lj, vector<ITensor> &Ljd);
 
 /**
- * @brief Second-order Trotter step (BondGate list, for gateTEvol) of the bulk Hamiltonian.
+ * @brief Gates of one second-order Trotter step of the bulk Hamiltonian (apply with tebd_step).
  * @param dynamics "closed" (default) or "open" (adds dephasing with rate gamma).
  * @param gamma    Dephasing rate (only for "open").
  */
-vector<BondGate>
+vector<TebdGate>
 make_bosonic_east_model_gates(const SiteSet sites, const int size, const double dt, const double J, const double c, const string dynamics = "closed" , const double gamma = 0.);
 
 /** @brief As make_bosonic_east_model_gates with arbitrary local jump operators (see make_bosonic_east_model_bond_hamiltonian_jumps). */
-vector<BondGate>
+vector<TebdGate>
 make_bosonic_east_model_gates_open(const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd );
 ///@}
 

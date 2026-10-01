@@ -51,7 +51,7 @@ vector<DissipativeGate>
 make_impurity_dissipative_gates(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
 
 /** @brief As make_impurity_dissipative_gates, with a higher-order (Pade) approximation of the exponential. */
-vector<BondGate>
+vector<TebdGate>
 make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
 
 /**
@@ -74,13 +74,14 @@ apply_dissipative_gate(MPS psi, DissipativeGate gate, const Args args);
  * @brief Copy gates built on the physical chain onto the unfolded bra-ket chain: each gate acts on
  *        the ket and, complex conjugated, on the mirrored bra.
  *
- * Physical site i (1..N) is mapped to the ket site N + i and to the bra site N + 1 - i. The ket gates
- * come first, in the order of gates_single, followed by the bra gates.
+ * Physical site i (1..N) is mapped to the ket site N + i and to the bra site N + 1 - i, both for the
+ * positions of the gates and for their site indices. The ket gates come first, in the order of
+ * gates_single, followed by the bra gates. swap_after() is preserved.
  * @param gates_single  Gates on the physical site set.
  * @param sites_single  Physical site set (N sites), e.g. make_spin_boson_sites(N, max_occ).
  * @param sites_doubled Doubled site set (2N sites), e.g. make_purified_spin_boson_sites(N, max_occ).
  */
 vector<TebdGate>
-make_purified_gates(const vector<BondGate> gates_single, const SiteSet sites_single, const SiteSet sites_doubled);
+make_purified_gates(const vector<TebdGate> gates_single, const SiteSet sites_single, const SiteSet sites_doubled);
 
 #endif

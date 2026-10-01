@@ -31,10 +31,10 @@ using namespace itensor;
 // H_long  = g (S^+ a + S^- a^\dag)
 // We DO NOT implement the swap gates as gates, but directly in the TEBD algorithm.
 
-vector<BondGate>
+vector<TebdGate>
 make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon)
 {
-    vector<BondGate> gates;
+    vector<TebdGate> gates;
 
 	int N = length(sites);
 	
@@ -100,7 +100,7 @@ make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const doub
 		if(j==1) 		hj = local_fields[0]    * S_j * I_j1 + local_fields[1]/2. * I_j * S_j1;
 		else if(j==N-1) hj = local_fields[0]/2. * S_j * I_j1 + local_fields[1]    * I_j * S_j1;
 		else 			hj = local_fields[0]/2. * S_j * I_j1 + local_fields[1]/2. * I_j * S_j1;
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()); 
 		gates.push_back(g);
 
     }
@@ -157,7 +157,7 @@ make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const doub
 		if(j==1) hj = local_fields[0] * S_j * I_j1 + local_fields[1]/2. * I_j * S_j1;
 		else if(j==N-1) hj = local_fields[0]/2. * S_j * I_j1 + local_fields[1] * I_j * S_j1;
 		else hj = local_fields[0]/2. * S_j * I_j1 + local_fields[1]/2. * I_j * S_j1;
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()); 
 		gates.push_back(g);
 
     }
@@ -203,7 +203,7 @@ make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const doub
 
 
 		ITensor hj = g * (A * Sp + Ad * Sm);
-		BondGate g = BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true); 
 		gates.push_back(g);
 
     }
@@ -224,7 +224,7 @@ make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const doub
 
 
 		ITensor hj = g * (A * Sp + Ad * Sm);
-		BondGate g = BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true); 
 		gates.push_back(g);
     }
 	return gates;
@@ -248,10 +248,10 @@ make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const doub
 // H_long  = dicke or tavis
 // We DO NOT implement the swap gates as gates, but directly in the TEBD algorithm.
 
-vector<BondGate>
+vector<TebdGate>
 make_light_matter_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon, string type_of_coupling, const double V, string interaction_axis)
 {
-    vector<BondGate> gates;
+    vector<TebdGate> gates;
 
 	int N = length(sites);
 	
@@ -349,7 +349,7 @@ make_light_matter_gates(const SiteSet sites , const double omega0 , const double
 				hj += h_nn;
 			}
 
-			BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj); 
+			TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()); 
 			gates.push_back(g);
 
 		}
@@ -437,7 +437,7 @@ make_light_matter_gates(const SiteSet sites , const double omega0 , const double
 				hj += h_nn;
 			}
 
-			BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj); 
+			TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()); 
 			gates.push_back(g);
 
 		}
@@ -491,7 +491,7 @@ make_light_matter_gates(const SiteSet sites , const double omega0 , const double
 			cerr << "Selected type_of_coupling : " << type_of_coupling << " not supported.\n";
 			exit(-1); 
 		}
-		BondGate g = BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true); 
 		gates.push_back(g);
 
     }
@@ -519,7 +519,7 @@ make_light_matter_gates(const SiteSet sites , const double omega0 , const double
 			cerr << "Selected type_of_coupling : " << type_of_coupling << " not supported.\n";
 			exit(-1); 
 		}
-		BondGate g = BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true); 
 		gates.push_back(g);
     }
 	return gates;
@@ -536,42 +536,9 @@ make_light_matter_gates(const SiteSet sites , const double omega0 , const double
 // ----------------------------------------------------------
 // Two-site gate on neighbouring sites of the purified chain (jn in any order)
 
-MPS
-apply_local_gate_purified(MPS psi, TebdGate gate, const Args args)
-{
-    double cut_off = args.getReal("Cutoff");
-    int maxDim     = args.getInt("MaxDim");
-    vector<int> jn = gate.sites();
-    int j = *min_element(jn.begin(), jn.end());
-
-    psi.position(j);
-    ITensor AA = psi(j)*psi(j+1)*gate.gate();
-    auto [U,S,V] = svd(noPrime(AA),inds(psi(j)),{"Cutoff=",cut_off,"MaxDim=",maxDim});
-    psi.set(j,U);
-    psi.set(j+1,S*V);
-    return psi;
-}
 
 
 // ----------------------------------------------------------
 // Photon-matter gate followed by a swap moving the boson outward
 // (see Phys. Rev. Research 2, 043255 (2020) for swap gates)
 
-MPS
-apply_photon_matter_gate_purified(MPS psi, TebdGate gate, const Args args)
-{
-    double cut_off = args.getReal("Cutoff");
-    int maxDim     = args.getInt("MaxDim");
-    vector<int> jn = gate.sites();
-    int j = jn[1];
-    // ket: the spin is to the right of the boson (sites j-1, j); bra: to its left (sites j, j+1)
-    int jl = (jn[0] < jn[1]) ? j-1 : j;
-
-    psi.position(j);
-    ITensor AA = psi(jl)*psi(jl+1)*gate.gate();
-    auto [U,S,V] = svd(noPrime(AA),inds(psi(jl)),{"Cutoff=",cut_off,"MaxDim=",maxDim});
-    psi.set(jl,U);
-    psi.set(jl+1,S*V);
-    swap_sites(&psi,jl,jl+1,cut_off,maxDim);
-    return psi;
-}

@@ -3,6 +3,7 @@
  * @brief Implementation of adiabatic.h (the functions are documented in the header).
  */
 #include "adiabatic.h"
+#include "../mps/gates.h"
 #include "../models/bosonic_east_model.h"
 #include <itensor/all.h>
 #include <cmath>
@@ -44,7 +45,9 @@ evolve_adiabatic_linear_ramp( MPS *psi_start, const SiteSet sites, const double 
 		J = J_target * t / beta;
 		cerr << J << endl;
 		auto gates = make_bosonic_east_model_gates(sites, L, dt, J, c);
-		gateTEvol( gates , dt , dt , *psi_start , TEBD_args); 
+		*psi_start = apply_gates(*psi_start, gates, TEBD_args);
+		(*psi_start).position(1);
+		(*psi_start).normalize(); 
 	}while( J_target > J );
 
 
@@ -72,7 +75,9 @@ evolve_adiabatic_tanh_ramp( MPS *psi_start, const SiteSet sites, const double s,
 		J = J_target * tanh(t/beta);
 		cerr << J << endl;
 		auto gates = make_bosonic_east_model_gates(sites, L, dt, J, c);
-		gateTEvol( gates , dt , dt , *psi_start , TEBD_args); 
+		*psi_start = apply_gates(*psi_start, gates, TEBD_args);
+		(*psi_start).position(1);
+		(*psi_start).normalize(); 
 	}while((J_target - J)/(J_target + J) > tolerance );
 
 

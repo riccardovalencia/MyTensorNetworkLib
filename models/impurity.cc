@@ -27,7 +27,7 @@ using namespace itensor;
 // the bond in between site N and N+1 is where jump/nonunitary dynamics take place
 // This part takes care of the coherent dynamics - we have hopping of free spinful fermions
 
-vector<BondGate>
+vector<TebdGate>
 make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
 { 
 	// careful with local fields if not homogeneous - I have to flip the array. Remember that [1-N] corresponds to bra 
@@ -65,9 +65,9 @@ make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const ve
 	int N2 = length(sites);
 	int N = N2/2;
 
-    vector<BondGate> gates;
-	vector<BondGate> gates_ket;
-	vector<BondGate> gates_bra;
+    vector<TebdGate> gates;
+	vector<TebdGate> gates_ket;
+	vector<TebdGate> gates_bra;
 	
 	for(int j=1 ; j <= N2-1 ; j+=1)
 	{
@@ -147,14 +147,14 @@ make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const ve
 				// attempt - the sign is due to the convention of the sites 
 				H = - H_S - H_SS ;
 				H = swapPrime(H,0,1); // NOT SURE
-				BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H); 
+				TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
 				gates_bra.push_back(g);
 			}
 			// action on ket
 			else
 			{
 				H = H_S + H_SS ;
-				BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H); 
+				TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
 				gates_ket.push_back(g);
 			}
 	
@@ -163,16 +163,16 @@ make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const ve
 	}
 
 
-	vector<BondGate> gates_ket_reversed = gates_ket;
-	vector<BondGate> gates_bra_reversed = gates_bra;
+	vector<TebdGate> gates_ket_reversed = gates_ket;
+	vector<TebdGate> gates_bra_reversed = gates_bra;
 	
 	reverse(gates_ket_reversed.begin(), gates_ket_reversed.end());
 	reverse(gates_bra_reversed.begin(), gates_bra_reversed.end());
 
-	for(BondGate g : gates_bra)  		 gates.push_back(g);
-	for(BondGate g : gates_ket) 		 gates.push_back(g);
-	for(BondGate g : gates_ket_reversed) gates.push_back(g);
-	for(BondGate g : gates_bra_reversed) gates.push_back(g);
+	for(TebdGate g : gates_bra)  		 gates.push_back(g);
+	for(TebdGate g : gates_ket) 		 gates.push_back(g);
+	for(TebdGate g : gates_ket_reversed) gates.push_back(g);
+	for(TebdGate g : gates_bra_reversed) gates.push_back(g);
 
 	return gates;
 }
@@ -186,7 +186,7 @@ make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const ve
 // the bond in between site N and N+1 is where jump/nonunitary dynamics take place
 
 
-vector<BondGate>
+vector<TebdGate>
 make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const double gamma, const double dt)
 {
 
@@ -194,7 +194,7 @@ make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vec
 	int N2 = length(sites);
 	int N = N2/2;
 
-    vector<BondGate> gates;
+    vector<TebdGate> gates;
 
 	double Jxx = J[0];
 	double Jyy = J[1];
@@ -246,7 +246,7 @@ make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vec
 
 		if(j !=N)
 		{
-			BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H); 
+			TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
 			gates.push_back(g);
 		}
 
@@ -296,7 +296,7 @@ make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vec
 
 		if(j !=N)
 		{
-			BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H); 
+			TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
 			gates.push_back(g);
 		}
 		
@@ -409,14 +409,14 @@ make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const
 				H = -H_S - H_SS - H_SSS;
 				H = swapPrime(H,0,1);
 
-				TebdGate g = TebdGate(sites,jn,dt/2.,H);
+				TebdGate g = TebdGate(jn,dt/2.,H);
 				gates_bra.push_back(g);
 			}
 			// action on ket
 			else
 			{
 				H = H_S + H_SS + H_SSS;
-				TebdGate g = TebdGate(sites,jn,dt/2.,H);
+				TebdGate g = TebdGate(jn,dt/2.,H);
 				gates_ket.push_back(g);
 
 			}
@@ -543,14 +543,14 @@ make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const
 					H = -H_S - H_SS - H_SSS;
 					H = swapPrime(H,0,1);
 
-					TebdGate g = TebdGate(sites,jn,dt/2.,H);
+					TebdGate g = TebdGate(jn,dt/2.,H);
 					gates_bra.push_back(g);
 				}
 				// action on ket
 				else
 				{
 					H = H_S + H_SS + H_SSS;
-					TebdGate g = TebdGate(sites,jn,dt/2.,H);
+					TebdGate g = TebdGate(jn,dt/2.,H);
 					gates_ket.push_back(g);
 
 				}
@@ -673,14 +673,14 @@ make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const
 					H = -H_S - H_SS - H_SSS;
 					H = swapPrime(H,0,1);
 
-					TebdGate g = TebdGate(sites,jn,dt/2.,H);
+					TebdGate g = TebdGate(jn,dt/2.,H);
 					gates_bra.push_back(g);
 				}
 				// action on ket
 				else
 				{
 					H = H_S + H_SS + H_SSS;
-					TebdGate g = TebdGate(sites,jn,dt/2.,H);
+					TebdGate g = TebdGate(jn,dt/2.,H);
 					gates_ket.push_back(g);
 				}
 			}
@@ -724,7 +724,7 @@ make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const
 // we start from the center, so that the first interaction is nearest-neighbor and then
 // we should apply swapgates
 
-vector<BondGate>
+vector<TebdGate>
 make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
 {
 	// N is always even and corresponds to the physical size
@@ -732,8 +732,8 @@ make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double
 	int N = N2/2;
 
 
-    vector<BondGate> gates;
-	vector<BondGate> gates_ket;
+    vector<TebdGate> gates;
+	vector<TebdGate> gates_ket;
 
 	// collection of gates
 
@@ -803,16 +803,16 @@ make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double
 
 		H = - H_S - H_SS ;
 		H = swapPrime(H,0,1); 
-		BondGate g = BondGate(sites,j,N,BondGate::tReal,dt/2.,H); 
+		TebdGate g = TebdGate({j,N}, BondGate(sites,j,N,BondGate::tReal,dt/2.,H).gate()); 
 		gates.push_back(g);
 
 
     }
 	cerr << "\n\n";
 
-	vector<BondGate> gates_reversed = gates;
+	vector<TebdGate> gates_reversed = gates;
 	reverse(gates_reversed.begin(), gates_reversed.end());
-	for(BondGate g : gates_reversed)  gates.push_back(g);
+	for(TebdGate g : gates_reversed)  gates.push_back(g);
 
 
 	cerr << "Entering ket cycle.\n\n";
@@ -839,7 +839,7 @@ make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double
 		cerr << J[abs(N-j)-2] << " ";
 
 		H = H_S + H_SS ;
-		BondGate g = BondGate(sites,N+1,j,BondGate::tReal,dt/2.,H); 
+		TebdGate g = TebdGate({N+1,j}, BondGate(sites,N+1,j,BondGate::tReal,dt/2.,H).gate()); 
 		gates_ket.push_back(g);
 
 
@@ -847,8 +847,8 @@ make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double
 
 	gates_reversed = gates_ket;
 	reverse(gates_reversed.begin(), gates_reversed.end());
-	for(BondGate g : gates_reversed)  gates_ket.push_back(g);
-	for(BondGate g : gates_ket) gates.push_back(g);
+	for(TebdGate g : gates_reversed)  gates_ket.push_back(g);
+	for(TebdGate g : gates_ket) gates.push_back(g);
 
 
 	return gates;

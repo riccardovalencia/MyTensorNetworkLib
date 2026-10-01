@@ -108,7 +108,7 @@ make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<in
 		vector<int> ket_sites = {j};
 		vector<int> bra_sites = {j};
 
-		DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt,Dj);
+		DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt,Dj);
 	
 		gates.push_back(g);
 
@@ -205,7 +205,7 @@ make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<do
 		vector<int> ket_sites = {j};
 		vector<int> bra_sites = {j};
 
-		DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt,Dj);
+		DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt,Dj);
 	
 		gates.push_back(g);
 
@@ -352,7 +352,7 @@ make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrai
 			vector<int> ket_sites = {j};
 			vector<int> bra_sites = {j};
 
-			DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt/2.,Dj);
+			DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt/2.,Dj);
 		
 			gates.push_back(g);
 
@@ -451,7 +451,7 @@ make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrai
 			vector<int> ket_sites = {i,j};
 			vector<int> bra_sites = {i,j};
 
-			DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt/2.,Dij);
+			DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt/2.,Dij);
 		
 			gates.push_back(g);
 
@@ -563,7 +563,7 @@ make_multisite_dissipative_gates(const SiteSet sites , vector<ITensor> Lij_list,
 		vector<int> ket_sites = {i,j};
 		vector<int> bra_sites = {i,j};
 
-		DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt/2.,Dj);
+		DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt/2.,Dj);
 	
 		gates.push_back(g);
 
@@ -637,7 +637,7 @@ make_impurity_dissipative_gates(const SiteSet sites , const vector<ITensor> Lj, 
 	vector<int> ket_sites = {N,N+1};
 	vector<int> bra_sites = {N,N+1};
 
-	DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt,D);
+	DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt,D);
 
 	gates.push_back(g);
 
@@ -655,13 +655,13 @@ make_impurity_dissipative_gates(const SiteSet sites , const vector<ITensor> Lj, 
 // dissipative part. Here, I use the class BondGate of ITensor which is able to exponentiate
 // also non hermitian things since it uses a high grade Pade approximation
 
-vector<BondGate>
+vector<TebdGate>
 make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt)
 {
 
 	int N = length(sites)/2;
 
-	vector<BondGate> gates;
+	vector<TebdGate> gates;
 
 	vector<ITensor> Id;
 
@@ -704,7 +704,7 @@ make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor>
 	vector<int> ket_sites = {N,N+1};
 	vector<int> bra_sites = {N,N+1};
 
-	BondGate g = BondGate(sites,N,N+1,BondGate::tImag,-1*dt,D); 
+	TebdGate g = TebdGate({N,N+1}, BondGate(sites,N,N+1,BondGate::tImag,-1*dt,D).gate()); 
 	gates.push_back(g);
 
 	return gates;
@@ -726,36 +726,39 @@ make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor>
 // we should apply swapgates
 
 vector<TebdGate>
-make_purified_gates(const vector<BondGate> gates_single, const SiteSet sites_single,  const SiteSet sites_doubled)
+make_purified_gates(const vector<TebdGate> gates_single, const SiteSet sites_single,  const SiteSet sites_doubled)
 {
     // physical site i (1..N) -> ket site N + i, mirrored bra site N + 1 - i
     int N = length(sites_single);
-    vector<TebdGate> gates_doubled;
+    auto physical_site = [&](const Index& s)
+    {
+        for(int i = 1 ; i <= N ; i++) if(sites_single(i) == s) return i;
+        throw ITError("make_purified_gates: gate index not in sites_single");
+    };
 
+    vector<TebdGate> gates_doubled;
     for(bool ket : {true, false})
     {
-        for( BondGate g : gates_single)
+        for(TebdGate g : gates_single)
         {
-            int i1 = g.i1();
-            int i2 = g.i2();
-            int inew_1 = ket ? N + i1 : N + 1 - i1;
-            int inew_2 = ket ? N + i2 : N + 1 - i2;
+            auto map_site = [&](int i) { return ket ? N + i : N + 1 - i; };
 
-            // move the gate to the site indices of the doubled chain
-            ITensor gate = g.gate();
-            Index si1    = sites_single(i1);
-            Index si2    = sites_single(i2);
-            Index sinew1 = sites_doubled(inew_1);
-            Index sinew2 = sites_doubled(inew_2);
-            gate *= delta(si1,sinew1);
-            gate *= delta(si2,sinew2);
-            gate *= delta(prime(si1),prime(sinew1));
-            gate *= delta(prime(si2),prime(sinew2));
+            // move every site index of the gate onto the doubled chain
+            ITensor original = g.gate();
+            ITensor gate     = original;
+            for(Index s : inds(original))
+            {
+                if(primeLevel(s) != 0) continue;
+                Index s_new = sites_doubled(map_site(physical_site(s)));
+                gate *= delta(s, s_new);
+                gate *= delta(prime(s), prime(s_new));
+            }
+
+            vector<int> positions;
+            for(int i : g.sites()) positions.push_back(map_site(i));
 
             // the bra evolves with the conjugate gate
-            TebdGate gnew = TebdGate(sites_doubled,{inew_1,inew_2},0,gate);
-            gnew.set_gate(ket ? gate : dag(gate));
-            gates_doubled.push_back(gnew);
+            gates_doubled.push_back(TebdGate(positions, ket ? gate : dag(gate), g.swap_after()));
         }
     }
     return gates_doubled;

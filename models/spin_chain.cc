@@ -74,7 +74,7 @@ make_spin_chain_gates(const SiteSet sites , const vector<double> J, const vector
 		ITensor H = H_S + H_SS;
 
 		vector<int> jn = {j,j+1};
-		TebdGate g = TebdGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(jn,dt/2.,H);
 		gates.push_back(g);
 	}
 	
@@ -95,73 +95,18 @@ make_spin_chain_gates(const SiteSet sites , const vector<double> J, const vector
 // Same as the one retuning <TebdGate>: overload of the function. 
 // Depending on the degree of flexibility and control needed could be better to use one over the other
 
-vector<BondGate>
-make_spin_chain_bond_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
-{
-
-	int N = length(sites);
-
-    vector<BondGate> gates;
-
-	cerr << "vector J = (J_xx, J_yy , J_zz)\n";
-	double Jxx = J[0];
-	double Jyy = J[1];
-	double Jzz = J[2];
-	cerr << Jxx << "\n" << Jyy << "\n" << Jzz << "\n";
-
-	double hx  = h[0];
-	double hy  = h[1];
-	double hz  = h[2];
-	for(int j=1 ; j <= N-1 ; j+=1)
-	{
-		vector<ITensor> X;
-		vector<ITensor> Y;
-		vector<ITensor> Z;
-		vector<ITensor> Id;
-
-		for(int q=j ; q<=j+1; q++)
-		{
-			Id.push_back(      op(sites,"Id",q) );
-			X.push_back(  2 * op(sites,"Sx",q) );
-			Y.push_back(  2 * op(sites,"Sy",q) );
-			Z.push_back(  2 * op(sites,"Sz",q) );
-		}
-
-		ITensor H_S , H_SS;
-
-		if(j==1) H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] ;
-		else     H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] / 2.;
-
-		if(j <  N-1) H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1]) / 2. ;
-		else         H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1])      ;
-
-		H_SS  = Jxx * X[0] * X[1] + Jyy * Y[0] * Y[1] + Jzz * Z[0] * Z[1];
-				
-		ITensor H = H_S + H_SS;
-
-		vector<int> jn = {j,j+1};
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H); 
-		gates.push_back(g);
-	}
-	
-	vector<BondGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-	for(BondGate gate : gates_) gates.push_back(gate);
-
-	return gates;
-}
 
 
 // effective Hamiltonian of a local dissipative process
 // The coherent dynamics is given by the generic short range spin model
 
-vector<BondGate>
+vector<TebdGate>
 make_spin_chain_effective_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const vector<int> Lj_sites, const vector<double> gamma, const double dt)
 {
 
 	int N = length(sites);
 
-    vector<BondGate> gates;
+    vector<TebdGate> gates;
 
 	double Jxx = J[0];
 	double Jyy = J[1];
@@ -222,13 +167,13 @@ make_spin_chain_effective_gates(const SiteSet sites , const vector<double> J, co
 		ITensor H = H_S + H_SS;
 
 		vector<int> jn = {j,j+1};
-		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H); 
+		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
 		gates.push_back(g);
 	}
 	
-	vector<BondGate> gates_ = gates;
+	vector<TebdGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
-	for(BondGate gate : gates_) gates.push_back(gate);
+	for(TebdGate gate : gates_) gates.push_back(gate);
 
 	return gates;
 }
@@ -252,7 +197,7 @@ make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double
 
 		vector<int> jn = {j};
 
-		TebdGate g = TebdGate(sites,jn,dt/2.,hj);
+		TebdGate g = TebdGate(jn,dt/2.,hj);
 		gates.push_back(g);
 	}
 
@@ -298,4 +243,21 @@ make_ising_bond_hamiltonian( const SpinHalf sites , const int N , const double J
 		hterm +=  - 2 * J * hz * ( Sz1 * Id2 + Id1 * Sz2 ) / 2.;	
 		}
     return hterm;
+}
+
+
+// ----------------------------------------------------------
+// second-order Trotter step of the Ising chain: forward sweep with dt/2, then the reversed sweep
+
+vector<TebdGate>
+make_ising_gates( const SpinHalf sites , const int N , const double J , const double hx , const double hz , const double dt )
+{
+    vector<TebdGate> gates;
+    for(int b = 1 ; b <= N-1 ; b++)
+    {
+        ITensor hterm = make_ising_bond_hamiltonian(sites, N, J, hx, hz, b);
+        gates.push_back(TebdGate({b, b+1}, BondGate(sites, b, b+1, BondGate::tReal, dt/2., hterm).gate()));
+    }
+    for(int b = N-1 ; b >= 1 ; b--) gates.push_back(gates[b-1]);
+    return gates;
 }

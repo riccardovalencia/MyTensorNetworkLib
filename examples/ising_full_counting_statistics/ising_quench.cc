@@ -61,13 +61,7 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Second-order Trotter gates: forward sweep with dt/2, then the reversed sweep
 
-    vector<BondGate> gates;
-    for(int b = 1 ; b <= N-1 ; b++)
-    {
-        ITensor hterm = make_ising_bond_hamiltonian(sites, N, J, hx, hz, b);
-        gates.push_back(BondGate(sites, b, b+1, BondGate::tReal, dt/2., hterm));
-    }
-    for(int b = N-1 ; b >= 1 ; b--) { BondGate g = gates[b-1]; gates.push_back(g); }
+    vector<TebdGate> gates = make_ising_gates(sites, N, J, hx, hz, dt);
 
     // ---------------------------------
     // Output
@@ -83,11 +77,17 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Time evolution
 
-    int n_measure = int(T / t_measure + 1E-9);
+    int n_measure         = int(T / t_measure + 1E-9);
+    int steps_per_measure = int(t_measure / dt + 1E-9);
     for(int n = 0 ; n <= n_measure ; n++)
     {
         double t = n * t_measure;
-        if(n > 0) gateTEvol(gates, t_measure, dt, psi, args);
+        for(int k = 0 ; n > 0 && k < steps_per_measure ; k++)
+        {
+            psi = tebd_step(psi, gates, args);
+            psi.position(1);
+            psi.normalize();
+        }
 
         out_entropy << t;
         for(int b = 1 ; b < N ; b++) out_entropy << " " << compute_entanglement_entropy(&psi, b, true);
