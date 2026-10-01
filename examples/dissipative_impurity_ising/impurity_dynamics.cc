@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // 2. Relaxation up to Tness
 
-    int steps_measure = max(1, int(t_measure / dt + 1E-9));
+    int steps_measure = compute_steps_per_measure(t_measure, dt);
     int total_steps   = int(Tness / dt + 1E-9);
     for(int k = 1 ; k <= total_steps ; k++)
     {
@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
     ofstream out_corr(tinyformat::format("%s_Tness%.1f_z1z1.txt", root, Tness));
     out_corr << setprecision(14) << "# t . Re . Im . abs of <Z_1(t) Z_1(0)>\n";
 
-    int steps_corr = max(1, int(t_corr / dt + 1E-9));
+    int steps_corr = compute_steps_per_measure(t_corr, dt);
     total_steps    = int(T / dt + 1E-9);
     for(int k = 1 ; k <= total_steps ; k++)
     {

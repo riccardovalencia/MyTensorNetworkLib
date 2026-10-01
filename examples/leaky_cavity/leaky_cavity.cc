@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
     bool dissipative = kappa > 1E-10;
     Args args = {"Cutoff=", cut_off, "MaxDim=", max_dim};
 
-    int steps_measure = max(1, int(t_measure/dt + 0.5));
+    int steps_measure = compute_steps_per_measure(t_measure, dt);
     int total_steps   = int(T / dt);
 
     // ---------------------------------

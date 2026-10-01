@@ -38,13 +38,18 @@ python3 rydberg_chain_tebd_exact_diagonalization.py input_rydberg_chain_tebd.txt
 `make compare` does this for all the examples. The scripts need numpy, scipy and (most of them) quimb,
 and share the helpers in [exact_diagonalization_tools.py](exact_diagonalization_tools.py).
 Their cost grows exponentially with the system size: keep N small (about 12 spins, or fewer for the
-open systems). `impurity_dynamics_exact_diagonalization.py` uses the free-fermion solution and
-therefore requires `Jxx = Jzzz = 0`, but works for large N.
+open systems). `impurity_dynamics_exact_diagonalization.py` uses the free-fermion solution when
+`Jxx = Jzzz = 0` (any N), and integrates the Lindblad equation of the full density matrix otherwise
+(N <= 8).
+
+Each script also defines `main(input_file)`, which returns the comparisons
+(`{output: {column: max |TN - ED|}}`); the integration tests in [../tests](../tests/) use it.
 
 ## Input files
 
 All programs read their parameters from a file in the ITensor `InputGroup` format; missing entries
-take the defaults written at the top of `main`:
+take the defaults written at the top of `main`. Measurement intervals (`t_measure`, `t_corr`) must be
+multiples of `dt` (the programs stop with an error otherwise):
 
 ```
 input

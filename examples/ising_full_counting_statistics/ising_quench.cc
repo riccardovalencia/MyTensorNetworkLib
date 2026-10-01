@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
     // Time evolution
 
     int n_measure         = int(T / t_measure + 1E-9);
-    int steps_per_measure = int(t_measure / dt + 1E-9);
+    int steps_per_measure = compute_steps_per_measure(t_measure, dt);
     for(int n = 0 ; n <= n_measure ; n++)
     {
         double t = n * t_measure;

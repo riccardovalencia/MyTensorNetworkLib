@@ -37,4 +37,12 @@ tebd_step(MPS psi, const vector<TebdGate>& gates, const vector<DissipativeGate>&
 MPS
 tebd_step(MPS psi, const vector<TebdGate>& gates, const Args args);
 
+/**
+ * @brief Number of time steps dt between two measurements separated by t_measure.
+ * @throws ITError if t_measure is not a positive multiple of dt (the measurement times would
+ *         not be multiples of t_measure).
+ */
+int
+compute_steps_per_measure(const double t_measure, const double dt);
+
 #endif

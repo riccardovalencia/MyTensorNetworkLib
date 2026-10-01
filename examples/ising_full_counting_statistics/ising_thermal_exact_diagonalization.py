@@ -10,28 +10,33 @@ import os
 import sys
 import numpy as np
 from scipy.optimize import brentq
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from exact_diagonalization_tools import read_input, save_and_compare, theta_grid
 from ising_common_exact_diagonalization import ising_hamiltonian, generating_function_table
 
-p = read_input(sys.argv[1])
-N, J, hx, hz = p.get('N', 16), p.get('J', 1.), p.get('hx', 0.1), p.get('hz', 1.)
-number_points, max_block_size = p.get('number_points', 100), p.get('max_block_size', N // 2)
 
-E, V = np.linalg.eigh(ising_hamiltonian(N, J, hx, hz))
-energy_target = -J * ((N - 1.) / N + hx)
+def main(input_file):
+    p = read_input(input_file)
+    N, J, hx, hz = p.get('N', 16), p.get('J', 1.), p.get('hx', 0.1), p.get('hz', 1.)
+    number_points, max_block_size = p.get('number_points', 100), p.get('max_block_size', N // 2)
 
+    E, V = np.linalg.eigh(ising_hamiltonian(N, J, hx, hz))
+    energy_target = -J * ((N - 1.) / N + hx)
 
-def energy_density(beta):
+    def energy_density(beta):
+        w = np.exp(-beta * (E - E.min()))
+        return np.sum(w * E) / np.sum(w) / N
+
+    beta = brentq(lambda b: energy_density(b) - energy_target, 0., 50.)
     w = np.exp(-beta * (E - E.min()))
-    return np.sum(w * E) / np.sum(w) / N
+    rho = V @ np.diag(w / w.sum()) @ V.conj().T
+    print(f'beta = {beta:.6f}')
+
+    root = 'data/ising_thermal_N%d_J%.2f_hx%.2f_hz%.2f' % (N, J, hx, hz)
+    return {'gf': save_and_compare(root + '_exact_diagonalization_gf.txt', generating_function_table(rho, N, theta_grid(number_points), max_block_size),
+                                   'theta ' + ' '.join(f'ReG_{l} ImG_{l}' for l in range(1, max_block_size + 1)), root + '_gf.txt')}
 
 
-beta = brentq(lambda b: energy_density(b) - energy_target, 0., 50.)
-w = np.exp(-beta * (E - E.min()))
-rho = V @ np.diag(w / w.sum()) @ V.conj().T
-print(f'beta = {beta:.6f}')
-
-root = 'data/ising_thermal_N%d_J%.2f_hx%.2f_hz%.2f' % (N, J, hx, hz)
-save_and_compare(root + '_exact_diagonalization_gf.txt', generating_function_table(rho, N, theta_grid(number_points), max_block_size),
-                 'theta ' + ' '.join(f'ReG_{l} ImG_{l}' for l in range(1, max_block_size + 1)), root + '_gf.txt')
+if __name__ == '__main__':
+    main(sys.argv[1])

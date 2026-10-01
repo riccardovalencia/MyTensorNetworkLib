@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
     double cut_off   = input.getReal("cut_off", 1E-12);   // SVD truncation
 
     double V1        = 1.;
-    int steps_measure = max(1, int(t_measure/dt + 0.5));
+    int steps_measure = compute_steps_per_measure(t_measure, dt);
     int total_steps  = int(T / dt);
 
     Args tebd_args = {"Cutoff=", cut_off, "MaxDim=", max_dim};

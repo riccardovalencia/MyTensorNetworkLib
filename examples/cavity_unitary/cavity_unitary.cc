@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     string coupling = input.getString("coupling", "dicke");
     double t_measure = input.getReal("t_measure", 0.05);  // time between measurements
 
-    int steps_measure = max(1, int(t_measure/dt + 0.5));
+    int steps_measure = compute_steps_per_measure(t_measure, dt);
     int total_steps   = int(T / dt);
 
     SiteSet sites = make_spin_boson_sites(N+1, max_occ);

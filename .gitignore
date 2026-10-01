@@ -12,3 +12,6 @@ examples/*/*
 !examples/*/*.txt
 !examples/*/*.sh
 !examples/*/*.py
+
+# Python caches
+__pycache__/

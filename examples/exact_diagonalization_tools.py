@@ -2,7 +2,8 @@
 
 The ED scripts (<example>/<name>_exact_diagonalization.py) read the same input files as the
 tensor-network (TN) programs, solve the same problem exactly for small systems and compare the
-results with the TN output, if present in data/.
+results with the TN output, if present in data/. Each script defines main(input_file), which returns
+the comparisons ({output: {column: max |TN - ED|}}), so that it can be used by the tests (tests/).
 """
 import os
 import re
@@ -38,35 +39,48 @@ def tn_root(fmt, *args):
     return fmt % args
 
 
+def compare_tables(ed, tn, columns=None):
+    """Maximum absolute difference between ED and TN tables, column by column.
+
+    ed, tn: arrays with one row per time (or theta), first column = time (or theta).
+    columns: indices of the TN columns to compare with the ED columns 1, 2, ... (default: same order).
+    Rows are matched by their first column; returns (number of common rows, list of differences),
+    with an empty list if there are no common rows.
+    """
+    ed, tn = np.asarray(ed, dtype=float), np.asarray(tn, dtype=float)
+    columns = columns if columns is not None else list(range(1, ed.shape[1]))
+    rows = [(i, np.argmin(np.abs(tn[:, 0] - t))) for i, t in enumerate(ed[:, 0])]
+    rows = [(i, k) for i, k in rows if abs(tn[k, 0] - ed[i, 0]) < 1e-8]
+    if not rows:
+        return 0, []
+    i_ed, i_tn = map(list, zip(*rows))
+    return len(rows), [np.abs(tn[i_tn, c_tn] - ed[i_ed, c_ed]).max() for c_ed, c_tn in zip(range(1, ed.shape[1]), columns)]
+
+
 def save_and_compare(ed_file, data, header, tn_file, columns=None):
     """Save the ED data and compare it with the TN output tn_file, if it exists.
 
     data, TN data: one row per time, first column = time.
     columns: indices of the TN columns to compare with the ED columns 1, 2, ... (default: same order).
-    Rows are matched by their first column (time or theta); the maximum absolute difference of each
-    column is printed.
+    Prints and returns {column name: max |TN - ED|} over the rows with the same first column;
+    returns None if tn_file does not exist or has no row in common with the ED data.
     """
     os.makedirs(os.path.dirname(ed_file) or '.', exist_ok=True)
     np.savetxt(ed_file, data, header=header)
     print(f'ED results written to {ed_file}')
     if not os.path.exists(tn_file):
         print(f'TN results not found ({tn_file}): run the TN program first to compare.')
-        return
-    tn = np.loadtxt(tn_file, ndmin=2)
-    ed = np.asarray(data)
-    columns = columns if columns is not None else list(range(1, ed.shape[1]))
-    names = header.split()
-    rows = [(i, np.argmin(np.abs(tn[:, 0] - t))) for i, t in enumerate(ed[:, 0])]
-    rows = [(i, k) for i, k in rows if abs(tn[k, 0] - ed[i, 0]) < 1e-8]
-    if not rows:
+        return None
+    number_rows, differences = compare_tables(data, np.loadtxt(tn_file, ndmin=2), columns)
+    if number_rows == 0:
         print('No common rows (same first column) between ED and TN results.')
-        return
-    i_ed, i_tn = zip(*rows)
-    print(f'Comparison with {tn_file} ({len(rows)} common rows): max |TN - ED|')
-    for c_ed, c_tn in zip(range(1, ed.shape[1]), columns):
-        diff = np.abs(tn[list(i_tn), c_tn] - ed[list(i_ed), c_ed]).max()
-        name = names[c_ed] if c_ed < len(names) else f'column {c_ed}'
+        return None
+    names = header.split()
+    names = [names[c] if c < len(names) else f'column {c}' for c in range(1, len(differences) + 1)]
+    print(f'Comparison with {tn_file} ({number_rows} common rows): max |TN - ED|')
+    for name, diff in zip(names, differences):
         print(f'  {name:>12s}: {diff:.2e}')
+    return dict(zip(names, differences))
 
 
 def lindblad_evolution(rho0, H, jump_operators, times, rtol=1e-10, atol=1e-12):

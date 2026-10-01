@@ -1,0 +1,17 @@
+input
+{
+N = 5
+hx = 1.5
+Jxx = 0.3
+Jzzz = 0.0
+gamma = 0.5
+Tness = 1
+T = 1
+dt = 0.02
+max_dim = 64
+cut_off = 1E-14
+t_measure = 0.2
+t_corr = 0.1
+dmrg_sweeps = 20
+hz = 0.0
+}

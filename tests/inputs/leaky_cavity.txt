@@ -1,0 +1,16 @@
+input
+{
+N = 3
+max_occ = 2
+g = 1.6
+kappa = 1.6
+h = 0.6
+V = 0.5
+theta = 0.9
+T = 3
+dt = 0.005
+max_dim = 256
+cut_off = 1E-14
+coupling = dicke
+t_measure = 0.1
+}
