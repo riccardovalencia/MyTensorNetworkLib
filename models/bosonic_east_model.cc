@@ -1,6 +1,6 @@
 /**
  * @file bosonic_east_model.cc
- * @brief Implementation of bosonic_east_model.h (the functions are documented in the header).
+ * @brief Implementation of bosonic_east_model.h (interfaces documented in the header, logic commented here).
  */
 #include "bosonic_east_model.h"
 #include "../models/spin_chain.h"
@@ -21,7 +21,8 @@ using namespace itensor;
 
 
 //----------------------------------------------------------------------
-// bond term on (j, j+1) of the bosonic quantum east model chain
+// bond term on (j, j+1): the facilitated term -n_j (J sigma^x_{j+1} - U n_{j+1})/2 and n_j/2
+// (plus n_{j+1}/2 on the last bond, so that every site gets its term once)
 
 ITensor
 make_bosonic_east_model_bond_hamiltonian( const SiteSet sites , const int size , const double J , const double c , const int j )
@@ -69,7 +70,8 @@ make_bosonic_east_model_bond_hamiltonian_dephasing( const SiteSet sites , const 
 
 //----------------------------------------------------------------------
 
-//single time step for time evolution in bosonic quantum east model chain, with symmetry on n0
+// As above, with the coupling -n0 (J sigma^x_1 - U n_1)/2 to the virtual site 0 on the first bond;
+// the n_j/2 terms are split in two halves between the bonds sharing site j.
 
 ITensor
 make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int size , const int n0, const double J , const double c , const int j )
@@ -99,8 +101,8 @@ make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int siz
 }
 
 
-// Full TEBD time step under the bosonic quantum east Hamiltonian with only next-neighbour density-density
-// interaction, H = - 0.5 \sum_i n_i (exp(-s)\sigma_i+1^x - U n_i+1 - 1), without fixing a symmetry sector.
+// One gate per bond (closed or dephasing bond term) exponentiated with ITensor BondGate (also for
+// the non-hermitian open case), then the reversed sweep. No symmetry sector is fixed (no site 0).
 
 vector<TebdGate>
 make_bosonic_east_model_gates(const SiteSet sites, const int size, const double dt, const double J, const double c , const string dynamics ,const double gamma)
@@ -154,6 +156,7 @@ make_bosonic_east_model_terms( const SiteSet& sites, int size, int first, int n0
 }
 
 
+// the shared terms from site 1, with J = e^{-s}; the MPO is exact (no compression)
 MPO
 make_bosonic_east_model_mpo( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
@@ -161,6 +164,7 @@ make_bosonic_east_model_mpo( const SiteSet sites, int size , int n0, double symm
 }
 
 
+// the shared terms plus Omega (a + a^dag) on the bulk sites
 MPO
 make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c, double Omega)
 {
@@ -174,6 +178,7 @@ make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, 
 }
 
 
+// the shared terms with prefactor -1
 MPO
 make_bosonic_east_model_mpo_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
@@ -181,11 +186,10 @@ make_bosonic_east_model_mpo_minus( const SiteSet sites, int size , int n0, doubl
 }
 
 
+// AutoMPO: bulk east-model terms, epsilon/2 n_j^2 on every site and the hopping on every bond
 MPO
 make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , double s, double c, double epsilon, double t)
 {
-
-
 	double U = 1-2*c;
 	auto ampo = AutoMPO(sites);
 
@@ -214,6 +218,7 @@ make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , doub
 }
 
 
+// AutoMPO with epsilon/2 n_j^2 on every site
 MPO
 make_bosonic_east_model_mpo_onsite( const SiteSet sites, int size , double epsilon)
 {
@@ -235,6 +240,7 @@ make_bosonic_east_model_mpo_onsite( const SiteSet sites, int size , double epsil
 
 
 
+// AutoMPO with the diagonal single-site terms only (constant n0/2 on site 1)
 MPO
 make_bosonic_east_model_mpo_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double c )
 {
@@ -243,7 +249,7 @@ make_bosonic_east_model_mpo_onsite_nonext( const SiteSet sites, int size , int n
 
 	ampo +=   n0 * 0.5 , "Id", 1;
 
-	// non serve mettere n_0^2 dato che e' una costante.
+	// n0^2 would only add a constant: left out
 
 	for(int j = 1 ; j <= size-1 ; j++)
 		{
@@ -289,7 +295,8 @@ make_bosonic_east_model_mpo_n0_not_fixed( const SiteSet sites, int size , double
 }
 
 
-// exp(i dt H) of make_bosonic_east_model_mpo_n0_not_fixed with hopping J, to evolve operators
+// exp(-i dt H) of make_bosonic_east_model_mpo_n0_not_fixed with hopping J (ITensor toExpH with
+// tau = i dt), used to evolve operators
 
 MPO
 make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , double symmetry , double J, double c, double dt)
@@ -316,6 +323,7 @@ read_symmetry_eigenvalue(const string& symmetry_sector_dir, int symmetry_sector,
 }
 
 
+// symmetry eigenvalue from file, then <H^2> - <H>^2 with the MPO of the sector
 double 
 compute_bosonic_east_model_energy_variance(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir)
 {

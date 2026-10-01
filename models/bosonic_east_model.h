@@ -9,7 +9,8 @@
  *
  * where an excitation on site j facilitates creation/annihilation on site j+1.
  * Variants fix the occupation n0 of a virtual site 0 (symmetry sector) and add a boundary
- * term (1 - symmetry)/2 n_size. Parameters common to several functions:
+ * term (1 - symmetry)/2 n_size. Parameters common to several functions, not repeated below:
+ * - sites    : Boson site set (at least `size` sites);
  * - size     : number of sites;
  * - n0       : occupation of the virtual site 0, coupled to site 1;
  * - symmetry : symmetry-sector eigenvalue entering the boundary term on site size;
@@ -35,7 +36,10 @@ using namespace itensor;
 MPO
 make_bosonic_east_model_mpo( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
-/** @brief make_bosonic_east_model_mpo plus a drive Omega sum_{j=2}^{size-1} sigma^x_j (default Omega = 0.05). */
+/**
+ * @brief make_bosonic_east_model_mpo plus a drive Omega sum_{j=2}^{size-1} sigma^x_j.
+ * @param Omega Drive amplitude (default 0.05).
+ */
 MPO
 make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c, double Omega = 0.05);
 
@@ -47,12 +51,15 @@ make_bosonic_east_model_mpo_minus( const SiteSet sites, int size , int n0, doubl
  * @brief Bulk bosonic east model term plus on-site interaction and hopping (no site 0, no boundary term):
  *        H = -1/2 sum_j n_j (e^{-s} sigma^x_{j+1} - U n_{j+1} - 1) + epsilon/2 sum_j n_j^2
  *            - t/2 sum_j (a^dag_j a_{j+1} + h.c.).
+ * @param epsilon On-site interaction.
+ * @param t       Hopping.
  */
 MPO
 make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , double s, double c , double epsilon, double t);
 
 /**
  * @brief On-site interaction only, H = epsilon/2 sum_j n_j^2.
+ * @param epsilon On-site interaction.
  */
 MPO
 make_bosonic_east_model_mpo_onsite( const SiteSet sites, int size , double epsilon);
@@ -83,6 +90,8 @@ make_bosonic_east_model_mpo_n0_not_fixed( const SiteSet sites, int size , double
 /**
  * @brief MPO approximation of exp(-i dt H) (ITensor toExpH, first order in dt), with H as in
  *        make_bosonic_east_model_mpo_n0_not_fixed and hopping amplitude J. Used by make_dressed_operator.
+ * @param J  Facilitated hopping amplitude (e^{-s}).
+ * @param dt Time step.
  */
 MPO
 make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , double symmetry , double J, double c, double dt);
@@ -115,24 +124,35 @@ compute_bosonic_east_model_energy_variance(MPS *psi , const SiteSet sites, int s
  * @brief Bond term on (j, j+1) of the bulk Hamiltonian with hopping J (the n_j term is assigned to the
  *        bond; the last bond also takes n_size).
  * @param J Facilitated hopping amplitude (e^{-s}).
+ * @param j Left site of the bond (1 <= j < size).
  * @return Bond Hamiltonian.
  */
 ITensor
 make_bosonic_east_model_bond_hamiltonian( const SiteSet sites , const int size , const double J , const double c , const int j );
 
-/** @brief As make_bosonic_east_model_bond_hamiltonian, including the coupling to the virtual site 0 with occupation n0 on the first bond. */
+/**
+ * @brief As make_bosonic_east_model_bond_hamiltonian, including the coupling to the virtual site 0
+ *        with occupation n0 on the first bond (the n_j terms are shared between the two bonds of each site).
+ * @param J Facilitated hopping amplitude.
+ * @param j Left site of the bond.
+ */
 ITensor
 make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int size , const int n0, const double J , const double c , const int j );
 
 /**
  * @brief As make_bosonic_east_model_bond_hamiltonian plus the effective non-hermitian term -i gamma/2 n_j^2
  *        of dephasing L_j = sqrt(gamma) n_j.
+ * @param J     Facilitated hopping amplitude.
+ * @param gamma Dephasing rate.
+ * @param j     Left site of the bond.
  */
 ITensor
 make_bosonic_east_model_bond_hamiltonian_dephasing( const SiteSet sites , const int size , const double J , const double c , const double gamma, const int j );
 
 /**
  * @brief Gates of one second-order Trotter step of the bulk Hamiltonian (apply with tebd_step).
+ * @param dt       Time step.
+ * @param J        Facilitated hopping amplitude.
  * @param dynamics "closed" (default) or "open" (adds dephasing with rate gamma).
  * @param gamma    Dephasing rate (only for "open").
  */

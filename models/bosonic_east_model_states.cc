@@ -1,6 +1,6 @@
 /**
  * @file bosonic_east_model_states.cc
- * @brief Implementation of bosonic_east_model_states.h (the functions are documented in the header).
+ * @brief Implementation of bosonic_east_model_states.h (interfaces documented in the header, logic commented here).
  */
 #include "bosonic_east_model_states.h"
 #include "../dof/boson.h"
@@ -23,9 +23,8 @@ using namespace std;
 using namespace itensor;
 
 
-// Initial state |0>^k \otimes |n_0> \otimes |GS(n_0)_L> \otimes |0>^(N-L-k-1)
-// It's a state with k 0's, n_0, the ground state of size L in this symmetry sector, and the other 0's.
-// The total size of the system is L
+// |0>^k (x) |n0> (x) |ground state of L sites> (x) |0>^(N-L-k-1): Fock excitation n0 on site k+1,
+// then the ground state copied onto the sites k+2..k+L+1 (insert_state)
 
 MPS
 make_super_bosonic_state(MPS state_to_insert, const SiteSet sites, const SiteSet sites_state_to_insert, const int L, const int N, const int n0, const int k)
@@ -37,7 +36,7 @@ make_super_bosonic_state(MPS state_to_insert, const SiteSet sites, const SiteSet
 }
 
 
-// return the super-bosonic coherent state
+// coherent state on site 1, then the linear adiabatic ramp of the hopping
 
 MPS
 make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double s, const double c, double dt, double T)
@@ -49,7 +48,7 @@ make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_cohere
 }
 
 
-// Return a super-bosonic squeezed state
+// squeezed vacuum on site 1, then the linear adiabatic ramp of the hopping
 MPS
 make_super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeezed, const double alpha, const double s, const double c, double dt, double T)
 {
@@ -61,6 +60,9 @@ make_super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeez
 }
 
 
+// Heisenberg picture along the ramp J(t) = e^{-s} t / T: at every step O -> e^{i dt H} O e^{-i dt H}
+// with first-order MPOs of the evolution (make_bosonic_east_model_evolution_mpo), compressed
+// (cutoff 1E-14, at most 1000 states).
 MPO
 make_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt, double T)
 {

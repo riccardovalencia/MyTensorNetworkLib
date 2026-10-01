@@ -42,7 +42,15 @@ make_super_bosonic_state(MPS ground_state, const SiteSet sites, const SiteSet gr
 MPS
 make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double s, const double c, double dt, double T);
 
-/** @brief As make_super_bosonic_coherent_state, starting from a squeezed vacuum with parameter alpha on site 1. */
+/**
+ * @brief As make_super_bosonic_coherent_state, starting from a squeezed vacuum on site 1.
+ * @param psi_coherent   State to overwrite (also returned).
+ * @param sites_coherent Boson site set.
+ * @param alpha          Squeezing parameter r of the initial state.
+ * @param s, c           Target bosonic east model parameters.
+ * @param dt             Time step of the ramp.
+ * @param T              Duration of the ramp.
+ */
 MPS
 make_super_bosonic_squeezed_state( MPS *psi_coherent, const SiteSet sites_coherent, const double alpha, const double s, const double c, double dt, double T);
 
@@ -51,6 +59,7 @@ make_super_bosonic_squeezed_state( MPS *psi_coherent, const SiteSet sites_cohere
  *        O -> U^dag O U with U the time-ordered evolution of duration T.
  * @param O     Operator (MPO) to dress.
  * @param sites Boson site set.
+ * @param s, c  Target bosonic east model parameters (final hopping e^{-s}).
  * @param dt    Time step of the ramp.
  * @param T     Duration of the ramp.
  */
@@ -58,23 +67,30 @@ MPO
 make_dressed_operator(MPO O, const SiteSet sites, const double s, const double c, double dt, double T);
 
 /**
- * @brief Overlap between ground states in sectors with different n0, and energy variance of
- *        the embedded state.
- * @param psi1, psi2     States (sites1, sites2) with n0 = n0_1 and n0_2.
+ * @brief Overlap between ground states in sectors with different n0: the state with the larger n0 is
+ *        projected onto the site set of the other one (make_resized_state).
+ * @param psi1, psi2     States, with n0 = n0_1 and n0_2.
+ * @param sites1, sites2 Their site sets.
  * @param size           Number of sites.
- * @param lambda         Fock-space cutoff.
+ * @param n0_1, n0_2     Occupations of the virtual site 0 of the two states.
+ * @param lambda         Fock-space cutoff (selects the symmetry eigenvalue in the data file).
  * @param symmetry_sector, s, c bosonic east model parameters (see compute_bosonic_east_model_energy_variance).
- * @param symmetry_sector_dir   Folder of the symmetry-sector data files (see compute_bosonic_east_model_energy_variance).
- * @return {|<psi1|psi2>|, variance of H on the state with smaller n0 embedded in the larger space}.
+ * @param symmetry_sector_dir   Folder of the symmetry-sector data files.
+ * @return {|<psi_min|psi_projected>|^2 (0 below 1e-10), variance of H (smaller n0) on the projected state}.
  */
 tuple<double, double>
 compute_overlap_different_n0( MPS *psi1, MPS *psi2, const SiteSet sites1, const SiteSet sites2, const int size, const int n0_1, const int n0_2 , const int lambda, const int symmetry_sector, const double s, const double c, const string symmetry_sector_dir);
 
 /**
  * @brief Overlap between states computed with different Fock-space cutoffs; the state with the
- *        smaller cutoff is embedded in the larger space.
- * @param symmetry_sector_dir Folder of the symmetry-sector data files (see compute_bosonic_east_model_energy_variance).
- * @return {|<psi1|psi2>|, variance of H on the embedded state}.
+ *        smaller cutoff is embedded in the larger space (make_resized_state).
+ * @param psi1, psi2     States.
+ * @param sites1, sites2 Their site sets.
+ * @param size           Number of sites.
+ * @param cut_off_fock_space1, cut_off_fock_space2 Fock-space cutoffs of the two states.
+ * @param n0, symmetry_sector, s, c bosonic east model parameters (see compute_bosonic_east_model_energy_variance).
+ * @param symmetry_sector_dir Folder of the symmetry-sector data files.
+ * @return {|<psi_max|psi_embedded>|^2, variance of H on the embedded state}.
  */
 tuple<double, double>
 compute_overlap_different_cutoffs( MPS *psi1, MPS *psi2, const SiteSet sites1, const SiteSet sites2, const int size, const int cut_off_fock_space1, const int cut_off_fock_space2 , const int n0, const int symmetry_sector, const double s, const double c, const string symmetry_sector_dir);
