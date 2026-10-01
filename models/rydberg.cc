@@ -5,6 +5,7 @@
 #include "rydberg.h"
 #include "../mps/gates.h"
 #include <itensor/all.h>
+#include <functional>
 #include <cmath>
 #include <complex>
 #include <fstream>
@@ -222,59 +223,35 @@ make_pxp_mpo(const SiteSet s, const double omega)
 }
 
 
+// three layers of non-overlapping three-site gates: [1,2,3] [4,5,6] ..., [2,3,4] ..., [3,4,5] ...,
+// each with the term make_term(j) on (j, j+1, j+2), followed by the reversed sequence
+
+static vector<TebdGate>
+make_three_site_layers(const int N, const double dt, const function<ITensor(int)>& make_term)
+{
+    vector<TebdGate> gates;
+    for(int layer = 1 ; layer <= 3 ; layer++)
+        for(int j = layer ; j <= N-2 ; j += 3)
+            gates.push_back(TebdGate({j,j+1,j+2}, dt/2., make_term(j)));
+    return make_symmetric_sweep(gates);
+}
+
+
 // Gates of the PXP Hamiltonian
-// H = omega \sum_j P_j X_{j-1} P_{j+1}
+// H = omega \sum_j P_j X_{j+1} P_{j+2}
 // where P_j = (1+Z_j)/2
 
 vector<TebdGate>
 make_pxp_gates(const SiteSet sites , const double omega, const double dt)
 {
-
-	int N = length(sites);
-
-
-	vector<TebdGate> gates;
-
-	// first layer (acts on sites [1,2,3] , [4,5,6] , ... )
-	for(int j=1 ; j <= N-2 ; j+=3)
-	{
-		ITensor P1 = (op(sites,"Id",j) + 2*op(sites,"Sz",j))/2;
-		ITensor X2 = 2*op(sites,"Sx",j+1);
-		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
-		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(jn,dt/2.,omega*P1*X2*P3);
-		gates.push_back(g);
-	}
-
-	// second layer (acts on sites [2,3,4] , [5,6,7] , ... )
-	for(int j=2 ; j <= N-2 ; j+=3)
-	{
-		ITensor P1 = (op(sites,"Id",j) + 2*op(sites,"Sz",j))/2;
-		ITensor X2 = 2*op(sites,"Sx",j+1);
-		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
-		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(jn,dt/2.,omega*P1*X2*P3);
-		gates.push_back(g);
-	}
-
-	// third layer (acts on sites [3,4,5] , [6,7,8] , ... )
-	for(int j=3 ; j <= N-2 ; j+=3)
-	{
-		ITensor P1 = (op(sites,"Id",j) + 2*op(sites,"Sz",j))/2;
-		ITensor X2 = 2*op(sites,"Sx",j+1);
-		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
-		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(jn,dt/2.,omega*P1*X2*P3);
-		gates.push_back(g);
-	}
-
-
-	vector<TebdGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-
-	for(TebdGate gate : gates_) gates.push_back(gate);
-	
-	return gates;
+    auto pxp = [&](int j)
+    {
+        ITensor P1 = (op(sites,"Id",j) + 2*op(sites,"Sz",j))/2;
+        ITensor X2 = 2*op(sites,"Sx",j+1);
+        ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
+        return omega*P1*X2*P3;
+    };
+    return make_three_site_layers(length(sites), dt, pxp);
 }
 
 
@@ -283,319 +260,81 @@ make_pxp_gates(const SiteSet sites , const double omega, const double dt)
 vector<TebdGate>
 make_rydberg_gates_nn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
+    int N = length(sites);
+    vector<TebdGate> gates;
+    for(int j = 1 ; j <= N-1 ; j++)
+    {
+        vector<ITensor> Nj, Ij, Xj;
+        for(int q = j ; q <= j+1 ; q++)
+        {
+            Nj.push_back( (op(sites,"Id",q) - 2*op(sites,"Sz",q)) / 2. );
+            Ij.push_back(  op(sites,"Id",q) );
+            Xj.push_back(  op(sites,"Sx",q) );
+        }
 
-	int N = length(sites);
+        // on-site terms shared with the neighbouring bonds
+        double count1 = count_gates_containing(j,   1, 2, N);
+        double count2 = count_gates_containing(j+1, 1, 2, N);
 
-	vector<TebdGate> gates;
+        ITensor H_om = Omegaj[j-1] / count1 * Xj[0] * Ij[1] + Omegaj[j] / count2 * Ij[0] * Xj[1];
+        ITensor H_N  = Deltaj[j-1] / count1 * Nj[0] * Ij[1] + Deltaj[j] / count2 * Ij[0] * Nj[1];
+        ITensor H_NN = Vj[j-1] * Nj[0] * Nj[1];
 
-
-	for(int j=1 ; j <= N-1 ; j+=1)
-	{
-		
-		vector<ITensor> Nj;
-		vector<ITensor> Ij;
-		vector<ITensor> Xj;
-		for(int q=j ; q<=j+1; q++)
-		{
-			Nj.push_back(  (op(sites,"Id",q)   - 2*op(sites,"Sz",q))  /2. );
-			Ij.push_back(   op(sites,"Id",q) );
-			Xj.push_back(   op(sites,"Sx",q) );
-		}
-
-
-		double V = Vj[j-1];
-		double Omega1 = Omegaj[j-1];
-		double Omega2 = Omegaj[j];
-		double Delta1 = Deltaj[j-1];
-		double Delta2 = Deltaj[j];
-
-		if(j<N-1)
-		{
-			Omega2 /= 2.;
-		 	Delta2 /= 2.;
-		}
-
-		if(j>1)
-		{
-			Omega1 /= 2.;
-			Delta1 /= 2.;
-		}
-
-
-		ITensor H_om, H_N, H_NN; 
-		H_om = Omega1 * Xj[0] * Ij[1] + Omega2 * Ij[0] * Xj[1];
-		H_N  = Delta1 * Nj[0] * Ij[1] + Delta2 * Ij[0] * Nj[1];
-		H_NN = V * Nj[0] * Nj[1];
-
-		ITensor H = H_NN + H_N + H_om;
-
-
-		vector<int> jn = {j,j+1};
-		TebdGate g = TebdGate(jn,dt/2.,H);
-		gates.push_back(g);
-	}
-
-
-	vector<TebdGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-
-	for(TebdGate gate : gates_) gates.push_back(gate);
-	
-	return gates;
+        gates.push_back(TebdGate({j,j+1}, dt/2., H_NN + H_N + H_om));
+    }
+    return make_symmetric_sweep(gates);
 }
 
 
 // Rydberg Hamiltonian - we keep up to next-nearest neighbor interactions
 // 1. We split H = H_1 + H_2 + H_3, so that [H_i,H_j] \neq 0 while the elements within each H_i commute.
-// 2. We prepare the gates for H_j, and then we put them inside a time-evolving operator U_j (of time step dt/2) via SVDs. Namely: we construct the gates and then the resulting MPO
-// 3. Either we return the vector [U_1,U_2,U_3,U_3,U_2,U_1]. Or we multiply the MPOs in order to have a single one.
-
-// PLUS: it does not split the single-site terms separately. You earn ~30% in computation time
+// 2. Each H_i is made of three-site gates of time step dt/2; the sequence is [U_1,U_2,U_3,U_3,U_2,U_1].
+// The single-site terms are not split off in separate gates: ~30% faster.
 
 vector<TebdGate>
 make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
+    int N = length(sites);
+    auto rydberg_term = [&](int j)
+    {
+        vector<ITensor> Nj, Ij, Xj;
+        for(int q = j ; q <= j+2 ; q++)
+        {
+            Nj.push_back( (op(sites,"Id",q) - 2*op(sites,"Sz",q)) / 2. );
+            Ij.push_back(  op(sites,"Id",q) );
+            Xj.push_back(  op(sites,"Sx",q) );
+        }
 
-	int N = length(sites);
+        // the next-nearest-neighbour interaction follows from the distances r = V^(-1/6)
+        double r1  = pow(1/Vj[j-1], 1./6);
+        double r2  = pow(1/Vj[j],   1./6);
+        double V13 = pow(1/(r1+r2), 6.);
 
-	vector<TebdGate> gates;
-	vector<double> omega;
-	vector<double> delta;
+        // nearest-neighbour interactions and on-site terms are shared among the gates containing them
+        double V12 = Vj[j-1] / count_gates_containing(j,   2, 3, N);
+        double V23 = Vj[j]   / count_gates_containing(j+1, 2, 3, N);
+        vector<double> omega, delta;
+        for(int a = 0 ; a < 3 ; a++)
+        {
+            double count = count_gates_containing(j+a, 1, 3, N);
+            omega.push_back(Omegaj[j-1+a] / count);
+            delta.push_back(Deltaj[j-1+a] / count);
+        }
 
-	// first layer (acts on sites [1,2,3] , [4,5,6] , ... )
-	for(int j=1 ; j <= N-2 ; j+=3)
-	{
-		int js = j;
-		int jf = js + 2;
-		
-		vector<ITensor> Nj;
-		vector<ITensor> Ij;
-		vector<ITensor> Xj;
+        ITensor H_NN  = V12 * Nj[0] * Nj[1] * Ij[2];
+        H_NN         += V23 * Ij[0] * Nj[1] * Nj[2];
+        H_NN         += V13 * Nj[0] * Ij[1] * Nj[2];
 
-		if(js==1)
-			{
-			omega = {Omegaj[j-1] , Omegaj[j]/2. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1] , Deltaj[j]/2. , Deltaj[j+1]/3.};
-		}
-		else if(js==2)
-		{
-			omega = {Omegaj[j-1]/2. , Omegaj[j]/3. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1]/2. , Deltaj[j]/3. , Deltaj[j+1]/3.};
-		}
-		else if(jf==N-1)
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/3. , Omegaj[j+1]/2.};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/3. , Deltaj[j+1]/2.};
-		}
-		else if(jf==N)
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/2. , Omegaj[j+1]};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/2. , Deltaj[j+1]};
-		}
-		else
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/3. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/3. , Deltaj[j+1]/3.};
-		}
+        ITensor H1  = omega[0] * Xj[0] * Ij[1] * Ij[2];
+        H1         += omega[1] * Ij[0] * Xj[1] * Ij[2];
+        H1         += omega[2] * Ij[0] * Ij[1] * Xj[2];
+        H1         += delta[0] * Nj[0] * Ij[1] * Ij[2];
+        H1         += delta[1] * Ij[0] * Nj[1] * Ij[2];
+        H1         += delta[2] * Ij[0] * Ij[1] * Nj[2];
 
-		for(int q=j ; q<=j+2; q++)
-		{
-			Nj.push_back(  (op(sites,"Id",q)   - 2*op(sites,"Sz",q))  /2. );
-			Ij.push_back(   op(sites,"Id",q) );
-			Xj.push_back(   op(sites,"Sx",q)) ; 
-		}
-
-		double V12 = Vj[j-1];
-		double V23 = Vj[j];
-
-		double r1 = pow(1/V12, 1./6);
-		double r2 = pow(1/V23, 1./6);
-		double V13 = pow(1/(r1+r2),6.);
-
-		if(j<N-2) V23 /= 2.;		
-		if(j>1)   V12 /= 2.;
-
-		ITensor H1, H_NN ;
-		H_NN  = V12 * Nj[0] * Nj[1] * Ij[2] ;
-		H_NN += V23 * Ij[0] * Nj[1] * Nj[2] ;
-		H_NN += V13 * Nj[0] * Ij[1] * Nj[2] ;
-
-
-		H1  =  omega[0] * Xj[0] * Ij[1] * Ij[2];
-		H1  += omega[1] * Ij[0] * Xj[1] * Ij[2];
-		H1  += omega[2] * Ij[0] * Ij[1] * Xj[2];
-
-		H1  += delta[0] * Nj[0] * Ij[1] * Ij[2];
-		H1  += delta[1] * Ij[0] * Nj[1] * Ij[2];
-		H1  += delta[2] * Ij[0] * Ij[1] * Nj[2];
-
-
-		ITensor H = H_NN + H1;
-
-		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(jn,dt/2.,H);
-		gates.push_back(g);
-	}
-
-	// second layer (acts on sites [2,3,4] , [5,6,7] , ... )
-	for(int j=2 ; j <= N-2 ; j+=3)
-	{
-		int js = j;
-		int jf = js + 2;
-		
-		vector<ITensor> Nj;
-		vector<ITensor> Ij;
-		vector<ITensor> Xj;
-
-		if(js==1)
-			{
-			omega = {Omegaj[j-1] , Omegaj[j]/2. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1] , Deltaj[j]/2. , Deltaj[j+1]/3.};
-		}
-		else if(js==2)
-		{
-			omega = {Omegaj[j-1]/2. , Omegaj[j]/3. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1]/2. , Deltaj[j]/3. , Deltaj[j+1]/3.};
-		}
-		else if(jf==N-1)
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/3. , Omegaj[j+1]/2.};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/3. , Deltaj[j+1]/2.};
-		}
-		else if(jf==N)
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/2. , Omegaj[j+1]};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/2. , Deltaj[j+1]};
-		}
-		else
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/3. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/3. , Deltaj[j+1]/3.};
-		}
-
-		for(int q=j ; q<=j+2; q++)
-		{
-			Nj.push_back(  (op(sites,"Id",q)   - 2*op(sites,"Sz",q))  /2. );
-			Ij.push_back(   op(sites,"Id",q) );
-			Xj.push_back(   op(sites,"Sx",q)) ; 
-
-		}
-
-
-		double V12 = Vj[j-1];
-		double V23 = Vj[j];
-
-		double r1 = pow(1/V12, 1./6);
-		double r2 = pow(1/V23, 1./6);
-		double V13 = pow(1/(r1+r2),6.);
-
-		if(j < N-2) V23 /= 2.;
-		if(j > 1)   V12 /= 2.;
-
-		ITensor H1, H_NN ;
-		H_NN  = V12 * Nj[0] * Nj[1] * Ij[2] ;
-		H_NN += V23 * Ij[0] * Nj[1] * Nj[2] ;
-		H_NN += V13 * Nj[0] * Ij[1] * Nj[2] ;
-
-
-		H1  =  omega[0] * Xj[0] * Ij[1] * Ij[2];
-		H1  += omega[1] * Ij[0] * Xj[1] * Ij[2];
-		H1  += omega[2] * Ij[0] * Ij[1] * Xj[2];
-
-		H1  += delta[0] * Nj[0] * Ij[1] * Ij[2];
-		H1  += delta[1] * Ij[0] * Nj[1] * Ij[2];
-		H1  += delta[2] * Ij[0] * Ij[1] * Nj[2];
-
-		ITensor H = H_NN + H1;
-
-		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(jn,dt/2.,H);
-		gates.push_back(g);
-	}
-
-	// third layer (acts on sites [3,4,5] , [6,7,8] , ... )
-	for(int j=3 ; j <= N-2 ; j+=3)
-	{
-		int js = j;
-		int jf = js + 2;
-		
-		vector<ITensor> Nj;
-		vector<ITensor> Ij;
-		vector<ITensor> Xj;
-
-		if(js==1)
-			{
-			omega = {Omegaj[j-1] , Omegaj[j]/2. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1] , Deltaj[j]/2. , Deltaj[j+1]/3.};
-		}
-
-		else if(js==2)
-		{
-			omega = {Omegaj[j-1]/2. , Omegaj[j]/3. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1]/2. , Deltaj[j]/3. , Deltaj[j+1]/3.};
-		}
-		else if(jf==N-1)
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/3. , Omegaj[j+1]/2.};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/3. , Deltaj[j+1]/2.};
-		}
-		else if(jf==N)
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/2. , Omegaj[j+1]};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/2. , Deltaj[j+1]};
-		}
-		else
-		{
-			omega = {Omegaj[j-1]/3. , Omegaj[j]/3. , Omegaj[j+1]/3.};
-			delta = {Deltaj[j-1]/3. , Deltaj[j]/3. , Deltaj[j+1]/3.};
-		}
-
-
-		for(int q=j ; q<=j+2; q++)
-		{
-			Nj.push_back(  (op(sites,"Id",q)   - 2*op(sites,"Sz",q))  /2. );
-			Ij.push_back(   op(sites,"Id",q) );
-			Xj.push_back(   op(sites,"Sx",q)) ; 
-		}
-		
-		double V12 = Vj[j-1];
-		double V23 = Vj[j];
-
-		double r1 = pow(1/V12, 1./6);
-		double r2 = pow(1/V23, 1./6);
-		double V13 = pow(1/(r1+r2),6.);
-
-		if(j<N-2) V23 /= 2.;
-		if(j>1)   V12 /= 2.;
-
-		ITensor H1, H_NN ;
-		H_NN  = V12 * Nj[0] * Nj[1] * Ij[2] ;
-		H_NN += V23 * Ij[0] * Nj[1] * Nj[2] ;
-		H_NN += V13 * Nj[0] * Ij[1] * Nj[2] ;
-
-
-		H1  =  omega[0] * Xj[0] * Ij[1] * Ij[2];
-		H1  += omega[1] * Ij[0] * Xj[1] * Ij[2];
-		H1  += omega[2] * Ij[0] * Ij[1] * Xj[2];
-
-		H1  += delta[0] * Nj[0] * Ij[1] * Ij[2];
-		H1  += delta[1] * Ij[0] * Nj[1] * Ij[2];
-		H1  += delta[2] * Ij[0] * Ij[1] * Nj[2];
-
-		ITensor H = H_NN + H1;
-
-		vector<int> jn = {j,j+1,j+2};
-		TebdGate g = TebdGate(jn,dt/2.,H);
-		gates.push_back(g);
-	}
-
-
-	vector<TebdGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-
-	for(TebdGate gate : gates_) gates.push_back(gate);
-	
-	return gates;
+        return H_NN + H1;
+    };
+    return make_three_site_layers(N, dt, rydberg_term);
 }
 
 

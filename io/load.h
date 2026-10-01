@@ -36,7 +36,8 @@ load_ground_state_max_bond_dimension_no_version(string results_dir, int size , i
  * @brief Load a state prepared by adiabatic dressing ("sites_size..." and "psi_file_size..." in results_dir).
  * @param state_choice 0: super-coherent state, 3: cat state.
  * @param beta         Duration of the ramp (in the file name).
- * @return {state, sites}. Exits if the files are not found.
+ * @return {state, sites}.
+ * @throws ITError if the files are not found.
  */
 tuple<MPS, Boson>
 load_adiabatic_state(string results_dir , const int size , const int cut_off, const double s, const double c, const complex<double> alpha, const int state_choice, double beta );

@@ -78,199 +78,109 @@ make_product_state(const SiteSet sites , const string config , const string basi
 
 
 // ----------------------------------------------------------
-// Given a mized spin-boson or spin-1/2 system it measures:
-// - occupation number for bosons
-// - magnetization along direction (x,y,z) for spin-1/2 
- 
+// Pauli matrix with input index `in` and output index `out` (spin-1/2: 1 = up_z, 2 = down_z)
+
+ITensor
+make_pauli_operator(const Index& in, const Index& out, const string& direction)
+{
+    ITensor S = ITensor(in, out);
+    if(direction == "x")
+    {
+        S.set(in(1),out(2),1.);
+        S.set(in(2),out(1),1.);
+    }
+    else if(direction == "y")
+    {
+        S.set(in(1),out(2), 1*Cplx_i);   // sigma^y: <down|..|up> = i, <up|..|down> = -i
+        S.set(in(2),out(1),-1*Cplx_i);
+    }
+    else if(direction == "z")
+    {
+        S.set(in(1),out(1), 1.);
+        S.set(in(2),out(2),-1.);
+    }
+    else throw ITError("make_pauli_operator: direction must be \"x\", \"y\" or \"z\", got \"" + direction + "\"");
+    return S;
+}
+
+
+// number operator on a boson site, Pauli matrix on a spin-1/2 site
+
+ITensor
+make_magnetization_operator(const Index& s, const string& direction)
+{
+    if(hasTags(s,"Site,S=1/2")) return make_pauli_operator(s, prime(s), direction);
+
+    ITensor n = ITensor(s, prime(s));
+    if(hasTags(s,"Site,Boson")) for(int d = 1 ; d <= dim(s) ; d++) n.set(s(d),prime(s)(d),d-1.);
+    return n;
+}
+
+
+// n_j = (1 - Z_j)/2 = |down_z><down_z|
+
+static ITensor
+make_density_operator(const SiteSet& sites, const int j)
+{
+    return (op(sites,"Id",j) - 2*op(sites,"Sz",j)) / 2.;
+}
+
+
 vector<double>
 measure_magnetization(MPS* psi, const SiteSet sites , string direction)
 {
-
-    int N = length(sites);
     vector<double> mj;
-
-    for(int j=1 ; j<=N ; j++)
-    {
-        Index sj = sites(j);
-        Index sjp = prime(sites(j));
-
-        ITensor S_j  = ITensor(sj ,sjp );
-
-
-		if(hasTags(sj,"Site,Boson"))
-		{
-			for(int d=1; d <= dim(sj) ; d++) S_j.set(sj(d),sjp(d),d-1.);
-        }
-				
-		if(hasTags(sj,"Site,S=1/2"))
-		{
-            if (direction == "x")
-            {
-                S_j.set(sj(1),sjp(2),1.);
-			    S_j.set(sj(2),sjp(1),1.);	
-                
-            }
-            else if(direction == "y")
-            {
-                S_j.set(sj(1),sjp(2), 1*Cplx_i);   // sigma^y: <down|..|up> = i, <up|..|down> = -i
-			    S_j.set(sj(2),sjp(1),-1*Cplx_i);
-
-            }
-            else if(direction == "z")
-            {
-                S_j.set(sj(1),sjp(1),1.);
-                S_j.set(sj(2),sjp(2),-1.);
-            }
-            else
-            {
-                cerr << "Direction choses is neither 'x' , 'y' or 'z'" << endl;
-                return mj;
-            }
-		}
-        (*psi).position(j);
-        ITensor ket = (*psi)(j);
-		ITensor bra = dag(prime((*psi)(j),"Site"));
-		
-		complex<double> exp_Sj = eltC(bra * S_j * ket);
-		mj.push_back(real(exp_Sj));
-        
-    }
-
+    for(int j = 1 ; j <= length(sites) ; j++)
+        mj.push_back(real(measure_local_operator(psi, make_magnetization_operator(sites(j), direction), j)));
     return mj;
 }
 
 
-// Compute number of kinks (|\up_z \dw_z>) on a state psi
+// number of kinks |down_z up_z> on neighbouring sites
 
 double 
 measure_kink_number( MPS* psi, const SiteSet sites)
 {
-    int N = length(sites);
-
     double kink = 0.;
-
-    if(N==1)
+    for(int j = 1 ; j < length(sites) ; j++)
     {
-        cerr << "Cannot measure number of kinks in a single-site system.\n";
-        cerr << "Returnin 0.\n";
-        return kink;
+        ITensor up = (op(sites,"Id",j+1) + 2*op(sites,"Sz",j+1)) / 2.;
+        kink += real(measure_two_point_function(psi, sites, make_density_operator(sites, j), up, j, j+1));
     }
-
-    for(int j=1 ; j<N ; j++)
-    {
-        (*psi).position(j);
-        
-        ITensor N_1 = (op(sites,"Id",j)   - 2*op(sites,"Sz",j))    /2.;
-        ITensor N_2 = (op(sites,"Id",j+1) + 2*op(sites,"Sz",j+1))  /2.;
-        
-        ITensor ket = (*psi)(j)*(*psi)(j+1);
-		ITensor bra = dag(prime((*psi)(j),"Site"))*dag(prime((*psi)(j+1),"Site"));
-		
-        complex<double> n_j = eltC(bra * N_1 * N_2 * ket);
-        kink += n_j.real();
-    }
-
     return kink;
 }
 
 
-// ----------------------------------------------------------
-// Compute correlation functions <N_start N_(start+i)> (both connected and disconnected).
-// Where N = (1-2*S^z)/2 = |down_z> <down_z|
-
 vector<double>
 measure_density_correlations(MPS* psi, const SiteSet sites, const int start, const bool connected)
 {
-    int N = length(sites);
-    vector<double> C;
-
-    // reference site
-    ITensor Ns = (op(sites,"Id",start) - 2*op(sites,"Sz",start))  /2.;
+    ITensor Ns = make_density_operator(sites, start);
 
     vector<double> nj;
     if(connected)
+        for(double m : measure_magnetization(psi, sites, "z")) nj.push_back((1-m)/2.);
+
+    vector<double> C;
+    for(int j = 1 ; j <= length(sites) ; j++)
     {
-        vector<double> mz = measure_magnetization( psi,sites,"z");
-        for(double m : mz) nj.push_back((1-m)/2.);
-    }
-
-    for(int j=1 ; j<= N; j++)
-    {
-        double Cjs;
-        ITensor M;
-        
-        ITensor N1, N2;
-        int jmax = max(j,start);
-        int jmin = min(j,start);
-
-        if(jmin == j)
-        {
-            N1 = (op(sites,"Id",j) - 2*op(sites,"Sz",j))  /2.;
-            N2 = Ns;
-        }
-        else
-        {
-            N1 = Ns;
-            N2 = (op(sites,"Id",j) - 2*op(sites,"Sz",j))  /2.;
-        }
-
-        (*psi).position(jmin);
-        ITensor ket = (*psi)(jmin);
-
-
-        if(j==start)
-        {
-		    ITensor bra = dag(prime((*psi)(j),"Site"));
-            Cjs = eltC(ket*N1*bra).real(); //nb N^2 = N (it is a projector)
-        }
-
-
-        else
-        {    
-            Index ir = commonIndex( (*psi)(jmin) , (*psi)(jmin + 1) ,"Link");
-			M = ket * N1 * dag( prime( prime( ket , "Site") , ir ) );
-
-            for(int q = jmin + 1 ; q < jmax ; q++)
-            {
-                M *= (*psi)(q);
-                M *= dag(prime( (*psi)(q) , "Link"));
-            }
-
-            Index il = commonIndex( (*psi)( jmax-1 ), (*psi)(jmax), "Link");
-            M *= (*psi)(jmax);
-            M *= N2;
-            M *= dag( prime( prime((*psi)( jmax ), il) , "Site") );
-            Cjs = eltC(M).real();
-        }
-
-
-        if(connected)
-        {
-            Cjs = Cjs - nj[jmin-1] * nj[jmax-1];
-        }
-
+        // n is a projector: <n_s n_s> = <n_s>
+        double Cjs = (j == start) ? real(measure_local_operator(psi, Ns, start))
+                                  : real(measure_two_point_function(psi, sites, Ns, make_density_operator(sites, j), start, j));
+        if(connected) Cjs -= nj[start-1] * nj[j-1];
         C.push_back(Cjs);
-
     }
-
     return C;
 }
 
 
-//----------------------------------------------------------------------
-
-//measure of longitudinal and trasnversal magnetization in each site
-
 void 
 print_magnetization( const SpinHalf sites , MPS psi , const int N)
-	{
-	
-	for( int j = 1 ; j <= N ; j++ )
-		{
-		psi.position(j);
-		double Mx1 = 2 * eltC(dag(prime(psi(j),"Site")) * op(sites,"Sx",j) * psi(j)).real();
-		double Mz1 = 2 * eltC(dag(prime(psi(j),"Site")) * op(sites,"Sz",j) * psi(j)).real();
-		cout << "Sx_" << j << " = " << Mx1 << "\n"
-			 << "Sz_" << j << " = " << Mz1 << endl;
-		}
-	}
+{
+    for( int j = 1 ; j <= N ; j++ )
+    {
+        double Mx = real(measure_local_operator(&psi, 2 * op(sites,"Sx",j), j));
+        double Mz = real(measure_local_operator(&psi, 2 * op(sites,"Sz",j), j));
+        cout << "Sx_" << j << " = " << Mx << "\n"
+             << "Sz_" << j << " = " << Mz << endl;
+    }
+}

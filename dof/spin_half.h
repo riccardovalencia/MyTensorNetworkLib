@@ -14,6 +14,21 @@ using namespace std;
 using namespace itensor;
 
 /**
+ * @brief Pauli matrix sigma^direction between the indices in (input) and out (output) of a spin-1/2,
+ *        with basis state 1 = |up_z>, 2 = |down_z>; e.g. make_pauli_operator(s, prime(s), "x").
+ * @throws ITError for a direction other than "x", "y", "z".
+ */
+ITensor
+make_pauli_operator(const Index& in, const Index& out, const string& direction);
+
+/**
+ * @brief Operator measured by measure_magnetization on the site with index s: the Pauli matrix
+ *        sigma^direction on a spin-1/2, the number operator on a boson (any direction), zero otherwise.
+ */
+ITensor
+make_magnetization_operator(const Index& s, const string& direction);
+
+/**
  * @brief Product state of spin-1/2 sites from a string of 0 and 1.
  *
  * | basis | '0'   | '1'   |

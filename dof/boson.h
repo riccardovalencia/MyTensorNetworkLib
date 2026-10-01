@@ -127,10 +127,9 @@ compute_imbalance( vector<double> &occupation_number, int k);
  * @param size                Number of sites.
  * @param cut_off_fock_space  Maximum occupation.
  * @param projector_all_sites Output: one row per site (appended).
- * @param occupation_number   Occupations <n_j>, used only to print a consistency check.
  */
 void
-measure_fock_probabilities( MPS *ground_state , const SiteSet sites , const int size , const int cut_off_fock_space , vector<vector<double> > &projector_all_sites , vector<double> &occupation_number);
+measure_fock_probabilities( MPS *ground_state , const SiteSet sites , const int size , const int cut_off_fock_space , vector<vector<double> > &projector_all_sites );
 
 /**
  * @return The largest probability of the Fock state |cut_off - 1> over all sites

@@ -190,3 +190,12 @@ apply_gates(MPS psi, vector<TebdGate> gates, const Args args)
     for(TebdGate gate : gates) psi = apply_gate(psi, gate, args);
     return psi;
 }
+
+
+int
+count_gates_containing(int first, int term_size, int gate_size, int N)
+{
+    int first_gate = max(1, first + term_size - gate_size);
+    int last_gate  = min(first, N - gate_size + 1);
+    return last_gate - first_gate + 1;
+}

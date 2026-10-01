@@ -4,726 +4,190 @@
  */
 #include "lindblad.h"
 #include "../mps/gates.h"
+#include "../mps/mps_tools.h"
 #include <itensor/all.h>
 #include <cmath>
-#include <complex>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <string>
-#include <tuple>
 #include <vector>
 
 using namespace std;
 using namespace itensor;
 
+// ----------------------------------------------------------
+// Conventions. On each site the ket has index s and the bra s'; a superoperator maps
+// (s, s') (input) to (s'', s''') (output):
+//              _
+//      s'' - |   | - s
+//            |   |
+//     s''' - |_ _| - s'
+//
+// so that D[L] = L (x) L^* - 1/2 (L^dag L (x) I) - 1/2 (I (x) (L^dag L)^T).
 
-// using this, we have the more standard usage of indices, but we have to use the ITensor convention
-// for S^- , which corresponds to the standard S^+ convention. 
-// CHECK: 03.09.23 IT COULD BE THAT I AM MESSING UP INDICES TECHNICALLY, SINCE I AM ASSOCIATING THE INDEX 0 TO THE KET,
-// AND PRIME TO THE BRA. BUT FROM ITENSOR DEFAULT CONVENTION IT COULD BE THAT THEY ARE SWAPPED. THIS IS WHY IT LOOKS LIKE
-// MY CONVENTION OF S^- IS THE OPPOSITE OF THE ONE OF ITENSOR (IN REALITY THEY ARE NOT DIFFERENT). I SHOULD CHECK THIS
-// REWRITING A PIECE OF CODE CONCERNING THIS AND TESTING WITH A NON-HERMITIAN JUMP.
-vector<DissipativeGate>
-make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_sites, vector<double> gammaj , const double dt)
+// gamma D[L] for a jump operator L acting on the sites with indices site_inds (one or more sites)
+static ITensor
+make_dissipator(const ITensor& L, const vector<Index>& site_inds, const double gamma)
 {
+    // identities on the ket (s -> s'') and on the bra (s' -> s''')
+    ITensor Idket, Idbra;
+    for(const Index& s : site_inds)
+    {
+        Idket = Idket ? Idket * make_identity_operator(s, prime(s,2))        : make_identity_operator(s, prime(s,2));
+        Idbra = Idbra ? Idbra * make_identity_operator(prime(s), prime(s,3)) : make_identity_operator(prime(s), prime(s,3));
+    }
 
-	int N = length(sites);
-	vector<DissipativeGate> gates;
+    ITensor Ld = conj(L);
 
-	// ket has index sj
-	// bra has index sj'
-	// we need a gate  input (sj,sj') -> (sj'',sj''') output
-	// 		   _	
-	// 	sj''- | | - sj
-	// 		  |	|
-	// sj'''- | | - sj'
-	// 	
+    // non-hermitian part on the ket: L^dag L = (L^*)^T L (the 'row' index of L^* becomes the 'column' one)
+    ITensor LdL_I = mapPrime(Ld, 0, 2) * L * Idbra;
 
-	//  The procedure is: (0,1) -> (2,3) (input-output)
-	//   sj''
-	//   |
-	//   Lj - 1/2 (Ljdag \otimes Lj)
-	//   | sj
-	//   o-
-	//   | sj'
-	//   LjdagT - 1/2 (LjdagT \otimes LjT)
-	//   |
-	//   sj'''
+    // non-hermitian part on the bra: (L^dag L)^T, (0,1) -> (2,3)
+    ITensor I_LdL = mapPrime(Ld, 0, 3) * L;    // indices (3, 0)
+    I_LdL.mapPrime(3,1);                        // (3,0) -> (1,0)
+    I_LdL.mapPrime(0,3);                        // (1,0) -> (1,3): transposition
+    I_LdL *= Idket;
 
-	for(int j : lj_sites)
-	{
-		Index sj  = sites(j);
-		Index sj1 = prime(sj);
-		Index sj2 = prime(sj,2);
-		Index sj3 = prime(sj,3);
+    // jumps L rho L^dag
+    ITensor L_Ld = mapPrime(L, 1, 2) * mapPrime(mapPrime(Ld, 1, 3), 0, 1);
 
-		ITensor Idket = ITensor(sj,sj2);
-		ITensor Idbra = ITensor(sj1,sj3);
-
-		for(int q=1 ; q<=dim(sj) ; q++)
-		{
-			Idket.set(sj(q),sj2(q),1.);
-			Idbra.set(sj1(q),sj3(q),1.);
-		}
-
-
-		ITensor lj = Lj[j-1];
-		ITensor ljd = conj(lj);
-		ITensor lj_ = lj;
-		ITensor ljd_ = ljd;
-
-		// non-hermitian Hamiltonian
-
-		// ket 
-		ljd_.mapPrime(0,2); // I have to do L^dag L, which is (L^*)^T L (this is why I make the 'row' index the 'column' one)
-		ITensor ljdlj_I = ljd_ * lj_ * Idbra; 
-
-		// reset
-		lj_ = lj;
-		ljd_ = ljd;
-	
-		// bra
-		ljd_.mapPrime(0,3); 
-		ITensor I_ljdlj = ljd_ * lj_; // acts on bra  - (3,0)
-		I_ljdlj.mapPrime(3,1);      // (3,0) -> (1,0)
-		I_ljdlj.mapPrime(0,3);      // (1,0) -> (1,3) I have performed transposition
-		I_ljdlj *= Idket;			// acts on bra from (0,1) to (2,3) as desired
-		
-		// reset
-		lj_ = lj;
-		ljd_ = ljd;
-
-		// jumps 
-		lj_.mapPrime(1,2);
-		ljd_.mapPrime(1,3);
-		ljd_.mapPrime(0,1);
-		ITensor lj_ljd = lj_ * ljd_;
-
-
-		ITensor Dj = gammaj[j-1] * (lj_ljd - 0.5 * ljdlj_I - 0.5 * I_ljdlj);
-
-		vector<int> ket_sites = {j};
-		vector<int> bra_sites = {j};
-
-		DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt,Dj);
-	
-		gates.push_back(g);
-
-	}
-
-	return gates;
+    return gamma * (L_Ld - 0.5 * LdL_I - 0.5 * I_LdL);
 }
 
 
-// using this, we have the more standard usage of indices, but we have to use the ITensor convention
-// for S^- , which corresponds to the standard S^+ convention. 
+vector<DissipativeGate>
+make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_sites, vector<double> gammaj , const double dt)
+{
+    vector<DissipativeGate> gates;
+    for(int j : lj_sites)
+        gates.push_back(DissipativeGate({j}, {j}, dt, make_dissipator(Lj[j-1], {sites(j)}, gammaj[j-1])));
+    return gates;
+}
+
 
 vector<DissipativeGate>
 make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt)
 {
-
-	int N = length(sites);
-	vector<DissipativeGate> gates;
-
-	// ket has index sj
-	// bra has index sj'
-	// we need a gate  input (sj,sj') -> (sj'',sj''') output
-	// 		   _	
-	// 	sj''- | | - sj
-	// 		  |	|
-	// sj'''- | | - sj'
-	// 	
-
-	//  The procedure is: (0,1) -> (2,3) (input-output)
-	//   sj''
-	//   |
-	//   Lj - 1/2 (Ljdag \otimes Lj)
-	//   | sj
-	//   o-
-	//   | sj'
-	//   LjdagT - 1/2 (LjdagT \otimes LjT)
-	//   |
-	//   sj'''
-
-
-	for(int j=1 ; j <= N; j++)
-	{
-		
-		Index sj  = sites(j);
-		Index sj1 = prime(sj);
-		Index sj2 = prime(sj,2);
-		Index sj3 = prime(sj,3);
-
-		ITensor Idket = ITensor(sj,sj2);
-		ITensor Idbra = ITensor(sj1,sj3);
-
-		for(int q=1 ; q<=dim(sj) ; q++)
-		{
-			Idket.set(sj(q),sj2(q),1.);
-			Idbra.set(sj1(q),sj3(q),1.);
-		}
-
-
-		ITensor lj = Lj[j-1];
-		ITensor ljd = conj(lj);
-		ITensor lj_ = lj;
-		ITensor ljd_ = ljd;
-
-		// non-hermitian Hamiltonian
-
-		// ket 
-		ljd_.mapPrime(0,2); // I have to do L^dag L, which is (L^*)^T L (this is why I make the 'row' index the 'column' one)
-		ITensor ljdlj_I = ljd_ * lj_ * Idbra; 
-
-		// reset
-		lj_ = lj;
-		ljd_ = ljd;
-	
-		// bra
-		ljd_.mapPrime(0,3); 
-		ITensor I_ljdlj = ljd_ * lj_; // acts on bra  - (3,0)
-		I_ljdlj.mapPrime(3,1);      // (3,0) -> (1,0)
-		I_ljdlj.mapPrime(0,3);      // (1,0) -> (1,3) I have performed transposition
-		I_ljdlj *= Idket;			// acts on bra from (0,1) to (2,3) as desired
-		
-		// reset
-		lj_ = lj;
-		ljd_ = ljd;
-
-		// jumps 
-		lj_.mapPrime(1,2);
-		ljd_.mapPrime(1,3);
-		ljd_.mapPrime(0,1);
-		ITensor lj_ljd = lj_ * ljd_;
-
-
-		ITensor Dj = gammaj[j-1] * (lj_ljd - 0.5 * ljdlj_I - 0.5 * I_ljdlj);
-
-		vector<int> ket_sites = {j};
-		vector<int> bra_sites = {j};
-
-		DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt,Dj);
-	
-		gates.push_back(g);
-
-	}
-
-
-	return gates;
+    vector<int> all_sites;
+    for(int j = 1 ; j <= length(sites) ; j++) all_sites.push_back(j);
+    return make_local_dissipative_gates(sites, Lj, all_sites, gammaj, dt);
 }
 
 
-// keeping as backup - 4.05.23
-// vector<DissipativeGate>
-// make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt)
-// {
+// Jumps of an OperatorPair (Li on site i, Lj on site j != i, |i - j| = 1):
+//   Li rho Lj^dag + Lj rho Li^dag - 1/2 ( {Lj^dag Li, rho} + {Li^dag Lj, rho} )
 
-// 	int N = length(sites);
-// 	vector<DissipativeGate> gates;
+static ITensor
+make_cross_dissipator(const SiteSet& sites, OperatorPair T)
+{
+    ITensor li  = T.op_i();
+    ITensor lj  = T.op_j();
+    ITensor lid = dag(li);
+    ITensor ljd = dag(lj);
 
-// 	// ket has index sj
-// 	// bra has index sj'
-// 	// we need a gate  input (sj,sj') -> (sj'',sj''') output
-// 	// 		   _	
-// 	// 	sj''- | | - sj
-// 	// 		  |	|
-// 	// sj'''- | | - sj'
-// 	// 	
+    Index si = sites(T.site_i());
+    Index sj = sites(T.site_j());
 
-// 	//  The procedure is: (0,1) -> (2,3) (input-output)
-// 	//   sj''
-// 	//   |
-// 	//   Lj - 1/2 (Ljdag \otimes Lj)
-// 	//   | sj
-// 	//   o-
-// 	//   | sj'
-// 	//   LjdagT - 1/2 (LjdagT \otimes LjT)
-// 	//   |
-// 	//   sj'''
+    // identities on (ket i, ket j), (bra i, bra j), (ket i, bra j), (bra i, ket j)
+    ITensor Idket        = make_identity_operator(si, prime(si,2))        * make_identity_operator(sj, prime(sj,2));
+    ITensor Idbra        = make_identity_operator(prime(si), prime(si,3)) * make_identity_operator(prime(sj), prime(sj,3));
+    ITensor Id_iket_jbra = make_identity_operator(si, prime(si,2))        * make_identity_operator(prime(sj), prime(sj,3));
+    ITensor Id_ibra_jket = make_identity_operator(sj, prime(sj,2))        * make_identity_operator(prime(si), prime(si,3));
 
+    // non-hermitian part on the ket
+    ITensor LdL_I = (mapPrime(mapPrime(ljd,0,2),1,0) * mapPrime(li,1,2) + mapPrime(mapPrime(lid,0,2),1,0) * mapPrime(lj,1,2)) * Idbra;
 
-// 	// vector<TebdGate> gates_ = gates;
-// 	// reverse(gates_.begin(), gates_.end());
+    // non-hermitian part on the bra (transposed)
+    ITensor I_LdL = mapPrime(ljd,0,3) * mapPrime(mapPrime(li,1,3),0,1) + mapPrime(lid,0,3) * mapPrime(mapPrime(lj,1,3),0,1);
+    I_LdL = swapPrime(I_LdL,1,3) * Idket;
 
-// 	// for(TebdGate gate : gates_) gates.push_back(gate);
-	
-// 	return gates;
-// }
+    // jumps
+    ITensor L_Ld = mapPrime(li,1,2) * mapPrime(mapPrime(ljd,1,3),0,1) * Id_ibra_jket
+                 + mapPrime(lj,1,2) * mapPrime(mapPrime(lid,1,3),0,1) * Id_iket_jbra;
 
-// Non-diagonal local Lindland 
-// We consider Lindbland of the form: Li \rho L_{i+1}^\dagger + 0.5 * {Li L_{i+1}, \rho}
-// It appears as a 4-sites gate if we apply the jumps and the non-hermitian part at the same time.
-// A possibility is to split differently: the non hermitiain part in the hermitian one
-// In this way I have at most 2-sites gates. The number of gates that have to be applied is the same.  <- POSSIBLE EFFICIENCY GAIN(?)
-// Drawback: we would have long-range interactions in the final case study both in the Hamiltonian part 
-// and jump part -> MULTIPLE LOOPS NECESSARY                                                           -> HUGE INEFFICENCY FROM LOOPING
-
-// OperatorPair is a personalized class containing ITensors which have to act either on 
-
-
-// It is a 4-sites object
-// // We apply Li \rho L_j^\dagger + L_j \rho L_i^\dagger - 1/2( {L_i^\dagger L_j , \rho} + {L_j^\dagger L_i,\rho} ) (OR SIMILAR)
+    return T.rate() * (L_Ld - 0.5 * LdL_I - 0.5 * I_LdL);
+}
 
 
 vector<DissipativeGate>
 make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrain, const double dt)
 {
+    vector<DissipativeGate> gates;
+    for(OperatorPair T : TTrain)
+    {
+        int i = T.site_i();
+        int j = T.site_j();
+        if(abs(i-j) > 1) throw ITError("make_two_site_dissipative_gates: only on-site and nearest-neighbour jump operators are implemented");
 
-	int N = length(sites);
-	vector<DissipativeGate> gates;
-	// check size of the two containers
-
-	for(OperatorPair T : TTrain)
-	{
-		
-		int i = T.site_i();
-		int j = T.site_j();
-
-		ITensor li = T.op_i();
-		ITensor lj = T.op_j();
-		ITensor lid = dag(li);
-		ITensor ljd = dag(lj);
-
-		double gamma = T.rate();
-
-		// site index
-
-		cerr << "Sites : " << i << " " << j << "\n";
-
-		if( abs(i-j)>1 )
-		{
-			cerr << "non-local dissipation still not implemented! Returning empty set of gates.\n";
-			return gates;
-		}
-
-		if(abs(i-j)==0)
-		{
-
-			ITensor lj_ = lj;
-			ITensor ljd_ = ljd;
-
-			Index sj  = sites(j);
-			Index sj1 = prime(sj);
-			Index sj2 = prime(sj,2);
-			Index sj3 = prime(sj,3);
-
-			ITensor Idket = ITensor(sj,sj2);
-			ITensor Idbra = ITensor(sj1,sj3);
-
-			for(int q=1 ; q<=dim(sj) ; q++)
-			{
-				Idket.set(sj(q),sj2(q),1.);
-				Idbra.set(sj1(q),sj3(q),1.);
-			}
-
-			// non-hermitian Hamiltonian
-
-			// ket
-			ljd_.mapPrime(0,2);
-			ITensor ljdlj_I = ljd_ * lj_ * Idbra; // acts on ket (sj,sj') -> (sj'',sj''') as desired
-		
-			// reset
-			lj_ = lj;
-			ljd_ = ljd;
-
-			// bra
-			ljd_.mapPrime(0,3); // (0,1) -> (3,1) (prime order)
-			ITensor I_ljdlj = ljd_ * lj_; // acts on bra  - (3,0)
-			I_ljdlj.mapPrime(3,1);      // (3,0) -> (1,0)
-			I_ljdlj.mapPrime(0,3);      // (1,0) -> (1,3) I have performed transposition
-			I_ljdlj *= Idket;			// acts on bra from (0,1) to (2,3) as desired
-			
-			// reset
-			lj_ = lj;
-			ljd_ = ljd;
-			
-			// jumps 
-			lj_.mapPrime(1,2);
-			ljd_.mapPrime(1,3);
-			ljd_.mapPrime(0,1);
-			ITensor lj_ljd = lj_ * ljd_;
-
-			// all together
-
-			ITensor Dj = gamma * (lj_ljd - 0.5 * ljdlj_I - 0.5 * I_ljdlj);
-			vector<int> ket_sites = {j};
-			vector<int> bra_sites = {j};
-
-			DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt/2.,Dj);
-		
-			gates.push_back(g);
-
-		}
-
-		if(abs(i-j)==1)
-		{
-			Index si  = sites(i);
-			Index si1 = prime(si);
-			Index si2 = prime(si,2);
-			Index si3 = prime(si,3);
-
-			Index sj  = sites(j);
-			Index sj1 = prime(sj);
-			Index sj2 = prime(sj,2);
-			Index sj3 = prime(sj,3);
-
-			ITensor Idket = ITensor(si,sj,si2,sj2);
-			ITensor Idbra = ITensor(si1,sj1,si3,sj3);
-
-			ITensor Id_iket_jbra = ITensor(si,si2,sj1,sj3);
-			ITensor Id_ibra_jket = ITensor(sj,sj2,si1,si3);
-						
-			for(int q=1 ; q<=dim(sj) ; q++)
-			{
-				Idket.set( si(q) , si2(q) , sj(q)  , sj2(q) , 1.);
-				Idbra.set(si1(q) , si3(q) , sj1(q) , sj3(q) , 1.);
-				Id_iket_jbra.set(si(q),si2(q),sj1(q),sj3(q) , 1.);
-				Id_ibra_jket.set(sj(q),sj2(q),si1(q),si3(q) , 1.);
-			}
-
-			// effective Hamiltonian part - jumps act either on the ket or bra, but not both
-
-			// acts on ket
-
-			ITensor lid_ = lid;
-			ITensor ljd_ = ljd;
-			ITensor li_  = li;
-			ITensor lj_  = lj;
-
-			// ket
-
-			lid_.mapPrime(0,2);
-			lid_.mapPrime(1,0);
-			ljd_.mapPrime(0,2);
-			ljd_.mapPrime(1,0);
-			li_.mapPrime(1,2);
-			lj_.mapPrime(1,2);
-			
-			ITensor ljd_li_I = ljd_ * li_ ;
-			ITensor lid_lj_I = lid_ * lj_ ;
-			ITensor LdL_I = (ljd_li_I + lid_lj_I ) * Idbra ; // acts on ket (sj,sj') -> (sj'',sj''') as desired
-
-
-			// reset
-			lid_ = lid;
-			ljd_ = ljd;
-			li_  = li;
-			lj_  = lj;
-
-			// bra
-			ljd_.mapPrime(0,3); // (0,1) -> (3,1) (prime order)
-			lid_.mapPrime(0,3);
-			li_.mapPrime(1,3);
-			lj_.mapPrime(1,3);
-			li_.mapPrime(0,1);
-			lj_.mapPrime(0,1);
-
-
-			ITensor I_LdL = ljd_ * li_ + lid_ * lj_; // acts on bra  - (3,0)
-			I_LdL = swapPrime(I_LdL,1,3); // transposition
-			I_LdL *= Idket;			// acts on bra from (0,1) to (2,3) as desired
-			
-			// reset
-
-			lid_ = lid;
-			ljd_ = ljd;
-			li_  = li;
-			lj_  = lj;
-
-			// jumps
-
-			lj_.mapPrime(1,2);
-			ljd_.mapPrime(1,3);
-			ljd_.mapPrime(0,1);
-
-			li_.mapPrime(1,2);
-			lid_.mapPrime(1,3);
-			lid_.mapPrime(0,1);
-
-			ITensor L_Ld = li_ * ljd_ * Id_ibra_jket + lj_ * lid_ * Id_iket_jbra;
- 
-			ITensor Dij = gamma * (L_Ld - 0.5 * LdL_I - 0.5 * I_LdL);
-
-
-			vector<int> ket_sites = {i,j};
-			vector<int> bra_sites = {i,j};
-
-			DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt/2.,Dij);
-		
-			gates.push_back(g);
-
-		}
-
-
-	}
-
-
-	vector<DissipativeGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-
-	for(DissipativeGate gate : gates_) gates.push_back(gate);
-	
-	return gates;
+        if(i == j) gates.push_back(DissipativeGate({j}, {j}, dt/2., make_dissipator(T.op_j(), {sites(j)}, T.rate())));
+        else       gates.push_back(DissipativeGate({i,j}, {i,j}, dt/2., make_cross_dissipator(sites, T)));
+    }
+    return make_symmetric_sweep(gates);
 }
 
 
-// Dissipative gate : we have a list of tensors which act 
-// We have a Lidbland of the form L_{i,j} \rho L_{i,j}^\dagger + ...
-
-// NOT USEFUL AT THE MOMENT - NOT TESTED (SHOULD WORK)
 vector<DissipativeGate>
 make_multisite_dissipative_gates(const SiteSet sites , vector<ITensor> Lij_list, vector<vector<int> > Lj_sites, vector<double> gammaj , const double dt)
 {
+    if(Lj_sites.size() != Lij_list.size())
+        throw ITError("make_multisite_dissipative_gates: Lij_list and Lj_sites have different lengths");
 
-	int N = length(sites);
-	vector<DissipativeGate> gates;
-
-
-	// check size of the two containers
-
-	if(Lj_sites.size() != Lij_list.size()){
-		cerr << "vectors containing jumps and sites where they act have different length!\n";
-		cerr << "Lj_sites has length " << Lj_sites.size() << "\n";
-		cerr << "Lj has length " << Lij_list.size() << "\n";
-		cerr << "Returning empty gates\n";
-		return gates;
-	}
-
-
-	int M = Lj_sites.size();
-
-	for(int k=0 ; k < M; k++)
-	{
-		vector<int> jn = Lj_sites[k];
-		if(jn.size() > 2){
-			cerr << "lindlbland acting on more than two sites not yet implemented!\n Returning empty gates";
-			return gates;
-		} 
-
-		// sites where it acts
-		int i = jn[0];
-		int j = jn[1];
-
-		// list of jump operators
-
-		ITensor lij  = Lij_list[k];
-		ITensor lijd = dag(lij);  // it is equal to complex conjugation - it does not swap indices to make the transpose
-
-		// site index
-
-		Index si  = sites(i);
-		Index si1 = prime(si);
-		Index si2 = prime(si,2);
-		Index si3 = prime(si,3);
-
-		Index sj  = sites(j);
-		Index sj1 = prime(sj);
-		Index sj2 = prime(sj,2);
-		Index sj3 = prime(sj,3);
-
-		// Identity for the non-hermitian Hamiltonian part
-		
-		ITensor Idket = ITensor(si,sj,si2,sj2);
-		ITensor Idbra = ITensor(si1,sj1,si3,sj3);
-		
-		for(int q=1 ; q<=dim(sj) ; q++)
-		{
-			Idket.set( si(q) , si2(q) , sj(q)  , sj2(q) , 1.);
-			Idbra.set(si1(q) , si3(q) , sj1(q) , sj3(q) , 1.);
-		}
-
-
-		// v2: I think correct version
-
-		lijd.mapPrime(0,2);
-		ITensor ljdlj_I = lijd * lij * Idbra; // acts on ket
-	
-		lijd.mapPrime(2,0);
-		lijd.mapPrime(0,3); // (0,1) -> (3,1) (prime order)
-		ITensor I_ljdlj = lijd * lij; // acts on bra  - (3,0)
-		I_ljdlj.mapPrime(3,1);      // (3,0) -> (1,0)
-		I_ljdlj.mapPrime(0,3);      // (1,0) -> (1,3) I have performed transposition
-		I_ljdlj *= Idket;			// acts on bra from (0,1) to (2,3)
-		lijd.mapPrime(3,0); // (0,1) -> (3,1) (prime order)
-		
-		// start v1: I think it does not do correctly the transposition
-
-		// jumps 
-		lij.mapPrime(1,2);
-		lijd.mapPrime(1,3);
-		lijd.mapPrime(0,1);
-		ITensor lj_ljd = lij * lijd;
-
-
-		ITensor Dj = gammaj[k] * (lj_ljd - 0.5 * ljdlj_I - 0.5 * I_ljdlj);
-
-		vector<int> ket_sites = {i,j};
-		vector<int> bra_sites = {i,j};
-
-		DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt/2.,Dj);
-	
-		gates.push_back(g);
-
-	}
-
-
-	vector<DissipativeGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-
-	for(DissipativeGate gate : gates_) gates.push_back(gate);
-	
-	return gates;
+    vector<DissipativeGate> gates;
+    for(size_t k = 0 ; k < Lj_sites.size() ; k++)
+    {
+        vector<int> jn = Lj_sites[k];
+        if(jn.size() != 2) throw ITError("make_multisite_dissipative_gates: only two-site jump operators are implemented");
+        ITensor D = make_dissipator(Lij_list[k], {sites(jn[0]), sites(jn[1])}, gammaj[k]);
+        gates.push_back(DissipativeGate(jn, jn, dt/2., D));
+    }
+    return make_symmetric_sweep(gates);
 }
 
 
-// Dissipative impurity acting on the unfolded density matrix in an impurity problem.
-// the first half sites represent the bra and evolve via -H
-// the second half sites represent the ket and evolve via +H
-// the bond in between site N and N+1 is where jump/nonunitary dynamics take place
-// Here we apply the jump/nonunitary part on the bond in between
+// ----------------------------------------------------------
+// Dissipator on the central bond (N, N+1) of the unfolded density matrix of an impurity problem
+// (sites 1..N: bra, evolving with -H; sites N+1..2N: ket, evolving with +H). Lj[0] acts on the bra
+// (site N), Lj[1] on the ket (site N+1).
 
-// There was an error - the swap done at the end was a mistake (referring to modification 03.09.2023)
-// for hermitian jump it was not a problem. For non hermitian one yes.
+static ITensor
+make_impurity_dissipator(const SiteSet& sites, const vector<ITensor>& Lj, const double gamma)
+{
+    int N = length(sites)/2;
+    ITensor lj1 = Lj[0];
+    ITensor lj2 = Lj[1];
+
+    // (L^dag L)^T = L^T L^* on the bra, L^dag L on the ket
+    ITensor ljdlj1 = conj(lj1) * mapPrime(lj1, 0, 2);
+    ITensor ljdlj2 = mapPrime(conj(lj2), 0, 2) * lj2;
+    ljdlj1.mapPrime(2,1);
+    ljdlj2.mapPrime(2,1);
+
+    // L^dag L (x) I: the first operator acts on the ket (second half of the chain)
+    ITensor LdL_I = op(sites,"Id",N) * ljdlj2;
+    ITensor I_LdL = ljdlj1 * op(sites,"Id",N+1);
+
+    return gamma * (conj(lj1) * lj2 - 0.5 * LdL_I - 0.5 * I_LdL);
+}
+
 
 vector<DissipativeGate>
 make_impurity_dissipative_gates(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt)
 {
-
-	int N = length(sites)/2;
-
-	vector<DissipativeGate> gates;
-
-	vector<ITensor> Id;
-
-	for(int q=N ; q<=N+1; q++)
-	{
-		Id.push_back(     op(sites,"Id",q) );
-	}
-	// the bond gate acts on site [N,N+1]
-	// lj1 acts on bra
-	// lj2 acts on ket
-	ITensor lj1 = Lj[0];
-	ITensor lj2 = Lj[1];
-
-	ITensor lj1d = conj(lj1);
-	ITensor lj2d = conj(lj2);
-	
-	lj1.mapPrime(0,2); // I have to do L^* L
-	lj2d.mapPrime(0,2); // I have to do L^dag L, which is (L^*)^T L (this is why I make the 'row' index the 'column' one)
-
-	ITensor ljdlj1 = lj1d * lj1; 
-	ITensor ljdlj2 = lj2d * lj2; 
-	
-	// acting on bra (L^dag L)^T = (L^T L*)
-	ljdlj1.mapPrime(2,1);
-	// acting on ket (L^dag L)
-	ljdlj2.mapPrime(2,1);
-	
-	// I am here using convention that LdL_I = (L^\dag L) \otimes I is: first operator act on ket, the second on bra
-	// Here the first half describe the bra , and the second half ket. This is why I have Id[0] * ljdlj2
-	ITensor LdL_I = Id[0] * ljdlj2;
-	ITensor I_LdL = ljdlj1 * Id[1];
-
-	lj1 = Lj[0];
-	lj2 = Lj[1];
-	lj1d = conj(lj1);
-
-
-	ITensor D = gamma * (lj1d * lj2 - 0.5 * LdL_I - 0.5 * I_LdL);
-
-	vector<int> ket_sites = {N,N+1};
-	vector<int> bra_sites = {N,N+1};
-
-	DissipativeGate g = DissipativeGate(ket_sites,bra_sites,dt,D);
-
-	gates.push_back(g);
-
-	return gates;
+    int N = length(sites)/2;
+    return {DissipativeGate({N,N+1}, {N,N+1}, dt, make_impurity_dissipator(sites, Lj, gamma))};
 }
 
 
-// Dissipative impurity acting on the unfolded density matrix in an impurity problem.
-// the first half sites represent the bra and evolve via -H
-// the second half sites represent the ket and evolve via +H
-// the bond in between site N and N+1 is where jump/nonunitary dynamics take place
-// Here we apply the jump/nonunitary part on the bond in between.
-
-// Differences with make_impurity_dissipative_gates: above we used a first order Kraus approximation of the 
-// dissipative part. Here, I use the class BondGate of ITensor which is able to exponentiate
-// also non hermitian things since it uses a high grade Pade approximation
+// BondGate exponentiates also non-hermitian generators (Taylor series), beyond the first order in dt
+// of make_impurity_dissipative_gates
 
 vector<TebdGate>
 make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt)
 {
-
-	int N = length(sites)/2;
-
-	vector<TebdGate> gates;
-
-	vector<ITensor> Id;
-
-	for(int q=N ; q<=N+1; q++)
-	{
-		Id.push_back(     op(sites,"Id",q) );
-	}
-	// the bond gate acts on site [N,N+1]
-	// lj1 acts on bra
-	// lj2 acts on ket
-	ITensor lj1 = Lj[0];
-	ITensor lj2 = Lj[1];
-
-	ITensor lj1d = conj(lj1);
-	ITensor lj2d = conj(lj2);
-	
-	lj1.mapPrime(0,2); // I have to do L^* L
-	lj2d.mapPrime(0,2); // I have to do L^dag L, which is (L^*)^T L (this is why I make the 'row' index the 'column' one)
-
-	ITensor ljdlj1 = lj1d * lj1; 
-	ITensor ljdlj2 = lj2d * lj2; 
-	
-	// acting on bra (L^dag L)^T = (L^T L*)
-	ljdlj1.mapPrime(2,1);
-	// acting on ket (L^dag L)
-	ljdlj2.mapPrime(2,1);
-	
-	// I am here using convention that LdL_I = (L^\dag L) \otimes I is: first operator act on ket, the second on bra
-	// Here the first half describe the bra , and the second half ket. This is why I have Id[0] * ljdlj2
-	ITensor LdL_I = Id[0] * ljdlj2;
-	ITensor I_LdL = ljdlj1 * Id[1];
-
-
-	lj1 = Lj[0];
-	lj2 = Lj[1];
-	lj1d = conj(lj1);
-
-	ITensor D = gamma * (lj1d * lj2 - 0.5 * LdL_I - 0.5 * I_LdL);
-
-	vector<int> ket_sites = {N,N+1};
-	vector<int> bra_sites = {N,N+1};
-
-	TebdGate g = TebdGate({N,N+1}, BondGate(sites,N,N+1,BondGate::tImag,-1*dt,D).gate()); 
-	gates.push_back(g);
-
-	return gates;
+    int N = length(sites)/2;
+    ITensor D = make_impurity_dissipator(sites, Lj, gamma);
+    return {TebdGate({N,N+1}, BondGate(sites,N,N+1,BondGate::tImag,-1*dt,D).gate())};
 }
 
 
-// Gates of impurity problem (bath treated exactly in energy basis)
-// this results in a hihgly non local Hamiltonian. Specifically
-// H = 
-// we do not implement the swap gates as gates, but directly in the TEBD algorithm.
-
-// We move from the center of the chain (where the bond connecting bra and ket is located)
-// moving towards the outer part
-
-// we feed in input J_eps, hup, hdn in the right order (acting on sites from 1 to N) in the TRUE system
-// wee perform first evolution of the bra [1,N]
-// then, we perform the evolution of the ket [N+1,2*N]
-// we start from the center, so that the first interaction is nearest-neighbor and then
-// we should apply swapgates
+// ----------------------------------------------------------
 
 vector<TebdGate>
 make_purified_gates(const vector<TebdGate> gates_single, const SiteSet sites_single,  const SiteSet sites_doubled)

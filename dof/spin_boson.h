@@ -48,7 +48,9 @@ MPS
 make_spin_boson_state(const SiteSet sites , const int n_photon , double theta, double phi);
 
 /**
- * @brief Same as above with site-dependent angles theta[j], phi[j] for the spins.
+ * @brief Same as above with site-dependent angles: theta[j-1], phi[j-1] for the spin on site j
+ *        (the entries of boson sites are not used).
+ * @throws ITError for sites that are neither bosons nor spins 1/2.
  */
 MPS
 make_spin_boson_state(const SiteSet sites , const int n_photon , const vector<double> theta, const vector<double> phi);

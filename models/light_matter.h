@@ -18,18 +18,6 @@ using namespace std;
 using namespace itensor;
 
 /**
- * @brief Gates of the Tavis-Cummings model H = omega0 n_a + h S^z + g (S^+ a + S^- a^dag).
- * @param sites            Site set from make_spin_boson_sites.
- * @param omega0           Frequency of the boson.
- * @param h                Field on the spins.
- * @param g                Light-matter coupling.
- * @param dt               Time step.
- * @param photon_or_matter "short-range" for the local terms; otherwise the photon-matter gates.
- */
-vector<TebdGate>
-make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string photon_or_matter);
-
-/**
  * @brief Gates of a general light-matter model,
  *        H = omega0 n_a + h S^z + (coupling) + (nearest-neighbour spin interaction).
  *

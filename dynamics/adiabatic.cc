@@ -7,78 +7,52 @@
 #include "../models/bosonic_east_model.h"
 #include <itensor/all.h>
 #include <cmath>
-#include <complex>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <string>
-#include <tuple>
 #include <vector>
 
 using namespace std;
 using namespace itensor;
 
 
-// Perform adiabatic transformation from s=infty to s via a linear protocol
-
-
-void
-evolve_adiabatic_linear_ramp( MPS *psi_start, const SiteSet sites, const double s, const double c, const double dt, const double beta)
+// One TEBD step of length dt of the bosonic east model with hopping J, followed by a normalization
+static void
+apply_ramp_step( MPS *psi, const SiteSet& sites, const double J, const double c, const double dt, const Args& args )
 {
-
-	// beta controls the slope of the linear ramping. The greater is beta the slower is the protocol
-	int L = length(*psi_start);
-	double J_target = exp(-s);
-	double t = 0;
-	double J = 0;
-	double tolerance = 1E-8;
-	auto TEBD_args = Args("Cutoff=",1E-10,"Verbose=",false,"MaxDim=",50 );	
-
-
-	cerr << "dt : " << dt << endl;
-	cerr << "beta : " << beta << endl;
-	do
-	{
-		t += dt;
-		J = J_target * t / beta;
-		cerr << J << endl;
-		auto gates = make_bosonic_east_model_gates(sites, L, dt, J, c);
-		*psi_start = apply_gates(*psi_start, gates, TEBD_args);
-		(*psi_start).position(1);
-		(*psi_start).normalize(); 
-	}while( J_target > J );
-
-
+	*psi = apply_gates(*psi, make_bosonic_east_model_gates(sites, length(*psi), dt, J, c), args);
+	(*psi).position(1);
+	(*psi).normalize();
 }
 
 
-// Perform adiabatic transformation from s=infty to s via aa tanh(x) protocol
-
+// linear protocol J(t) = J_target t / T: the larger T, the slower the ramp
 
 void
-evolve_adiabatic_tanh_ramp( MPS *psi_start, const SiteSet sites, const double s, const double c, const double dt, const double beta)
+evolve_adiabatic_linear_ramp( MPS *psi_start, const SiteSet sites, const double s, const double c, const double dt, const double T, const Args& args)
 {
-
-	// beta controls the slope of the tanh. The greater is beta the slower is the protocol
-	int L = length(*psi_start);
 	double J_target = exp(-s);
 	double t = 0;
 	double J = 0;
-	double tolerance = 1E-6;
-	auto TEBD_args = Args("Cutoff=",1E-16,"Verbose=",false,"MaxDim=",1000 );		
-	
 	do
 	{
 		t += dt;
-		J = J_target * tanh(t/beta);
-		cerr << J << endl;
-		auto gates = make_bosonic_east_model_gates(sites, L, dt, J, c);
-		*psi_start = apply_gates(*psi_start, gates, TEBD_args);
-		(*psi_start).position(1);
-		(*psi_start).normalize(); 
-	}while((J_target - J)/(J_target + J) > tolerance );
+		J = J_target * t / T;
+		apply_ramp_step(psi_start, sites, J, c, dt, args);
+	} while( J_target > J );
+}
 
 
+// tanh protocol J(t) = J_target tanh(t / T), until J is within a relative tolerance of J_target
+
+void
+evolve_adiabatic_tanh_ramp( MPS *psi_start, const SiteSet sites, const double s, const double c, const double dt, const double T, const Args& args)
+{
+	const double tolerance = 1E-6;
+	double J_target = exp(-s);
+	double t = 0;
+	double J = 0;
+	do
+	{
+		t += dt;
+		J = J_target * tanh(t/T);
+		apply_ramp_step(psi_start, sites, J, c, dt, args);
+	} while( (J_target - J)/(J_target + J) > tolerance );
 }

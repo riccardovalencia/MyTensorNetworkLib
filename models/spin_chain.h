@@ -16,6 +16,22 @@ using namespace std;
 using namespace itensor;
 
 /**
+ * @brief Two-site term on the bond (j, j+1) of the spin chain of make_spin_chain_gates.
+ *
+ * The bond couplings enter in full; the fields of sites j and j+1 are divided by the number of
+ * gates sharing them (count_left, count_right; see count_gates_containing in mps/gates.h), so
+ * that the sum of the bond terms is H.
+ * @param sites       Spin-1/2 site set.
+ * @param J           Couplings {Jxx, Jyy, Jzz}.
+ * @param h           Fields {hx, hy, hz}.
+ * @param j           Left site of the bond.
+ * @param count_left  Number of bonds sharing the field of site j.
+ * @param count_right Number of bonds sharing the field of site j+1.
+ */
+ITensor
+make_spin_chain_bond_hamiltonian(const SiteSet sites, const vector<double> J, const vector<double> h, const int j, const int count_left, const int count_right);
+
+/**
  * @brief Gates of the nearest-neighbour spin chain
  *        H = sum_j (hx X_j + hy Y_j + hz Z_j) + sum_j (Jxx X_j X_{j+1} + Jyy Y_j Y_{j+1} + Jzz Z_j Z_{j+1}).
  * @param sites Spin-1/2 site set.
@@ -44,28 +60,16 @@ vector<TebdGate>
 make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double dt);
 
 /**
- * @brief Bond term of the Ising chain in longitudinal (hx) and transverse (hz) fields,
- *        H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ].
- *
- * The single-site terms are split between neighbouring bonds (full weight on the edges), so
- * that summing the bond terms gives H.
- *
+ * @brief Gates of the Ising chain in longitudinal (hx) and transverse (hz) fields,
+ *        H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ]
+ *        (make_spin_chain_gates with J = {-J, 0, 0} and h = {-J hx, 0, -J hz}).
  * @param sites Spin-1/2 site set.
- * @param N     Number of sites.
  * @param J     Overall energy scale.
  * @param hx    Longitudinal field (along the Ising axis x).
  * @param hz    Transverse field.
- * @param b     Left site of the bond.
- * @return Bond Hamiltonian on (b, b+1) (e.g. to build an ITensor BondGate).
- */
-ITensor
-make_ising_bond_hamiltonian( const SpinHalf sites , const int N , const double J , const double hx , const double hz , const int b );
-
-/**
- * @brief Second-order Trotter step of the Ising chain of make_ising_bond_hamiltonian,
- *        H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ]: forward sweep with dt/2, then the reversed sweep.
+ * @param dt    Time step.
  */
 vector<TebdGate>
-make_ising_gates( const SpinHalf sites , const int N , const double J , const double hx , const double hz , const double dt );
+make_ising_gates( const SiteSet sites , const double J , const double hx , const double hz , const double dt );
 
 #endif

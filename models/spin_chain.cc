@@ -3,261 +3,109 @@
  * @brief Implementation of spin_chain.h (the functions are documented in the header).
  */
 #include "spin_chain.h"
-#include "../models/bosonic_east_model.h"
 #include "../mps/gates.h"
 #include <itensor/all.h>
-#include <cmath>
-#include <complex>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <string>
-#include <tuple>
 #include <vector>
 
 using namespace std;
 using namespace itensor;
 
 
-// -----------------------------------------------------------------
-// Gates of exp(-i dt H) with spin Hamiltonian H
-//  H  =  - hx \sum_j X_j - Jxx \sum_j X_j X_{j+1} 
-//        - hy \sum_j X_j - Jyy \sum_j Y_j Y_{j+1}  
-//        - hz \sum_j X_j - Jzz \sum_j Z_j Z_{j+1}
-// where J = [Jxx,Jyy,Jzz] and h = [hx,hy,hz]
+// ----------------------------------------------------------
+// fields of site j divided among the count bonds sharing it, plus the couplings of the bond (j, j+1)
+
+ITensor
+make_spin_chain_bond_hamiltonian(const SiteSet sites, const vector<double> J, const vector<double> h, const int j, const int count_left, const int count_right)
+{
+    vector<ITensor> X, Y, Z, Id;
+    for(int q = j ; q <= j+1 ; q++)
+    {
+        Id.push_back(    op(sites,"Id",q) );
+        X.push_back( 2 * op(sites,"Sx",q) );
+        Y.push_back( 2 * op(sites,"Sy",q) );
+        Z.push_back( 2 * op(sites,"Sz",q) );
+    }
+
+    ITensor H_S  = (h[0] * X[0] + h[1] * Y[0] + h[2] * Z[0]) * Id[1] / double(count_left);
+    H_S         += Id[0] * (h[0] * X[1] + h[1] * Y[1] + h[2] * Z[1]) / double(count_right);
+    ITensor H_SS = J[0] * X[0] * X[1] + J[1] * Y[0] * Y[1] + J[2] * Z[0] * Z[1];
+    return H_S + H_SS;
+}
+
+
+// L^dag L of a local jump operator L (indices s, s')
+
+static ITensor
+make_jump_norm_operator(const ITensor& L)
+{
+    ITensor Ld = conj(L);
+    Ld.mapPrime(0,2);           // (L^*)^T L = L^dag L: the 'row' index of L^* becomes the 'column' one
+    ITensor LdL = Ld * L;
+    LdL.mapPrime(2,1);
+    return LdL;
+}
+
+
+// bond term of an open chain: the fields of the edge sites are not shared
+
+static ITensor
+make_open_chain_bond_hamiltonian(const SiteSet& sites, const vector<double>& J, const vector<double>& h, int j)
+{
+    int N = length(sites);
+    return make_spin_chain_bond_hamiltonian(sites, J, h, j, count_gates_containing(j, 1, 2, N), count_gates_containing(j+1, 1, 2, N));
+}
+
 
 vector<TebdGate>
 make_spin_chain_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
 {
-
-	int N = length(sites);
-
     vector<TebdGate> gates;
-
-	cerr << "vector J = (J_xx, J_yy , J_zz)\n";
-	double Jxx = J[0];
-	double Jyy = J[1];
-	double Jzz = J[2];
-	cerr << Jxx << "\n" << Jyy << "\n" << Jzz << "\n";
-
-	double hx  = h[0];
-	double hy  = h[1];
-	double hz  = h[2];
-
-	for(int j=1 ; j <= N-1 ; j+=1)
-	{
-		vector<ITensor> X;
-		vector<ITensor> Y;
-		vector<ITensor> Z;
-		vector<ITensor> Id;
-
-		for(int q=j ; q<=j+1; q++)
-		{
-			Id.push_back(      op(sites,"Id",q) );
-			X.push_back(  2 * op(sites,"Sx",q) );
-			Y.push_back(  2 * op(sites,"Sy",q) );
-			Z.push_back(  2 * op(sites,"Sz",q) );
-		}
-
-		ITensor H_S , H_SS;
-
-		if(j==1) H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] ;
-		else     H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] / 2.;
-
-		if(j <  N-1) H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1]) / 2. ;
-		else         H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1])      ;
-
-		H_SS  = Jxx * X[0]*X[1] + Jyy * Y[0]*Y[1] + Jzz * Z[0]*Z[1];		
-		
-		ITensor H = H_S + H_SS;
-
-		vector<int> jn = {j,j+1};
-		TebdGate g = TebdGate(jn,dt/2.,H);
-		gates.push_back(g);
-	}
-	
-	vector<TebdGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-	for(TebdGate gate : gates_) gates.push_back(gate);
-
-	return gates;
+    for(int j = 1 ; j <= length(sites)-1 ; j++)
+        gates.push_back(TebdGate({j,j+1}, dt/2., make_open_chain_bond_hamiltonian(sites, J, h, j)));
+    return make_symmetric_sweep(gates);
 }
 
 
-// -----------------------------------------------------------------
-// Gates of exp(-i dt H) with spin Hamiltonian H
-//  H  =  - hx \sum_j X_j - Jxx \sum_j X_j X_{j+1} 
-//        - hy \sum_j X_j - Jyy \sum_j Y_j Y_{j+1}  
-//        - hz \sum_j X_j - Jzz \sum_j Z_j Z_{j+1}
-// where J = [Jxx,Jyy,Jzz] and h = [hx,hy,hz]
-// Same as the one retuning <TebdGate>: overload of the function. 
-// Depending on the degree of flexibility and control needed could be better to use one over the other
-
-
-
-// effective Hamiltonian of a local dissipative process
-// The coherent dynamics is given by the generic short range spin model
+// the non-hermitian term -i/2 gamma L^dag L of a jump operator on site j enters the bond (j, j+1),
+// and the bond (N-1, N) for j = N
 
 vector<TebdGate>
 make_spin_chain_effective_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const vector<int> Lj_sites, const vector<double> gamma, const double dt)
 {
-
-	int N = length(sites);
-
+    int N = length(sites);
     vector<TebdGate> gates;
-
-	double Jxx = J[0];
-	double Jyy = J[1];
-	double Jzz = J[2];
-
-	double hx  = h[0];
-	double hy  = h[1];
-	double hz  = h[2];
-	for(int j=1 ; j <= N-1 ; j+=1)
-	{
-		vector<ITensor> X;
-		vector<ITensor> Y;
-		vector<ITensor> Z;
-		vector<ITensor> Id;
-
-		for(int q=j ; q<=j+1; q++)
-		{
-			Id.push_back(      op(sites,"Id",q) );
-			X.push_back(  2 * op(sites,"Sx",q) );
-			Y.push_back(  2 * op(sites,"Sy",q) );
-			Z.push_back(  2 * op(sites,"Sz",q) );
-		}
-
-		ITensor H_S , H_SS;
-
-		if(j==1) H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] ;
-		else     H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] / 2.;
-
-		if(j <  N-1) H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1]) / 2. ;
-		else         H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1])      ;
-
-		for(int k=0 ; k < (int)Lj_sites.size(); k++)
-		{
-			if(Lj_sites[k]==j)
-			{
-				ITensor lj  = Lj[k];
-				ITensor ljd = conj(lj);
-				ljd.mapPrime(0,2); // I have to do L^dag L, which is (L^*)^T L (this is why I make the 'row' index the 'column' one)
-				ITensor ljdlj = ljd * lj; 
-				ljdlj.mapPrime(2,1);
-				H_S -= 0.5 * gamma[k] * Cplx_i * ljdlj * Id[1]; 
-			}
-			if(j==N-1 && Lj_sites[k] == N)
-			{
-				ITensor lj = Lj[k];
-				ITensor ljd = conj(lj);
-				ljd.mapPrime(0,2); // I have to do L^dag L, which is (L^*)^T L (this is why I make the 'row' index the 'column' one)
-				ITensor ljdlj = ljd * lj; 
-				ljdlj.mapPrime(2,1);
-				H_S -= 0.5 * gamma[k] * Cplx_i * Id[0] * ljdlj;
-			}
-		}
-
-		H_SS  = Jxx * X[0] * X[1];
-		H_SS += Jyy * Y[0] * Y[1];
-		H_SS += Jzz * Z[0] * Z[1];		
-		
-		ITensor H = H_S + H_SS;
-
-		vector<int> jn = {j,j+1};
-		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
-		gates.push_back(g);
-	}
-	
-	vector<TebdGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-	for(TebdGate gate : gates_) gates.push_back(gate);
-
-	return gates;
+    for(int j = 1 ; j <= N-1 ; j++)
+    {
+        ITensor H = make_open_chain_bond_hamiltonian(sites, J, h, j);
+        for(int k = 0 ; k < (int)Lj_sites.size() ; k++)
+        {
+            ITensor LdL = -0.5 * gamma[k] * Cplx_i * make_jump_norm_operator(Lj[k]);
+            if(Lj_sites[k] == j)                H += LdL * op(sites,"Id",j+1);
+            if(Lj_sites[k] == N && j == N-1)    H += op(sites,"Id",j) * LdL;
+        }
+        gates.push_back(TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()));
+    }
+    return make_symmetric_sweep(gates);
 }
 
 
 vector<TebdGate>
 make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double dt)
 {
-
-	int N = length(sites);
-	vector<TebdGate> gates;
-
-	// H = \sum_j omveja
-	for(int j=1 ; j <= N; j++)
-	{
-		ITensor Sx = 2*op(sites,"Sx",j);
-		ITensor Sy = 2*op(sites,"Sy",j);
-		ITensor Sz = 2*op(sites,"Sz",j);
-
-		ITensor hj = omegaj[0] * Sx + omegaj[1] * Sy + omegaj[2] * Sz;
-
-		vector<int> jn = {j};
-
-		TebdGate g = TebdGate(jn,dt/2.,hj);
-		gates.push_back(g);
-	}
-
-
-	vector<TebdGate> gates_ = gates;
-	reverse(gates_.begin(), gates_.end());
-
-	for(TebdGate gate : gates_) gates.push_back(gate);
-	
-	return gates;
+    vector<TebdGate> gates;
+    for(int j = 1 ; j <= length(sites) ; j++)
+    {
+        ITensor hj = omegaj[0] * 2 * op(sites,"Sx",j) + omegaj[1] * 2 * op(sites,"Sy",j) + omegaj[2] * 2 * op(sites,"Sz",j);
+        gates.push_back(TebdGate({j}, dt/2., hj));
+    }
+    return make_symmetric_sweep(gates);
 }
 
 
-//----------------------------------------------------------------------
-
-//single gate acting on sites [b,b+1] of the Ising model with longitudinal (hx) and transversal (hz) magnetic fields
-
-ITensor
-make_ising_bond_hamiltonian( const SpinHalf sites , const int N , const double J , const double hx , const double hz , const int b )
-	{
-    ITensor hterm;
-	ITensor Sx1 = sites.op("Sx",b);					
-	ITensor Sx2 = sites.op("Sx",b+1);
-	ITensor Sz1 = sites.op("Sz",b);
-	ITensor Sz2 = sites.op("Sz",b+1);
-	ITensor Id1 = sites.op("Id",b);
-	ITensor Id2 = sites.op("Id",b+1);
-		
-	hterm = - 4 * J * Sx1 * Sx2;
-		
-	if( b == 1 )
-		{
-		hterm +=  - 2 * J * hx * ( Sx1 * Id2 + Id1 * Sx2 / 2. ); 									
-		hterm +=  - 2 * J * hz * ( Sz1 * Id2 + Id1 * Sz2 / 2. );	
-		}
-	else if( b == N-1)
-		{
-		hterm +=  - 2 * J * hx * ( Sx1 * Id2 / 2. + Id1 * Sx2 ); 									
-		hterm +=  - 2 * J * hz * ( Sz1 * Id2 / 2. + Id1 * Sz2 );		
-		}
-	else{
-		hterm +=  - 2 * J * hx * ( Sx1 * Id2 + Id1 * Sx2 ) / 2.; 									
-		hterm +=  - 2 * J * hz * ( Sz1 * Id2 + Id1 * Sz2 ) / 2.;	
-		}
-    return hterm;
-}
-
-
-// ----------------------------------------------------------
-// second-order Trotter step of the Ising chain: forward sweep with dt/2, then the reversed sweep
+// H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ] is the spin chain with J = {-J, 0, 0}, h = {-J hx, 0, -J hz}
 
 vector<TebdGate>
-make_ising_gates( const SpinHalf sites , const int N , const double J , const double hx , const double hz , const double dt )
+make_ising_gates( const SiteSet sites , const double J , const double hx , const double hz , const double dt )
 {
-    vector<TebdGate> gates;
-    for(int b = 1 ; b <= N-1 ; b++)
-    {
-        ITensor hterm = make_ising_bond_hamiltonian(sites, N, J, hx, hz, b);
-        gates.push_back(TebdGate({b, b+1}, BondGate(sites, b, b+1, BondGate::tReal, dt/2., hterm).gate()));
-    }
-    for(int b = N-1 ; b >= 1 ; b--) gates.push_back(gates[b-1]);
-    return gates;
+    return make_spin_chain_gates(sites, {-J, 0., 0.}, {-J * hx, 0., -J * hz}, dt);
 }

@@ -38,6 +38,18 @@ ITensor
 make_single_particle_hamiltonian_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful = false);
 
 /**
+ * @brief Two-site term on the bond (j, j+1) of free spinful fermions (Electron sites): hopping J for
+ *        both spins and the fields of sites j and j+1, divided by the number of gates sharing them
+ *        (count_left, count_right; see count_gates_containing in mps/gates.h).
+ * @param hup      Fields on up electrons {site j, site j+1}.
+ * @param hdn      Fields on down electrons {site j, site j+1}.
+ * @param mirrored Jordan-Wigner strings for a chain stored in reversed order (bra half of a
+ *                 purified state, see models/impurity.h).
+ */
+ITensor
+make_free_fermion_bond_hamiltonian(const SiteSet sites, const int j, const double J, const vector<double> hup, const vector<double> hdn, const int count_left, const int count_right, const bool mirrored = false);
+
+/**
  * @brief Second-order Trotter gates of free spinful fermions (Electron sites):
  *        hoppings J_j between j and j+1 for both spins, fields hup_j n_{j,up} + hdn_j n_{j,dn}.
  */

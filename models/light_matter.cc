@@ -3,542 +3,114 @@
  * @brief Implementation of light_matter.h (the functions are documented in the header).
  */
 #include "light_matter.h"
+#include "../dof/spin_half.h"
 #include "../mps/mps_tools.h"
 #include <itensor/all.h>
 #include <cmath>
-#include <complex>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <random>
-#include <sstream>
 #include <string>
-#include <tuple>
 #include <vector>
 
 using namespace std;
 using namespace itensor;
 
 
-// -----------------------------------------------------------------
-// Gates of the Tavis-Cummings model 
-// H = omegao n_a + h S^z + g (S^+ a + S^- a^\dag)
-// where we have collective operators S^alpha = \sum_{j=1}^{N-1} s_j^alpha 
-// We consider (N-1) spin-1/2 explicitly (we do not use collective operators).
+// ----------------------------------------------------------
+// local operators on a site of the spin-boson chain (boson or spin-1/2), indices (s, s')
 
-// It returns either short-range gates or long-range one, where
-// H_short = omegao n_a + h S^z 
-// H_long  = g (S^+ a + S^- a^\dag)
-// We DO NOT implement the swap gates as gates, but directly in the TEBD algorithm.
-
-vector<TebdGate>
-make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon)
+// spin lowering (lower = true) or raising operator, zero on a boson
+static ITensor
+make_spin_ladder(const Index& s, bool lower)
 {
-    vector<TebdGate> gates;
-
-	int N = length(sites);
-	
-	// -----------------------------------------------------------------------------------
-	// gates for H = \omega_0 n_a + \sum_j h \sigma_j^z
-	// single-site gate (it implies no need of SVD when applied)
-	// in order to use the BondGate class I write as two-gate Hamiltonian
-	// When applied, I can exploit the fact there is no need of SVDs
-
-	if(matter_or_photon == "short-range")
-	{
-	cerr << "Build short-range interactions" << endl;
-
-	for(int j=1 ; j<N;j++)
+    ITensor S = ITensor(s, prime(s));
+    if(hasTags(s,"Site,S=1/2"))
     {
-        
-        Index sj = sites(j);
-        Index sjp = prime(sites(j));
-
-		Index sj1 = sites(j+1);
-        Index sj1p = prime(sites(j+1));
-        
-        ITensor S_j  = ITensor(sj ,sjp );
-		ITensor I_j  = ITensor(sj ,sjp );
-		
-        ITensor S_j1 = ITensor(sj1,sj1p);
-        ITensor I_j1 = ITensor(sj1,sj1p);
-
-		vector<double> local_fields;
-	
-		if(hasTags(sj,"Site,Boson"))
-		{
-			for(int d=1; d <= dim(sj) ; d++) S_j.set(sj(d),sjp(d),d-1.);
-			local_fields.push_back(omega0);
-        }
-				
-		if(hasTags(sj,"Site,S=1/2"))
-		{
-			S_j.set(sj(1),sjp(1),1.);
-			S_j.set(sj(2),sjp(2),-1.);	
-			local_fields.push_back(h);
-		}
-
-		if(hasTags(sj1,"Site,Boson"))
-		{
-			for(int d=1; d <= dim(sj1) ; d++) S_j1.set(sj1(d),sj1p(d),d-1.);
-			local_fields.push_back(omega0);
-
-        }
-				
-		if(hasTags(sj1,"Site,S=1/2"))
-		{
-			S_j1.set(sj1(1),sj1p(1),1.);
-			S_j1.set(sj1(2),sj1p(2),-1.);	
-			local_fields.push_back(h);
-
-		}
-
-		for(int d=1; d <= dim(sj)  ; d++) I_j.set(sj(d),sjp(d),1.);
-		for(int d=1; d <= dim(sj1) ; d++) I_j1.set(sj1(d),sj1p(d),1.);
-
-		ITensor hj;
-		if(j==1) 		hj = local_fields[0]    * S_j * I_j1 + local_fields[1]/2. * I_j * S_j1;
-		else if(j==N-1) hj = local_fields[0]/2. * S_j * I_j1 + local_fields[1]    * I_j * S_j1;
-		else 			hj = local_fields[0]/2. * S_j * I_j1 + local_fields[1]/2. * I_j * S_j1;
-		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()); 
-		gates.push_back(g);
-
+        if(lower) S.set(s(1), prime(s)(2), 1.);
+        else      S.set(s(2), prime(s)(1), 1.);
     }
+    return S;
+}
 
-	for(int j=N-1 ; j>=1;j--)
+// bosonic annihilation (annihilate = true) or creation operator
+static ITensor
+make_boson_ladder(const Index& s, bool annihilate)
+{
+    ITensor A = ITensor(s, prime(s));
+    for(int d = 1 ; d < dim(s) ; d++)
     {
-        
-        Index sj = sites(j);
-        Index sjp = prime(sites(j));
-
-		Index sj1 = sites(j+1);
-        Index sj1p = prime(sites(j+1));
-        
-        ITensor S_j  = ITensor(sj ,sjp );
-		ITensor I_j  = ITensor(sj ,sjp );
-		
-        ITensor S_j1 = ITensor(sj1,sj1p);
-        ITensor I_j1 = ITensor(sj1,sj1p);
-
-		vector<double> local_fields;
-	
-		if(hasTags(sj,"Site,Boson"))
-		{
-			for(int d=1; d <= dim(sj) ; d++) S_j.set(sj(d),sjp(d),d-1.);
-			local_fields.push_back(omega0);
-        }
-				
-		if(hasTags(sj,"Site,S=1/2"))
-		{
-			S_j.set(sj(1),sjp(1),1.);
-			S_j.set(sj(2),sjp(2),-1.);	
-			local_fields.push_back(h);
-		}
-
-		if(hasTags(sj1,"Site,Boson"))
-		{
-			for(int d=1; d <= dim(sj1) ; d++) S_j1.set(sj1(d),sj1p(d),d-1.);
-			local_fields.push_back(omega0);
-
-        }
-				
-		if(hasTags(sj1,"Site,S=1/2"))
-		{
-			S_j1.set(sj1(1),sj1p(1),1.);
-			S_j1.set(sj1(2),sj1p(2),-1.);	
-			local_fields.push_back(h);
-
-		}
-
-		for(int d=1; d <= dim(sj)  ; d++) I_j.set(sj(d),sjp(d),1.);
-		for(int d=1; d <= dim(sj1) ; d++) I_j1.set(sj1(d),sj1p(d),1.);
-		
-		ITensor hj;
-		if(j==1) hj = local_fields[0] * S_j * I_j1 + local_fields[1]/2. * I_j * S_j1;
-		else if(j==N-1) hj = local_fields[0]/2. * S_j * I_j1 + local_fields[1] * I_j * S_j1;
-		else hj = local_fields[0]/2. * S_j * I_j1 + local_fields[1]/2. * I_j * S_j1;
-		TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()); 
-		gates.push_back(g);
-
+        if(annihilate) A.set(s(d+1), prime(s)(d), sqrt(d));
+        else           A.set(s(d), prime(s)(d+1), sqrt(d));
     }
-
-	return gates;
-	}
-	// -----------------------------------------------------------------------------------
-
-	// gate H = g \sum_j s_j^+ a + h.c.
-	// I implement swap gate as gates using the built-in gate  BondGate(sites,7,8); (see https://itensor.org/docs.cgi?vers=cppv3&page=classes/bondgate)
-	// NO: IT DOES NOT WORK WITH DIFFERENT PHYSICAL DIMENSIONS AS IT IS THE CASE OF SPIN-BOSON MODEL
-	// Alternative: I implement the swap gate using SVDs -> drawback: I have to explicitly write it in the main
-
-	else if(matter_or_photon == "long-range")
-	{
-
-	Index sph   = sites(1);
-	Index sph_p = prime(sites(1));
-
-	ITensor A  = ITensor(sph,sph_p);
-	ITensor Ad = ITensor(sph,sph_p);
-	
-	for(int d=1; d < dim(sph) ; d++)
-	{
-		A.set( sph(d)  ,sph_p(d+1),sqrt(d));
-		Ad.set(sph(d+1),sph_p(d)  ,sqrt(d));
-	}
-	cerr << "Build photon-matter terms" << endl;
-
-	for(int j=1 ; j<N;j++)
-    {
-		Index sj1   = sites(j+1);
-        Index sj1p  = prime(sites(j+1));
-        ITensor Sp = ITensor(sj1,sj1p);
-        ITensor Sm = ITensor(sj1,sj1p);
-
-
-		if(hasTags(sj1,"Site,S=1/2"))
-		{
-			Sm.set(sj1(1),sj1p(2),1.);
-			Sp.set(sj1(2),sj1p(1),1.);	
-		}
-
-
-		ITensor hj = g * (A * Sp + Ad * Sm);
-		TebdGate g = TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true); 
-		gates.push_back(g);
-
-    }
-
-	for(int j=N-1 ; j>=1;j--)
-    {
-		Index sj1   = sites(j+1);
-        Index sj1p  = prime(sites(j+1));
-        ITensor Sp = ITensor(sj1,sj1p);
-        ITensor Sm = ITensor(sj1,sj1p);
-
-
-		if(hasTags(sj1,"Site,S=1/2"))
-		{
-			Sm.set(sj1(1),sj1p(2),1.);
-			Sp.set(sj1(2),sj1p(1),1.);	
-		}
-
-
-		ITensor hj = g * (A * Sp + Ad * Sm);
-		TebdGate g = TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true); 
-		gates.push_back(g);
-    }
-	return gates;
-	}
-
-	else{
-		cerr << "string argument inserted is neither 'short-range' nor 'long-range" << endl;
-		cerr << "Return empy gates" << endl;
-		return gates;
-	}
+    return A;
 }
 
 
-// -----------------------------------------------------------------
-// Gates of the general light-matter interaction. It is possible to select:
-// type_of_coupling = "dicke" : dicke type interactions           -> g S^x (a+a^\dag)
-// type_of_coupling = "tavis" : jaynes cummings type interactions -> g (S^+ a + S^- a^\dag)
+// ----------------------------------------------------------
+// local terms omega0 n_a + h Z_j on the bond (j, j+1), shared with the neighbouring bonds,
+// plus the spin-spin interaction if both sites are spins
 
-// It returns either short-range gates or long-range one, where
-// H_short = omegao n_a + h S^z 
-// H_long  = dicke or tavis
-// We DO NOT implement the swap gates as gates, but directly in the TEBD algorithm.
+static ITensor
+make_local_bond_hamiltonian(const SiteSet& sites, const int j, const double omega0, const double h, const double V, const string& interaction_axis)
+{
+    int N = length(sites);
+    Index s1 = sites(j);
+    Index s2 = sites(j+1);
+    auto field = [&](const Index& s) { return hasTags(s,"Site,Boson") ? omega0 : h; };
+
+    ITensor I1 = make_identity_operator(s1, prime(s1)), I2 = make_identity_operator(s2, prime(s2));
+    ITensor D1 = make_magnetization_operator(s1, "z"), D2 = make_magnetization_operator(s2, "z");   // n_a or Z_j
+
+    ITensor H = field(s1) / count_gates_containing(j,   1, 2, N) * D1 * I2
+              + field(s2) / count_gates_containing(j+1, 1, 2, N) * I1 * D2;
+
+    if(hasTags(s1,"Site,S=1/2") && hasTags(s2,"Site,S=1/2"))
+    {
+        if(interaction_axis == "z")      H += V * ((I1 - D1) / 2.) * ((I2 - D2) / 2.);   // V n_j n_{j+1}
+        else if(interaction_axis == "x") H += V * make_pauli_operator(s1, prime(s1), "x") * make_pauli_operator(s2, prime(s2), "x");
+        else throw ITError("make_light_matter_gates: interaction_axis must be \"z\" or \"x\"");
+    }
+    return H;
+}
+
+
+// coupling between the boson (site 1) and the spin on site j+1
+
+static ITensor
+make_photon_matter_hamiltonian(const SiteSet& sites, const int j, const double g, const string& type_of_coupling)
+{
+    ITensor A  = make_boson_ladder(sites(1), true);
+    ITensor Ad = make_boson_ladder(sites(1), false);
+    ITensor Sm = make_spin_ladder(sites(j+1), true);
+    ITensor Sp = make_spin_ladder(sites(j+1), false);
+
+    if(type_of_coupling == "dicke") return g * (A + Ad) * (Sp + Sm);
+    if(type_of_coupling == "tavis") return g * (A * Sp + Ad * Sm);
+    throw ITError("make_light_matter_gates: type_of_coupling must be \"dicke\" or \"tavis\"");
+}
+
+
+// ----------------------------------------------------------
+// short-range gates: local terms on (j, j+1); long-range gates: boson-spin coupling on (j, j+1),
+// with the boson on position j, followed by a swap that moves the boson forward
+// (swap gates with ITensor BondGate do not work with different local dimensions)
 
 vector<TebdGate>
 make_light_matter_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon, string type_of_coupling, const double V, string interaction_axis)
 {
+    int N = length(sites);
     vector<TebdGate> gates;
-
-	int N = length(sites);
-	
-	// -----------------------------------------------------------------------------------
-	// gates for H = \omega_0 n_a + \sum_j h \sigma_j^z
-	// single-site gate (it implies no need of SVD when applied)
-	// in order to use the BondGate class I write as two-gate Hamiltonian
-	// When applied, I can exploit the fact there is no need of SVDs
-
-	if(matter_or_photon == "short-range")
-	{
-		cerr << "Build short-range interactions" << endl;
-
-		for(int j=1 ; j<N;j++)
-		{
-			
-			Index sj = sites(j);
-			Index sjp = prime(sites(j));
-
-			Index sj1 = sites(j+1);
-			Index sj1p = prime(sites(j+1));
-			
-			ITensor Sx_j = ITensor(sj ,sjp );
-			ITensor Sz_j = ITensor(sj ,sjp );
-			ITensor I_j  = ITensor(sj ,sjp );
-			
-			ITensor Sx_j1 = ITensor(sj1,sj1p);
-			ITensor Sz_j1 = ITensor(sj1,sj1p);
-			ITensor I_j1  = ITensor(sj1,sj1p);
-
-			vector<double> local_fields;
-		
-			if(hasTags(sj,"Site,Boson"))
-			{
-				for(int d=1; d <= dim(sj) ; d++) Sz_j.set(sj(d),sjp(d),d-1.);
-				local_fields.push_back(omega0);
-			}
-					
-			if(hasTags(sj,"Site,S=1/2"))
-			{
-				Sz_j.set(sj(1),sjp(1),1.);
-				Sz_j.set(sj(2),sjp(2),-1.);	
-				Sx_j.set(sj(1),sjp(2),1.);
-				Sx_j.set(sj(2),sjp(1),1.);	
-				local_fields.push_back(h);
-			}
-
-			if(hasTags(sj1,"Site,Boson"))
-			{
-				for(int d=1; d <= dim(sj1) ; d++) Sz_j1.set(sj1(d),sj1p(d),d-1.);
-				local_fields.push_back(omega0);
-
-			}
-					
-			if(hasTags(sj1,"Site,S=1/2"))
-			{
-				Sz_j1.set(sj1(1),sj1p(1),1.);
-				Sz_j1.set(sj1(2),sj1p(2),-1.);	
-				Sx_j1.set(sj1(1),sj1p(2),1.);
-				Sx_j1.set(sj1(2),sj1p(1),1.);	
-				local_fields.push_back(h);
-
-			}
-
-			for(int d=1; d <= dim(sj)  ; d++) I_j.set(sj(d),sjp(d),1.);
-			for(int d=1; d <= dim(sj1) ; d++) I_j1.set(sj1(d),sj1p(d),1.);
-
-			// local fields diagonal in Sz and Nphoton
-			ITensor hj;
-			if(j==1) 		hj = local_fields[0]    * Sz_j * I_j1 + local_fields[1]/2. * I_j * Sz_j1;
-			else if(j==N-1) hj = local_fields[0]/2. * Sz_j * I_j1 + local_fields[1]    * I_j * Sz_j1;
-			else 			hj = local_fields[0]/2. * Sz_j * I_j1 + local_fields[1]/2. * I_j * Sz_j1;
-
-			// if the sites considered both contain spin degrees of freedom
-			if( hasTags(sj,"Site,S=1/2") &&  hasTags(sj1,"Site,S=1/2"))
-			{
-				ITensor h_nn ; 
-				if(interaction_axis == "z")
-				{
-					cerr << "Building NN interactions.\n";
-					ITensor Nj  = (I_j  - Sz_j )/2.;
-					ITensor Nj1 = (I_j1 - Sz_j1)/2.;
-					h_nn = V * Nj * Nj1;
-				}
-				else if(interaction_axis == "x")
-				{
-					cerr << "Building XX interactions.\n";
-					h_nn = V * Sx_j * Sx_j1;
-				}
-				else
-				{
-					cerr << "Short-range interactions along " << interaction_axis << " not yet implemented.\n";
-					exit(0);
-				}
-				hj += h_nn;
-			}
-
-			TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()); 
-			gates.push_back(g);
-
-		}
-
-		for(int j=N-1 ; j>=1;j--)
-		{
-			
-			Index sj = sites(j);
-			Index sjp = prime(sites(j));
-
-			Index sj1 = sites(j+1);
-			Index sj1p = prime(sites(j+1));
-			
-			ITensor Sx_j = ITensor(sj ,sjp );
-			ITensor Sz_j = ITensor(sj ,sjp );
-			ITensor I_j  = ITensor(sj ,sjp );
-			
-			ITensor Sx_j1 = ITensor(sj1,sj1p);
-			ITensor Sz_j1 = ITensor(sj1,sj1p);
-			ITensor I_j1  = ITensor(sj1,sj1p);
-
-			vector<double> local_fields;
-		
-			if(hasTags(sj,"Site,Boson"))
-			{
-				for(int d=1; d <= dim(sj) ; d++) Sz_j.set(sj(d),sjp(d),d-1.);
-				local_fields.push_back(omega0);
-			}
-					
-			if(hasTags(sj,"Site,S=1/2"))
-			{
-				Sz_j.set(sj(1),sjp(1),1.);
-				Sz_j.set(sj(2),sjp(2),-1.);	
-				Sx_j.set(sj(1),sjp(2),1.);
-				Sx_j.set(sj(2),sjp(1),1.);	
-				local_fields.push_back(h);
-			}
-
-			if(hasTags(sj1,"Site,Boson"))
-			{
-				for(int d=1; d <= dim(sj1) ; d++) Sz_j1.set(sj1(d),sj1p(d),d-1.);
-				local_fields.push_back(omega0);
-
-			}
-					
-			if(hasTags(sj1,"Site,S=1/2"))
-			{
-				Sz_j1.set(sj1(1),sj1p(1),1.);
-				Sz_j1.set(sj1(2),sj1p(2),-1.);
-				Sx_j1.set(sj1(1),sj1p(2),1.);
-				Sx_j1.set(sj1(2),sj1p(1),1.);	
-				local_fields.push_back(h);
-
-			}
-
-			for(int d=1; d <= dim(sj)  ; d++) I_j.set(sj(d),sjp(d),1.);
-			for(int d=1; d <= dim(sj1) ; d++) I_j1.set(sj1(d),sj1p(d),1.);
-			
-			ITensor hj;
-			if(j==1) 		hj = local_fields[0]    * Sz_j * I_j1 + local_fields[1]/2. * I_j * Sz_j1;
-			else if(j==N-1) hj = local_fields[0]/2. * Sz_j * I_j1 + local_fields[1]    * I_j * Sz_j1;
-			else 			hj = local_fields[0]/2. * Sz_j * I_j1 + local_fields[1]/2. * I_j * Sz_j1;
-
-			// if the sites considered both contain spin degrees of freedom
-			if( hasTags(sj,"Site,S=1/2") &&  hasTags(sj1,"Site,S=1/2"))
-			{
-				ITensor h_nn ; 
-				if(interaction_axis == "z")
-				{
-					cerr << "Building NN interactions.\n";
-					ITensor Nj  = (I_j  - Sz_j )/2.;
-					ITensor Nj1 = (I_j1 - Sz_j1)/2.;
-					h_nn = V * Nj * Nj1;
-				}
-				else if(interaction_axis == "x")
-				{
-					cerr << "Building XX interactions.\n";
-					h_nn = V * Sx_j * Sx_j1;
-				}	
-				else
-				{
-					cerr << "Short-range interactions along " << interaction_axis << " not yet implemented.\n";
-					exit(0);
-				}
-				hj += h_nn;
-			}
-
-			TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()); 
-			gates.push_back(g);
-
-		}
-
-		return gates;
-	
-	}
-	// -----------------------------------------------------------------------------------
-
-	// gate H = g \sum_j s_j^+ a + h.c.
-	// I implement swap gate as gates using the built-in gate  BondGate(sites,7,8); (see https://itensor.org/docs.cgi?vers=cppv3&page=classes/bondgate)
-	// NO: IT DOES NOT WORK WITH DIFFERENT PHYSICAL DIMENSIONS AS IT IS THE CASE OF SPIN-BOSON MODEL
-	// Alternative: I implement the swap gate using SVDs -> drawback: I have to explicitly write it in the main
-	// photon operators
-
-	else if(matter_or_photon == "long-range")
-	{
-
-	Index sph   = sites(1);
-	Index sph_p = prime(sites(1));
-
-	ITensor A  = ITensor(sph,sph_p);
-	ITensor Ad = ITensor(sph,sph_p);
-	
-	for(int d=1; d < dim(sph) ; d++)
-	{
-		Ad.set( sph(d)  ,sph_p(d+1),sqrt(d));
-		A.set(sph(d+1),sph_p(d)  ,sqrt(d));
-	}
-	cerr << "Build photon-matter terms" << endl;
-
-	for(int j=1 ; j<N;j++)
+    for(int j = 1 ; j < N ; j++)
     {
-		Index sj1   = sites(j+1);
-        Index sj1p  = prime(sites(j+1));
-        ITensor Sp = ITensor(sj1,sj1p);
-        ITensor Sm = ITensor(sj1,sj1p);
-
-
-		if(hasTags(sj1,"Site,S=1/2"))
-		{
-			Sm.set(sj1(1),sj1p(2),1.);
-			Sp.set(sj1(2),sj1p(1),1.);	
-		}
-
-		ITensor hj;
-		if(type_of_coupling == "dicke")       hj = g * (A + Ad) * (Sp + Sm);
-		else if (type_of_coupling == "tavis") hj = g * (A * Sp + Ad * Sm);
-		else
-		{
-			cerr << "Selected type_of_coupling : " << type_of_coupling << " not supported.\n";
-			exit(-1); 
-		}
-		TebdGate g = TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true); 
-		gates.push_back(g);
-
+        if(matter_or_photon == "short-range")
+        {
+            ITensor hj = make_local_bond_hamiltonian(sites, j, omega0, h, V, interaction_axis);
+            gates.push_back(TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hj).gate()));
+        }
+        else if(matter_or_photon == "long-range")
+        {
+            ITensor hj = make_photon_matter_hamiltonian(sites, j, g, type_of_coupling);
+            gates.push_back(TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true));
+        }
+        else throw ITError("make_light_matter_gates: matter_or_photon must be \"short-range\" or \"long-range\"");
     }
-
-	for(int j=N-1 ; j>=1;j--)
-    {
-		Index sj1   = sites(j+1);
-        Index sj1p  = prime(sites(j+1));
-        ITensor Sp = ITensor(sj1,sj1p);
-        ITensor Sm = ITensor(sj1,sj1p);
-
-
-		if(hasTags(sj1,"Site,S=1/2"))
-		{
-			Sm.set(sj1(1),sj1p(2),1.);
-			Sp.set(sj1(2),sj1p(1),1.);	
-		}
-
-
-		ITensor hj;
-		if(type_of_coupling == "dicke")       hj = g * (A + Ad) * (Sp + Sm);
-		else if (type_of_coupling == "tavis") hj = g * (A * Sp + Ad * Sm);
-		else
-		{
-			cerr << "Selected type_of_coupling : " << type_of_coupling << " not supported.\n";
-			exit(-1); 
-		}
-		TebdGate g = TebdGate({j,j+1}, BondGate(sites,1,j+1,BondGate::tReal,dt/2.,hj).gate(), true); 
-		gates.push_back(g);
-    }
-	return gates;
-	}
-
-	else{
-		cerr << "string argument inserted is neither 'short-range' nor 'long-range" << endl;
-		cerr << "Return empy gates" << endl;
-		return gates;
-	}
+    return make_symmetric_sweep(gates);
 }
-
-
-// ----------------------------------------------------------
-// Two-site gate on neighbouring sites of the purified chain (jn in any order)
-
-
-
-// ----------------------------------------------------------
-// Photon-matter gate followed by a swap moving the boson outward
-// (see Phys. Rev. Research 2, 043255 (2020) for swap gates)
-

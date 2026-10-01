@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Second-order Trotter gates: forward sweep with dt/2, then the reversed sweep
 
-    vector<TebdGate> gates = make_ising_gates(sites, N, J, hx, hz, dt);
+    vector<TebdGate> gates = make_ising_gates(sites, J, hx, hz, dt);
 
     // ---------------------------------
     // Output

@@ -35,9 +35,9 @@ using namespace itensor;
 MPO
 make_bosonic_east_model_mpo( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
-/** @brief make_bosonic_east_model_mpo plus a drive 0.05 sum_{j=2}^{size-1} sigma^x_j. */
+/** @brief make_bosonic_east_model_mpo plus a drive Omega sum_{j=2}^{size-1} sigma^x_j (default Omega = 0.05). */
 MPO
-make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c, double Omega = 0.05);
 
 /** @brief -make_bosonic_east_model_mpo (to target the highest-energy state with DMRG). */
 MPO
@@ -53,18 +53,16 @@ make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , doub
 
 /**
  * @brief On-site interaction only, H = epsilon/2 sum_j n_j^2.
- * @note n0, symmetry, s and c are not used.
  */
 MPO
-make_bosonic_east_model_mpo_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon);
+make_bosonic_east_model_mpo_onsite( const SiteSet sites, int size , double epsilon);
 
 /**
  * @brief Diagonal part without nearest-neighbour terms:
  *        H = n0/2 + 1/2 sum_{j<size} n_j + c/2 sum_j n_j^2 + (1 - symmetry)/2 n_size.
- * @note s is not used.
  */
 MPO
-make_bosonic_east_model_mpo_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c );
+make_bosonic_east_model_mpo_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double c );
 
 /**
  * @brief As make_bosonic_east_model_mpo, but site 1 is left untouched and plays the role of site 0
@@ -85,10 +83,9 @@ make_bosonic_east_model_mpo_n0_not_fixed( const SiteSet sites, int size , double
 /**
  * @brief MPO approximation of exp(-i dt H) (ITensor toExpH, first order in dt), with H as in
  *        make_bosonic_east_model_mpo_n0_not_fixed and hopping amplitude J. Used by make_dressed_operator.
- * @note n0 is not used.
  */
 MPO
-make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt);
+make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , double symmetry , double J, double c, double dt);
 
 /**
  * @brief Energy variance <H^2> - <H>^2 of make_bosonic_east_model_mpo on psi.
@@ -135,14 +132,6 @@ ITensor
 make_bosonic_east_model_bond_hamiltonian_dephasing( const SiteSet sites , const int size , const double J , const double c , const double gamma, const int j );
 
 /**
- * @brief As make_bosonic_east_model_bond_hamiltonian plus -i/2 L_j^dag L_j for arbitrary local jump operators.
- * @param Lj  Jump operators, one per site.
- * @param Ljd Their hermitian conjugates.
- */
-ITensor
-make_bosonic_east_model_bond_hamiltonian_jumps( const SiteSet sites , const int size , const double J , const double c , const int j, vector<ITensor> &Lj, vector<ITensor> &Ljd);
-
-/**
  * @brief Gates of one second-order Trotter step of the bulk Hamiltonian (apply with tebd_step).
  * @param dynamics "closed" (default) or "open" (adds dephasing with rate gamma).
  * @param gamma    Dephasing rate (only for "open").
@@ -150,9 +139,6 @@ make_bosonic_east_model_bond_hamiltonian_jumps( const SiteSet sites , const int 
 vector<TebdGate>
 make_bosonic_east_model_gates(const SiteSet sites, const int size, const double dt, const double J, const double c, const string dynamics = "closed" , const double gamma = 0.);
 
-/** @brief As make_bosonic_east_model_gates with arbitrary local jump operators (see make_bosonic_east_model_bond_hamiltonian_jumps). */
-vector<TebdGate>
-make_bosonic_east_model_gates_open(const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd );
 ///@}
 
 #endif

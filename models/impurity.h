@@ -27,22 +27,22 @@ using namespace itensor;
 vector<TebdGate>
 make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
 
-/** @brief Same model with the bath in its energy basis (inputs ordered on the physical sites 1..N). */
-vector<TebdGate>
-make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
-
 /**
  * @brief Coherent gates of a spin-1/2 chain (make_spin_chain_gates conventions, models/spin_chain.h)
  *        with a dissipative impurity on the first physical site.
- * @param J     {Jxx, Jyy, Jzz}.
- * @param h     {hx, hy, hz}.
- * @param Lj    Jump operators of the impurity.
- * @param gamma Dissipation rate.
+ *
+ * The dissipation of the impurity is added with make_impurity_dissipative_gates (dynamics/lindblad.h).
+ * @param J  {Jxx, Jyy, Jzz}.
+ * @param h  {hx, hy, hz}.
+ * @param dt Time step.
  */
 vector<TebdGate>
-make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const double gamma, const double dt);
+make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt);
 
-/** @brief As above, with next-nearest-neighbour couplings J_NNN (three-site gates). */
+/**
+ * @brief As make_spin_impurity_gates, with next-nearest-neighbour couplings
+ *        J_NNN = {Jxx', Jyy', Jzz'} (three-site gates; at least 3 physical sites).
+ */
 vector<TebdGate>
 make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt);
 

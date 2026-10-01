@@ -20,111 +20,71 @@ using namespace std;
 using namespace itensor;
 
 
+// "<results_dir><size>_cutoff<lambda>/mmGcbQEM_size..._c<c>/mmGcbQEM_size..._s<s>": folder of the
+// ground states of one parameter set (a suffix "_v<version>" is added for the versioned layout)
+
+static string
+make_ground_state_dir(const string& results_dir, int size, int lambda, int symmetry_sector, double s, double c)
+{
+    string prefix = tinyformat::format("mmGcbQEM_size%d_cutoff%d_sector%d", size, lambda, symmetry_sector);
+    return tinyformat::format("%s%d_cutoff%d/%s_c%.2f/%s_s%.2f", results_dir, size, lambda, prefix, c, prefix, s);
+}
+
+
+// State with the largest bond dimension bond_dimension * scaling^k found in dir, with its site set and
+// energy variance; variance 100 and a placeholder state if dir has no site file.
+
+static tuple<MPS, Boson, double>
+load_largest_bond_dimension(const string& dir, int size, int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension, double scaling_bond_dimension, const string& symmetry_sector_dir)
+{
+    string sites_file = tinyformat::format("%s/sites_file_n0%d", dir, n0);
+    if(!fileExists(sites_file))
+    {
+        Boson sites = Boson(1,{"ConserveQNs",false,"MaxOcc=",1});
+        return {randomMPS(sites), sites, 100.};
+    }
+
+    Boson sites;
+    readFromFile(sites_file, sites);
+
+    auto state_file = [&](int chi) { return tinyformat::format("%s/ground_state_file_n0%d_chi%d", dir, n0, chi); };
+    while(fileExists(state_file(bond_dimension))) bond_dimension = int(bond_dimension * scaling_bond_dimension);
+    bond_dimension = int(bond_dimension / scaling_bond_dimension);
+
+    MPS psi = randomMPS(sites);
+    readFromFile(state_file(bond_dimension), psi);
+    psi /= norm(psi);
+    cerr << "Opened file : " << state_file(bond_dimension) << endl;
+
+    double variance_H = compute_bosonic_east_model_energy_variance(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
+    cerr << "variance : " << variance_H << endl;
+    return {psi, sites, variance_H};
+}
+
+
+// versions _v1, _v2, ... are tried in order until one has variance below 1E-8
+
 tuple<MPS, Boson, double>
 load_ground_state_max_bond_dimension(string results_dir , int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension, double scaling_bond_dimension, const string symmetry_sector_dir)
 {
-    double tolerance_variance = 1E-8;
-    stringstream  name_dir_cutoff;
-    
-    name_dir_cutoff << results_dir << size << "_cutoff" << lambda ; 
+    const double tolerance_variance = 1E-8;
+    string dir = make_ground_state_dir(results_dir, size, lambda, symmetry_sector, s, c);
 
-
-    stringstream name_dir_fixed_c;
-
-    name_dir_fixed_c << name_dir_cutoff.str() << "/mmGcbQEM_size" << size << "_cutoff" << lambda << "_sector" << symmetry_sector << "_c" ;
-    name_dir_fixed_c << fixed << setprecision(2) << c ;
-
-
-    stringstream name_dir_s_prefix ;
-
-    name_dir_s_prefix << name_dir_fixed_c.str() << "/mmGcbQEM_size" << size << "_cutoff" << lambda << "_sector" << symmetry_sector << "_s" ;
-    name_dir_s_prefix << fixed << setprecision(2) << s << "_v" ;
-
-    int version = 1 ; 
-    stringstream name_dir_s ; 
-    name_dir_s << name_dir_s_prefix.str() << version;
-
-    Boson sites;
-
-    while( fileExists( tinyformat::format("%s/sites_file_n0%d",name_dir_s.str(), n0) ) == true ){
-        readFromFile(tinyformat::format("%s/sites_file_n0%d",name_dir_s.str(),n0), sites);        
-        MPS psi = randomMPS(sites);
-
-        while(fileExists( tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) ) == true)
-        {
-        bond_dimension = int(bond_dimension * scaling_bond_dimension);
-        }
-        bond_dimension = int(bond_dimension / scaling_bond_dimension ); 
-
-        readFromFile(tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(), n0 ,bond_dimension),psi);
-        psi /= norm(psi);
-
-        cerr << "Opened file : " << tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
-
-        double variance_H = compute_bosonic_east_model_energy_variance(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
-
-        cerr << "variance : " << variance_H << endl;
-
-        if(variance_H < tolerance_variance) return {psi , sites, variance_H};
-
-        version += 1;
-        name_dir_s_prefix.str("");
-        name_dir_s << name_dir_s_prefix.str() << version;
+    for(int version = 1 ; fileExists(tinyformat::format("%s_v%d/sites_file_n0%d", dir, version, n0)) ; version++)
+    {
+        auto loaded = load_largest_bond_dimension(tinyformat::format("%s_v%d", dir, version), size, lambda, n0, symmetry_sector, s, c, bond_dimension, scaling_bond_dimension, symmetry_sector_dir);
+        if(get<2>(loaded) < tolerance_variance) return loaded;
     }
-    double variance_H = 100;
-    sites = Boson(1,{"ConserveQNs",false,"MaxOcc=",1});	
-    MPS psi = randomMPS(sites);
-    return {psi , sites, variance_H};
+    Boson sites = Boson(1,{"ConserveQNs",false,"MaxOcc=",1});
+    return {randomMPS(sites), sites, 100.};
 }
 
 
 tuple<MPS, Boson, double>
 load_ground_state_max_bond_dimension_no_version(string results_dir , int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension, double scaling_bond_dimension, const string symmetry_sector_dir)
 {
-    double tolerance_variance = 100000;
-    stringstream  name_dir_cutoff;
-    
-    name_dir_cutoff << results_dir << size << "_cutoff" << lambda ; 
-
-
-    stringstream name_dir_fixed_c;
-
-    name_dir_fixed_c << name_dir_cutoff.str() << "/mmGcbQEM_size" << size << "_cutoff" << lambda << "_sector" << symmetry_sector << "_c" ;
-    name_dir_fixed_c << fixed << setprecision(2) << c ;
-
-
-    stringstream name_dir_s ;
-
-    name_dir_s << name_dir_fixed_c.str() << "/mmGcbQEM_size" << size << "_cutoff" << lambda << "_sector" << symmetry_sector << "_s" ;
-    name_dir_s << fixed << setprecision(2) << s ;
-
-
-    Boson sites;
-
-    if( fileExists( tinyformat::format("%s/sites_file_n0%d",name_dir_s.str(), n0) ) == true )
-    {
-        readFromFile(tinyformat::format("%s/sites_file_n0%d",name_dir_s.str(),n0), sites);        
-        MPS psi = randomMPS(sites);
-
-        while(fileExists( tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) ) == true)
-        {
-        bond_dimension = int(bond_dimension * scaling_bond_dimension);
-        }
-        bond_dimension = int(bond_dimension / scaling_bond_dimension ); 
-
-        readFromFile(tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(), n0 ,bond_dimension),psi);
-        psi /= norm(psi);
-        cerr << "Opened file : " << tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
-        double variance_H = compute_bosonic_east_model_energy_variance(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
-        cerr << "variance : " << variance_H << endl;
-
-        if(variance_H < tolerance_variance) return {psi , sites, variance_H};
-
-    }
-    double variance_H = 100;
-    sites = Boson(1,{"ConserveQNs",false,"MaxOcc=",1});	
-    MPS psi = randomMPS(sites);
-    return {psi , sites, variance_H};
+    string dir = make_ground_state_dir(results_dir, size, lambda, symmetry_sector, s, c);
+    return load_largest_bond_dimension(dir, size, lambda, n0, symmetry_sector, s, c, bond_dimension, scaling_bond_dimension, symmetry_sector_dir);
 }
 
 
@@ -148,7 +108,5 @@ load_adiabatic_state(string results_dir , const int size , const int cut_off, co
         return  {psi , sites};
     }
 
-    cerr << "No file found" << endl;
-    cerr << file_sites << endl;
-    exit(0);
+    throw ITError("load_adiabatic_state: no file " + file_sites);
 }

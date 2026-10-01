@@ -106,6 +106,35 @@ public:
 };
 
 /**
+ * @brief Symmetric (second-order Trotter) sequence: the gates followed by the same gates in reverse
+ *        order. Build the gates with half the time step.
+ * @code
+ * vector<TebdGate> half_step;
+ * for(int j = 1 ; j < N ; j++) half_step.push_back(TebdGate({j,j+1}, dt/2., h[j]));
+ * vector<TebdGate> gates = make_symmetric_sweep(half_step);   // one step dt
+ * @endcode
+ */
+template <class Gate>
+vector<Gate>
+make_symmetric_sweep(vector<Gate> gates)
+{
+    vector<Gate> reversed(gates.rbegin(), gates.rend());
+    gates.insert(gates.end(), reversed.begin(), reversed.end());
+    return gates;
+}
+
+/**
+ * @brief Number of gates on gate_size consecutive sites (starting at 1, 2, ..., N - gate_size + 1)
+ *        containing the term on the term_size sites first, ..., first + term_size - 1.
+ *
+ * When the terms of a Hamiltonian are distributed over overlapping gates, each gate takes the
+ * fraction 1/count of the term. E.g. for two-site gates, an on-site term (term_size = 1) is shared
+ * by 2 gates in the bulk and belongs to a single gate on the edges.
+ */
+int
+count_gates_containing(int first, int term_size, int gate_size, int N);
+
+/**
  * @brief Apply a one-, two- or three-site gate on consecutive sites of an MPS.
  *
  * Moves the orthogonality center to the first site, applies the gate and splits the result back

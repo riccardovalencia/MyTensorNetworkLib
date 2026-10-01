@@ -21,8 +21,9 @@ using namespace itensor;
  * @brief Ground state of H with a bond dimension increased by scaling_bond_dimension until the
  *        relative energy change is below precision_dmrg or max_bond_dimension is reached.
  *
- * Output files: "energy_size..._n0<n0>.dat" (energy and variance), "delta_energy_size...dat"
+ * Output files: "energy_size..._n0<n0>.dat" (energies and variances), "delta_energy_size...dat"
  * (convergence), and the intermediate states "ground_state_file_n0<n0>_chi<chi>".
+ * @throws ITError if max_bond_dimension is exceeded.
  *
  * @param ground_state         Initial state, overwritten with the result.
  * @param H                    Hamiltonian.
@@ -70,8 +71,8 @@ set_excited_state_guess( MPS *ground_state_variance, const SiteSet sites, const 
  * @param Nupfill  Number of up electrons.
  * @param Ndnfill  Number of down electrons.
  * @param sweeps   DMRG sweeps.
- * @param min_varH Maximum accepted energy variance; the program exits if it is exceeded or the
- *                 filling is not reproduced.
+ * @param min_varH Maximum accepted energy variance.
+ * @throws ITError if the variance exceeds min_varH or the filling is not reproduced.
  */
 MPS
 find_fermi_sea(MPO H, const SiteSet sites, const int Nupfill, const int Ndnfill, const Sweeps sweeps, double min_varH);

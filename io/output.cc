@@ -7,7 +7,9 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace std;
@@ -15,79 +17,44 @@ using namespace itensor;
 
 
 //----------------------------------------------------------------------
-//print input DMRG in Bosonic Quantum East Model
+// Summary of the DMRG parameters of a bosonic quantum east model run; extra_physical lists
+// additional physical parameters (name, value). It is written to "input.txt" and to stderr.
+
+static void
+write_dmrg_summary(int size , double s , double c , const vector<pair<string,double> >& extra_physical, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
+{
+	ostringstream text;
+	text << "Input: \n \n"
+	     << "Physical quantities.\n"
+	     << "size : " << size << "\n"
+	     << "s : " << s  << "\n"
+	     << "c : " << c << "\n";
+	for(const auto& [name, value] : extra_physical) text << name << " : " << value << "\n";
+	text << "simmetry_sector : " << simmetry_sector << "\n \n"
+	     << "Numerical quantities.\n"
+	     << "cut_off_fock_space : " << cut_off_fock_space << "\n"
+	     << "starting bond dimension (then it is increased of a factor " << scaling_bond_dimension << " in the folowing DMRG) : " << bond_dimension << "\n"
+	     << "precision dmrg : " << precision_dmrg << "\n";
+
+	string input_file = "input.txt";
+	cout << "FileName = " << input_file << endl;
+	ofstream(input_file) << text.str();
+	cerr << "\n\n" << text.str();
+}
+
+
 void
 write_dmrg_input(int size , double s , double c ,double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
-	{
-	string input_file = "input.txt";
-	cout << "FileName = " << input_file << endl;
-	ofstream SaveInput( input_file.c_str() );
-
-	SaveInput << "Input: \n \n"
-			<< "Physical quantities.\n"
-			<< "size : " << size << "\n"
-			<< "s : " << s  << "\n"
-			<< "c : " << c << "\n"
-			<< "simmetry_sector : " << simmetry_sector << "\n \n"	
-			<< "Numerical quantities.\n"
-			<< "cut_off_fock_space : " << cut_off_fock_space << "\n"
-			<< "starting bond dimension (then it is increased of a factor " << scaling_bond_dimension << " in the folowing DMRG) : " << bond_dimension << "\n"
-			<< "precision dmrg : " << precision_dmrg << endl;
-
-	SaveInput.close();
-	
-	cerr << "\n\nInput: \n \n"
-		<< "Physical quantities.\n"
-		<< "size : " << size << "\n"
-		<< "s : " << s  << "\n"
-		<< "c : " << c << "\n"
-		<< "simmetry_sector : " << simmetry_sector << "\n \n"	
-		<< "Numerical quantities.\n"
-		<< "cut_off_fock_space : " << cut_off_fock_space << "\n"
-        << "starting bond dimension (then it is increased of a factor " << scaling_bond_dimension << " in the folowing DMRG) : " << bond_dimension << "\n"
-		<< "precision dmrg : " << precision_dmrg << endl;
-	
-	}
+{
+	write_dmrg_summary(size, s, c, {}, simmetry_sector, cut_off_fock_space, scaling_bond_dimension, bond_dimension, precision_dmrg);
+}
 
 
-//----------------------------------------------------------------------
-//print input DMRG in Bosonic Quantum East Model with hopping
 void
 write_dmrg_input_hopping(int size , double s , double c , double epsilon , double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
-	{
-	string input_file = "input.txt";
-	cout << "FileName = " << input_file << endl;
-	ofstream SaveInput( input_file.c_str() );
-
-	SaveInput << "Input: \n \n"
-			<< "Physical quantities.\n"
-			<< "size : " << size << "\n"
-			<< "s : " << s  << "\n"
-			<< "c : " << c << "\n"
-			<< "epsilon : " << epsilon << "\n"
-			<< "t : " << t << "\n"
-			<< "simmetry_sector : " << simmetry_sector << "\n \n"	
-			<< "Numerical quantities.\n"
-			<< "cut_off_fock_space : " << cut_off_fock_space << "\n"
-			<< "starting bond dimension (then it is increased of a factor " << scaling_bond_dimension << " in the folowing DMRG) : " << bond_dimension << "\n"
-			<< "precision dmrg : " << precision_dmrg << endl;
-
-	SaveInput.close();
-	
-	cerr << "\n\nInput: \n \n"
-		<< "Physical quantities.\n"
-		<< "size : " << size << "\n"
-		<< "s : " << s  << "\n"
-		<< "c : " << c << "\n"
-		<< "epsilon : " << epsilon << "\n"
-		<< "t : " << t << "\n"
-		<< "simmetry_sector : " << simmetry_sector << "\n \n"	
-		<< "Numerical quantities.\n"
-		<< "cut_off_fock_space : " << cut_off_fock_space << "\n"
-        << "starting bond dimension (then it is increased of a factor " << scaling_bond_dimension << " in the folowing DMRG) : " << bond_dimension << "\n"
-		<< "precision dmrg : " << precision_dmrg << endl;
-	
-	}
+{
+	write_dmrg_summary(size, s, c, {{"epsilon", epsilon}, {"t", t}}, simmetry_sector, cut_off_fock_space, scaling_bond_dimension, bond_dimension, precision_dmrg);
+}
 
 
 void

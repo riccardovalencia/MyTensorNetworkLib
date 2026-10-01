@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
     double dt_coherent = dissipative ? dt/2. : dt;
 
     // two-site gates for nearest-neighbour couplings only, three-site gates otherwise
-    vector<TebdGate> gates = (Jzzz == 0.) ? make_spin_impurity_gates(sites, J_NN, h, Lj, gamma, dt_coherent)
+    vector<TebdGate> gates = (Jzzz == 0.) ? make_spin_impurity_gates(sites, J_NN, h, dt_coherent)
                                           : make_spin_impurity_nnn_gates(sites, J_NN, J_NNN, h, dt_coherent);
 
     vector<DissipativeGate> gates_D;

@@ -23,17 +23,9 @@ using namespace itensor;
  * @param start    First site of *psi where psi_seed is inserted.
  * @param inverted Insert psi_seed in reversed site order.
  * @param dagger   Conjugate the tensors of psi_seed (bra half of a purified state).
- * @note For MPS with conserved quantum numbers use insert_qn_state.
  */
 void
 insert_state(MPS* psi, MPS psi_seed, const int start, bool inverted, bool dagger);
-
-/**
- * @brief Same as insert_state(MPS*, MPS, int, bool, bool), for MPS with quantum numbers
- *        (link indices with a flux direction).
- */
-void
-insert_qn_state(MPS* psi, MPS psi_seed, const int start, bool inverted, bool dagger);
 
 /**
  * @brief Insert a state defined on its own site set into a larger MPS.
@@ -72,12 +64,6 @@ MPO
 make_density_matrix_mpo(MPS psi);
 
 /**
- * @brief Same as make_density_matrix_mpo, fusing the ket and bra link indices into a single index.
- */
-MPO
-make_density_matrix_mpo_fused(MPS psi);
-
-/**
  * @brief Reduced density matrix of psi on the sites i..j (inclusive).
  * @param psi State; its orthogonality center is moved to min(i,j).
  * @param i,j First and last site (any order).
@@ -85,6 +71,24 @@ make_density_matrix_mpo_fused(MPS psi);
  */
 ITensor
 compute_reduced_density_matrix(MPS * psi, int i, int j);
+
+/**
+ * @brief Identity operator between two indices of the same dimension, as a dense ITensor.
+ *
+ * E.g. make_identity_operator(s, prime(s)) is the identity on a site; products of identities on
+ * different indices build identities on several sites.
+ */
+ITensor
+make_identity_operator( const Index& in, const Index& out );
+
+/**
+ * @brief Expectation value <psi| O |psi> of an operator O on a single site, for a normalized psi.
+ * @param psi  State; its orthogonality center is moved to site.
+ * @param O    Operator with indices (s, s') of the site; use multSiteOps(A, B) for a product A B.
+ * @param site Site.
+ */
+Cplx
+measure_local_operator( MPS* psi, const ITensor& O, const int site );
 
 /**
  * @brief Two-point function <psi| op_i op_j |psi> for operators on sites i != j.
@@ -109,5 +113,15 @@ measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor
  */
 void
 set_site_tensor( MPS* psi, const SiteSet& sites, int site, const vector<Cplx>& amplitudes );
+
+/**
+ * @brief Copy of psi on the site set target_sites, which may have different local dimensions
+ *        (e.g. a different Fock-space cutoff): the first min(dim, target dim) basis states of each
+ *        site are kept, the others are dropped (or filled with zeros).
+ * @param psi          State to copy.
+ * @param target_sites Site set with the same number of sites as psi.
+ */
+MPS
+make_resized_state( MPS psi, const SiteSet& target_sites );
 
 #endif

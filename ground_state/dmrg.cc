@@ -4,411 +4,310 @@
  */
 #include "dmrg.h"
 #include "../dof/boson.h"
+#include "../dof/fermion.h"
 #include <itensor/all.h>
 #include <cmath>
-#include <complex>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <random>
 #include <sstream>
 #include <string>
-#include <tuple>
 #include <vector>
 
 using namespace std;
 using namespace itensor;
 
 
+// ----------------------------------------------------------
+// shared parts of the DMRG drivers
+
+// numerical parameters (see dmrg.h)
+struct DmrgParameters
+{
+    int bond_dimension;
+    int scaling_bond_dimension;
+    int max_bond_dimension;
+    int number_sweep_fixed_bond_dimension;
+    double precision_dmrg;
+    double lower_bound_singular_values;
+    double original_noise;
+};
+
+static DmrgParameters
+read_dmrg_parameters(Args const& numerical_args)
+{
+    DmrgParameters p;
+    p.bond_dimension                    = numerical_args.getInt("bond_dimension", 1);
+    p.scaling_bond_dimension            = numerical_args.getInt("scaling_bond_dimension", 1);
+    p.max_bond_dimension                = numerical_args.getInt("max_bond_dimension", 1);
+    p.number_sweep_fixed_bond_dimension = numerical_args.getInt("number_sweep_fixed_bond_dimension");
+    p.precision_dmrg                    = numerical_args.getReal("precision_dmrg");
+    p.lower_bound_singular_values       = numerical_args.getReal("lower_bound_singular_values");
+    p.original_noise                    = numerical_args.getReal("original_noise");
+    return p;
+}
+
+
+// "<prefix>_size<size>_s<100 s>[_c<100 c>]_cutoff<cutoff>_n0<n0>.dat"
+static string
+make_output_name(const string& prefix, Args const& physical_args, const bool include_c)
+{
+    stringstream name;
+    name << prefix << "_size" << physical_args.getInt("size") << "_s" << int(physical_args.getReal("s")*100);
+    if(include_c) name << "_c" << int(physical_args.getReal("c")*100);
+    name << "_cutoff" << physical_args.getInt("cut_off_fock_space") << "_n0" << physical_args.getInt("n0") << ".dat";
+    return name.str();
+}
+
+
+// one call of ITensor dmrg with fixed maximal bond dimension and noise; returns the energy
+static double
+run_dmrg_sweeps(MPS* psi, const MPO& H, const int number_sweeps, const int max_dim, const double cutoff, const double noise, const int min_dim = 1)
+{
+    auto sweeps = Sweeps(number_sweeps);
+    sweeps.maxdim() = max_dim;
+    sweeps.mindim() = min_dim;
+    sweeps.cutoff() = cutoff;
+    sweeps.noise()  = noise;
+    auto [energy, new_state] = dmrg(H, *psi, sweeps);
+    *psi = new_state;
+    return energy;
+}
+
+
+// normalize psi and write it to "ground_state_file_n0<n0>_chi<bond_dimension>"
+static void
+save_ground_state(MPS* psi, const int n0, const int bond_dimension)
+{
+    *psi /= norm(*psi);
+    writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension), *psi);
+}
+
+
+// write the final energies and variances; returns the variance <H^2> - <H>^2
+static double
+write_energy_and_variance(ofstream& file, MPS* psi, const MPO& H, const int bond_dimension, const double energy_dmrg)
+{
+    double H2       = inner(*psi,H,H,*psi);
+    double energy   = inner(*psi,H,*psi);
+    double variance = H2 - energy * energy;
+    file << "# bond-dimension . energy_DMRG . variance . energy . variance_DMRG" << endl;
+    file << bond_dimension << " " << energy_dmrg << " " << variance << " " << energy << " " << H2 - energy_dmrg * energy_dmrg << endl;
+    return variance;
+}
+
+
+// normalized psi, orthogonality center on site 1; returns <psi|H|psi>
+static double
+prepare_initial_state(MPS* psi, const MPO& H)
+{
+    (*psi).position(1);
+    (*psi) /= norm(*psi);
+    return inner(*psi, H, *psi);
+}
+
+
+// ----------------------------------------------------------
+
 int
 perform_dmrg(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
 {
+    int n0 = physical_args.getInt("n0");
+    DmrgParameters p = read_dmrg_parameters(numerical_args);
+    int bond_dimension = p.bond_dimension;
 
-int size = physical_args.getInt("size");
-int cut_off_fock_space = physical_args.getInt("cut_off_fock_space");
-int n0 = physical_args.getInt("n0");
-double s = physical_args.getReal("s");
-double c = physical_args.getReal("c");
+    ofstream save_file_DMRG( make_output_name("delta_energy", physical_args, true) );
+    ofstream save_file_ener( make_output_name("energy", physical_args, true) );
+    save_file_DMRG << setprecision(set_output_precision);
+    save_file_ener << setprecision(set_output_precision);
 
-stringstream file_name_DMRG , file_name_ener;
-file_name_DMRG << "delta_energy_size" << size << "_s" << int(s*100) << "_c" << int(c*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << ".dat";
-file_name_ener << "energy_size" << size << "_s" << int(s*100) <<  "_c" << int(c*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << ".dat";
+    double ground_state_energy = prepare_initial_state(ground_state, H);
 
+    int number_sweeps_total    = 1;
+    int number_sweeps_in_a_row = 0;
+    double current_noise       = p.original_noise;
 
-int bond_dimension = numerical_args.getInt("bond_dimension");
-int scaling_bond_dimension = numerical_args.getInt("scaling_bond_dimension");
-int max_bond_dimension = numerical_args.getInt("max_bond_dimension");
-int number_sweep_fixed_bond_dimension = numerical_args.getInt("number_sweep_fixed_bond_dimension");
-
-double precision_dmrg = numerical_args.getReal("precision_dmrg");
-double lower_bound_singular_values = numerical_args.getReal("lower_bound_singular_values");
-double original_noise = numerical_args.getReal("original_noise");
-
-(*ground_state).position(1);
-(*ground_state) /= norm((*ground_state));
-double ground_state_energy = inner( (*ground_state) , H , (*ground_state) ); //starting energy
-
-ofstream save_file_DMRG( file_name_DMRG.str() );
-ofstream save_file_ener( file_name_ener.str() );
-save_file_DMRG << setprecision(set_output_precision);	
-save_file_ener << setprecision(set_output_precision);	
-
-int number_sweeps_done;
-int number_sweeps_total = 1;
-int number_sweeps_in_a_row = 0;
-
-double current_noise = original_noise;
-
-do
-    {
-    double delta_energy;
-	double sum_energy;
-    number_sweeps_done = 0;
     do
+    {
+        // at most 2 rounds of sweeps at fixed bond dimension
+        double delta_energy, sum_energy;
+        int number_sweeps_done = 0;
+        do
         {
-        auto sweeps = Sweeps( number_sweep_fixed_bond_dimension );
-        sweeps.maxdim() = bond_dimension;			
-        sweeps.cutoff() = lower_bound_singular_values;
-		sweeps.noise() = current_noise;	
-        auto [energy,new_ground_state] = dmrg(H, *ground_state, sweeps);	
-        *ground_state = new_ground_state;
-        delta_energy = energy - ground_state_energy ;
-		sum_energy = energy + ground_state_energy;
-        ground_state_energy = energy;
+            double energy = run_dmrg_sweeps(ground_state, H, p.number_sweep_fixed_bond_dimension, bond_dimension, p.lower_bound_singular_values, current_noise);
+            delta_energy = energy - ground_state_energy;
+            sum_energy   = energy + ground_state_energy;
+            ground_state_energy = energy;
 
-        save_file_DMRG << number_sweeps_total*number_sweep_fixed_bond_dimension << " " << bond_dimension << " " << delta_energy << " " << delta_energy/sum_energy <<endl;
-        
-        number_sweeps_done  += 1;
-        number_sweeps_total += 1;
-        
-        } while ( abs(delta_energy/sum_energy) > precision_dmrg && number_sweeps_done < 2 );
+            save_file_DMRG << number_sweeps_total*p.number_sweep_fixed_bond_dimension << " " << bond_dimension << " " << delta_energy << " " << delta_energy/sum_energy << endl;
+            number_sweeps_done  += 1;
+            number_sweeps_total += 1;
+        } while ( abs(delta_energy/sum_energy) > p.precision_dmrg && number_sweeps_done < 2 );
 
-    if(number_sweeps_done >=2 ) cerr << "Increased bond dimension because number weeps exceeded 5!!!" << endl;
-
-    if(number_sweeps_done >=2 )
+        if(number_sweeps_done >= 2)
         {
-        if( current_noise > current_noise*1E-01) current_noise = 0;
-        else
+            // not converged: first switch the noise off, then increase the bond dimension
+            cerr << "Not converged in 2 rounds of sweeps at bond dimension " << bond_dimension << endl;
+            if(current_noise > current_noise*1E-01) current_noise = 0;
+            else
             {
-            cerr << "Noise is zero and it doesn't converge in 5 number sweeps! Increasing bond dimension and putting non zero noise" << endl;
-            current_noise = original_noise;
-            *ground_state /= norm(*ground_state);
-            writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
-            bond_dimension = int( bond_dimension * scaling_bond_dimension );
+                current_noise = p.original_noise;
+                save_ground_state(ground_state, n0, bond_dimension);
+                bond_dimension = int( bond_dimension * p.scaling_bond_dimension );
             }
         }
-
-    else{
-        *ground_state /= norm(*ground_state);
-        writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
-
-        bond_dimension = int( bond_dimension * scaling_bond_dimension );
-        if(number_sweeps_done == 1)
+        else
+        {
+            save_ground_state(ground_state, n0, bond_dimension);
+            bond_dimension = int( bond_dimension * p.scaling_bond_dimension );
+            if(number_sweeps_done == 1)
             {
-            number_sweeps_in_a_row += 1;
-            current_noise *= 1E-02  ;
+                number_sweeps_in_a_row += 1;
+                current_noise *= 1E-02;
             }
-        else if(number_sweeps_in_a_row >= 1)
+            else if(number_sweeps_in_a_row >= 1) current_noise = 0;
+            else
             {
-            current_noise = 0;
+                number_sweeps_in_a_row = 0;
+                current_noise = p.original_noise;
             }
-        else 
-            {
-            number_sweeps_in_a_row = 0;
-            current_noise = original_noise;
-            }
-    }
-   
-    } while( number_sweeps_in_a_row < 2 && bond_dimension < max_bond_dimension);
+        }
+    } while( number_sweeps_in_a_row < 2 && bond_dimension < p.max_bond_dimension);
 
-if( bond_dimension > max_bond_dimension)
-    {
-    cerr << "Reached max bond dimension available. Aborted" << endl;
-	exit(0);
-    }
+    if(bond_dimension > p.max_bond_dimension) throw ITError("perform_dmrg: reached max_bond_dimension without convergence");
 
-double variance = inner((*ground_state),H,H,(*ground_state))  -   inner((*ground_state),H,(*ground_state)) *  inner((*ground_state),H,(*ground_state));
-double variance2 = inner((*ground_state),H,H,(*ground_state))  -  ground_state_energy * ground_state_energy;
- 
-save_file_ener << "# bond-dimension . energy_inner . variance_inner . energy_DMRG . variance_DMRG" << endl;
-save_file_ener << int(bond_dimension/scaling_bond_dimension) << " " << ground_state_energy << " " << variance << " " <<  inner((*ground_state),H,(*ground_state)) << " "<< variance2  << endl;
-
-save_file_ener.close(); 
-save_file_DMRG.close();
-
-bond_dimension = int( bond_dimension / scaling_bond_dimension );
-
-return bond_dimension;
-
+    bond_dimension = int( bond_dimension / p.scaling_bond_dimension );
+    write_energy_and_variance(save_file_ener, ground_state, H, bond_dimension, ground_state_energy);
+    return bond_dimension;
 }
 
 
 int
 perform_dmrg_soft(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
 {
+    int n0 = physical_args.getInt("n0");
+    DmrgParameters p = read_dmrg_parameters(numerical_args);
+    int bond_dimension = p.bond_dimension;
 
-int size = physical_args.getInt("size");
-int cut_off_fock_space = physical_args.getInt("cut_off_fock_space");
-int n0 = physical_args.getInt("n0");
-double s = physical_args.getReal("s");
-double c = physical_args.getReal("c");
+    ofstream save_file_DMRG( make_output_name("delta_energy", physical_args, true) );
+    ofstream save_file_ener( make_output_name("energy", physical_args, true) );
+    save_file_DMRG << setprecision(set_output_precision);
+    save_file_ener << setprecision(set_output_precision);
 
-stringstream file_name_DMRG , file_name_ener;
-file_name_DMRG << "delta_energy_size" << size << "_s" << int(s*100) << "_c" << int(c*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << ".dat";
-file_name_ener << "energy_size" << size << "_s" << int(s*100) <<  "_c" << int(c*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << ".dat";
+    double ground_state_energy = prepare_initial_state(ground_state, H);
 
+    int number_sweeps_total = 1;
+    double current_noise    = p.original_noise;
+    double delta_energy, sum_energy;
 
-int bond_dimension = numerical_args.getInt("bond_dimension");
-int scaling_bond_dimension = numerical_args.getInt("scaling_bond_dimension");
-int max_bond_dimension = numerical_args.getInt("max_bond_dimension");
-int number_sweep_fixed_bond_dimension = numerical_args.getInt("number_sweep_fixed_bond_dimension");
-
-double precision_dmrg = numerical_args.getReal("precision_dmrg");
-double lower_bound_singular_values = numerical_args.getReal("lower_bound_singular_values");
-double original_noise = numerical_args.getReal("original_noise");
-
-(*ground_state).position(1);
-(*ground_state) /= norm((*ground_state));
-double ground_state_energy = inner( (*ground_state) , H , (*ground_state) ); //starting energy
-
-ofstream save_file_DMRG( file_name_DMRG.str() );
-ofstream save_file_ener( file_name_ener.str() );
-save_file_DMRG << setprecision(set_output_precision);	
-save_file_ener << setprecision(set_output_precision);	
-
-int number_sweeps_done;
-int number_sweeps_total = 1;
-int number_sweeps_in_a_row = 0;
-
-double current_noise = original_noise;
-
-double delta_energy;
-double sum_energy;
-
-do
-    {
-    delta_energy = 0;
-    sum_energy  = 0;
-    number_sweeps_done = 0;
     do
+    {
+        // at most 3 rounds of sweeps at fixed bond dimension
+        delta_energy = 0;
+        sum_energy   = 0;
+        int number_sweeps_done = 0;
+        do
         {
-        auto sweeps = Sweeps( number_sweep_fixed_bond_dimension );
-        sweeps.maxdim() = bond_dimension;			
-        sweeps.cutoff() = lower_bound_singular_values;
-		sweeps.noise() = current_noise;	
-        auto [energy,new_ground_state] = dmrg(H, *ground_state, sweeps);	
-        *ground_state = new_ground_state;
-        delta_energy = energy - ground_state_energy ;
-		sum_energy = energy + ground_state_energy;
-        ground_state_energy = energy;
+            double energy = run_dmrg_sweeps(ground_state, H, p.number_sweep_fixed_bond_dimension, bond_dimension, p.lower_bound_singular_values, current_noise);
+            delta_energy = energy - ground_state_energy;
+            sum_energy   = energy + ground_state_energy;
+            ground_state_energy = energy;
 
-        save_file_DMRG << number_sweeps_total*number_sweep_fixed_bond_dimension << " " << bond_dimension << " " << delta_energy << " " << delta_energy/sum_energy <<endl;
-        
-        number_sweeps_done  += 1;
-        
-        } while ( abs(delta_energy/sum_energy) > precision_dmrg && number_sweeps_done < 3 );
+            save_file_DMRG << number_sweeps_total*p.number_sweep_fixed_bond_dimension << " " << bond_dimension << " " << delta_energy << " " << delta_energy/sum_energy << endl;
+            number_sweeps_done += 1;
+        } while ( abs(delta_energy/sum_energy) > p.precision_dmrg && number_sweeps_done < 3 );
 
-    if(number_sweeps_done >=3 &&  abs(delta_energy/sum_energy) > precision_dmrg)
+        if(number_sweeps_done >= 3 && abs(delta_energy/sum_energy) > p.precision_dmrg)
         {
-        if( current_noise > current_noise*1E-01) current_noise = 0;
-        else
+            // not converged: first switch the noise off, then increase the bond dimension
+            if(current_noise > current_noise*1E-01) current_noise = 0;
+            else
             {
-            cerr << "Noise is zero and it doesn't converge in 5 number sweeps! Increasing bond dimension and putting non zero noise" << endl;
-            current_noise = original_noise;
-            *ground_state /= norm(*ground_state);
-            writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
-            bond_dimension = int( bond_dimension * scaling_bond_dimension );
+                cerr << "Not converged in 3 rounds of sweeps without noise: increasing the bond dimension" << endl;
+                current_noise = p.original_noise;
+                save_ground_state(ground_state, n0, bond_dimension);
+                bond_dimension = int( bond_dimension * p.scaling_bond_dimension );
             }
         }
-   
-    } while(  abs(delta_energy/sum_energy) > precision_dmrg && bond_dimension < max_bond_dimension);
+    } while( abs(delta_energy/sum_energy) > p.precision_dmrg && bond_dimension < p.max_bond_dimension);
 
-*ground_state /= norm(*ground_state);
-writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
+    save_ground_state(ground_state, n0, bond_dimension);
+    if(bond_dimension > p.max_bond_dimension) throw ITError("perform_dmrg_soft: reached max_bond_dimension without convergence");
 
-if( bond_dimension > max_bond_dimension)
-    {
-    cerr << "Reached max bond dimension available. Aborted" << endl;
-	exit(0);
-    }
-
-double variance = inner((*ground_state),H,H,(*ground_state))  -   inner((*ground_state),H,(*ground_state)) *  inner((*ground_state),H,(*ground_state));
-double variance2 = inner((*ground_state),H,H,(*ground_state))  -  ground_state_energy * ground_state_energy;
- 
-save_file_ener << "# bond-dimension . energy_inner . variance_inner . energy_DMRG . variance_DMRG" << endl;
-save_file_ener << bond_dimension << " " << ground_state_energy << " " << variance << " " <<  inner((*ground_state),H,(*ground_state)) << " "<< variance2  << endl;
-
-save_file_ener.close(); 
-save_file_DMRG.close();
-
-
-return bond_dimension;
-
+    write_energy_and_variance(save_file_ener, ground_state, H, bond_dimension, ground_state_energy);
+    return bond_dimension;
 }
 
 
 void
 perform_dmrg_meanfield(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
 {
+    DmrgParameters p = read_dmrg_parameters(numerical_args);
+    const int bond_dimension = 1;
 
-int size = physical_args.getInt("size");
-int cut_off_fock_space = physical_args.getInt("cut_off_fock_space");
-int n0 = physical_args.getInt("n0");
-double s = physical_args.getReal("s");
+    ofstream save_file_DMRG( make_output_name("meanfield_delta_energy", physical_args, false) );
+    ofstream save_file_ener( make_output_name("meanfield_energy", physical_args, false) );
+    save_file_DMRG << setprecision(set_output_precision);
+    save_file_ener << setprecision(set_output_precision);
 
-stringstream file_name_DMRG , file_name_ener;
-file_name_DMRG << "meanfield_delta_energy_size" << size << "_s" << int(s*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << ".dat";
-file_name_ener << "meanfield_energy_size" << size << "_s" << int(s*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << ".dat";
+    double ground_state_energy = prepare_initial_state(ground_state, H);
 
+    int number_sweeps_total    = 1;
+    int number_sweeps_in_a_row = 0;
 
-int bond_dimension = 1;
-int number_sweep_fixed_bond_dimension = numerical_args.getInt("number_sweep_fixed_bond_dimension");
-
-double precision_dmrg = numerical_args.getReal("precision_dmrg");
-double lower_bound_singular_values = numerical_args.getReal("lower_bound_singular_values");
-double original_noise = numerical_args.getReal("original_noise");
-
-(*ground_state).position(1);
-(*ground_state) /= norm((*ground_state));
-double ground_state_energy = inner( (*ground_state) , H , (*ground_state) ); //starting energy
-
-ofstream save_file_DMRG( file_name_DMRG.str() );
-ofstream save_file_ener( file_name_ener.str() );
-save_file_DMRG << setprecision(set_output_precision);	
-save_file_ener << setprecision(set_output_precision);	
-
-int number_sweeps_done;
-int number_sweeps_total = 1;
-int number_sweeps_in_a_row = 0;
-
-double current_noise = 0.;
-
-do
-    {
-    double delta_energy;
-	double sum_energy;
-    number_sweeps_done = 0;
+    // stop after 3 consecutive bond dimensions converged with a single round of sweeps
     do
+    {
+        double delta_energy, sum_energy;
+        int number_sweeps_done = 0;
+        do
         {
-        auto sweeps = Sweeps( number_sweep_fixed_bond_dimension );
-        sweeps.maxdim() = bond_dimension;			
-        sweeps.cutoff() = lower_bound_singular_values;
-        auto [energy,new_ground_state] = dmrg(H, *ground_state, sweeps);	
-        *ground_state = new_ground_state;
-        delta_energy = energy - ground_state_energy ;
-		sum_energy = energy + ground_state_energy;
-		cerr << "Delta energy : " << delta_energy << endl;
-		cerr << "Sum energy : " << sum_energy << endl;
-		cerr << "Fraction : " << delta_energy / sum_energy << endl;
-        ground_state_energy = energy;
-        save_file_DMRG << number_sweeps_total*number_sweep_fixed_bond_dimension << " " << bond_dimension << " " << delta_energy << " " << delta_energy/sum_energy <<endl;
-        number_sweeps_done += 1;
-        number_sweeps_total += 1;
-        } while ( abs(delta_energy/sum_energy) > precision_dmrg && number_sweeps_done < 5 );
+            double energy = run_dmrg_sweeps(ground_state, H, p.number_sweep_fixed_bond_dimension, bond_dimension, p.lower_bound_singular_values, 0.);
+            delta_energy = energy - ground_state_energy;
+            sum_energy   = energy + ground_state_energy;
+            ground_state_energy = energy;
 
-    if(number_sweeps_done == 1)
-		{
-		number_sweeps_in_a_row += 1;
-		}
-    else 
-		{
-		number_sweeps_in_a_row = 0;
-		}
+            save_file_DMRG << number_sweeps_total*p.number_sweep_fixed_bond_dimension << " " << bond_dimension << " " << delta_energy << " " << delta_energy/sum_energy << endl;
+            number_sweeps_done  += 1;
+            number_sweeps_total += 1;
+        } while ( abs(delta_energy/sum_energy) > p.precision_dmrg && number_sweeps_done < 5 );
+
+        number_sweeps_in_a_row = (number_sweeps_done == 1) ? number_sweeps_in_a_row + 1 : 0;
     } while( number_sweeps_in_a_row < 3 );
 
-
-double variance = inner((*ground_state),H,H,(*ground_state))  -   inner((*ground_state),H,(*ground_state)) *  inner((*ground_state),H,(*ground_state));
-double variance2 = inner((*ground_state),H,H,(*ground_state))  -  ground_state_energy * ground_state_energy;
-
-
-save_file_ener << "# bond-dimension . energy_inner . variance_inner . energy_DMRG . variance_DMRG" << endl;
-save_file_ener << 1 << " " << ground_state_energy << " " << variance << " " <<  inner((*ground_state),H,(*ground_state)) << " "<< variance2  << endl;
-
-save_file_ener.close(); 
-save_file_DMRG.close();
-
-
+    write_energy_and_variance(save_file_ener, ground_state, H, bond_dimension, ground_state_energy);
 }
 
 
 double
 perform_dmrg_variance(double energy_target, MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
 {
+    DmrgParameters p = read_dmrg_parameters(numerical_args);
 
-int size = physical_args.getInt("size");
-int cut_off_fock_space = physical_args.getInt("cut_off_fock_space");
-int n0 = physical_args.getInt("n0");
-double s = physical_args.getReal("s");
-double c = physical_args.getReal("c");
+    ofstream save_file_DMRG( make_output_name("excited_states_delta_energy", physical_args, true) , ios::app);
+    ofstream save_file_ener( make_output_name("energy", physical_args, true) , ios::app);
+    save_file_DMRG << setprecision(set_output_precision);
+    save_file_ener << setprecision(set_output_precision);
 
-stringstream file_name_DMRG , file_name_ener;
-file_name_DMRG << "excited_states_delta_energy_size" << size << "_s" << int(s*100) << "_c" << int(c*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << ".dat";
-file_name_ener << "energy_size" << size << "_s" << int(s*100) <<  "_c" << int(c*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << ".dat";
+    double ground_state_energy = prepare_initial_state(ground_state, H);
 
+    // fixed schedule: bond dimension 10 -> 50, alternating noise
+    double noise = p.original_noise;
+    int    max_dims[8] = {10,10,20,20,50,50,50,50};
+    int    min_dims[8] = {10,10,10,20,30,40,50,50};
+    double noises[8]   = {noise, noise*1E-2, noise, noise*1E-2, noise, noise*1E-2, 0, 0};
 
-int bond_dimension = numerical_args.getInt("bond_dimension");
-int scaling_bond_dimension = numerical_args.getInt("scaling_bond_dimension");
-int max_bond_dimension = numerical_args.getInt("max_bond_dimension");
-int number_sweep_fixed_bond_dimension = numerical_args.getInt("number_sweep_fixed_bond_dimension");
+    save_file_DMRG << energy_target;
+    for(int k = 0 ; k < 8 ; k++)
+    {
+        double energy = run_dmrg_sweeps(ground_state, H, p.number_sweep_fixed_bond_dimension, max_dims[k], p.lower_bound_singular_values, noises[k], min_dims[k]);
+        save_file_DMRG << " " << (energy - ground_state_energy)/(energy + ground_state_energy);
+        ground_state_energy = energy;
+    }
+    save_file_DMRG << endl;
 
-double precision_dmrg = numerical_args.getReal("precision_dmrg");
-double lower_bound_singular_values = numerical_args.getReal("lower_bound_singular_values");
-double original_noise = numerical_args.getReal("original_noise");
-
-(*ground_state).position(1);
-(*ground_state) /= norm((*ground_state));
-double ground_state_energy = inner( (*ground_state) , H , (*ground_state) ); //starting energy
-
-ofstream save_file_DMRG( file_name_DMRG.str() , ios::app);
-ofstream save_file_ener( file_name_ener.str() , ios::app);
-save_file_DMRG << setprecision(set_output_precision);	
-save_file_ener << setprecision(set_output_precision);	
-
-int number_sweeps_done;
-int number_sweeps_total = 1;
-int number_sweeps_in_a_row = 0;
-
-double current_noise = original_noise;
-
-int array_maxdim [8] = {10,10,20,20,50,50,50,50};
-int array_mindim [8] = {10,10,10,20,30,40,50,50};
-double array_noise [8] = {current_noise, current_noise*1E-2, current_noise, current_noise*1E-2, current_noise, current_noise*1E-2, 0, 0};
-
-save_file_DMRG << energy_target ;
-
-for(int j=0; j<=7; j++)
-	{
-	auto sweeps = Sweeps( number_sweep_fixed_bond_dimension );
-	sweeps.maxdim() = array_maxdim[j];	
-	sweeps.mindim() = array_mindim[j];		
-	sweeps.cutoff() = lower_bound_singular_values;
-	sweeps.noise() = array_noise[j];	
-	auto [energy,new_ground_state] = dmrg(H, *ground_state, sweeps);	
-	*ground_state = new_ground_state;
-
-	double delta_energy = energy - ground_state_energy ;
-	double sum_energy = energy + ground_state_energy;
-    ground_state_energy = energy;
-
-    save_file_DMRG << " " << delta_energy/sum_energy;
-        
-	}
-
-save_file_DMRG << endl;
-
-double variance = inner((*ground_state),H,H,(*ground_state))  -   inner((*ground_state),H,(*ground_state)) *  inner((*ground_state),H,(*ground_state));
-double variance2 = inner((*ground_state),H,H,(*ground_state))  -  ground_state_energy * ground_state_energy;
- 
-save_file_ener << "# bond-dimension . energy_inner . variance_inner . energy_DMRG . variance_DMRG" << endl;
-save_file_ener << int(bond_dimension/scaling_bond_dimension) << " " << ground_state_energy << " " << variance << " " <<  inner((*ground_state),H,(*ground_state)) << " "<< variance2  << endl;
-
-save_file_ener.close(); 
-save_file_DMRG.close();
-
-bond_dimension = int( bond_dimension / scaling_bond_dimension );
-
-return variance;
-
+    return write_energy_and_variance(save_file_ener, ground_state, H, int(p.bond_dimension/p.scaling_bond_dimension), ground_state_energy);
 }
 
 
@@ -444,10 +343,6 @@ set_excited_state_guess( MPS *ground_state_variance, const SiteSet sites, const 
     (*ground_state_variance).position(1);
 	(*ground_state_variance) /= norm((*ground_state_variance));
 
-	cerr << "Measuring occupation number over the initial MPS state guessed. Energy target : " << energy_target << endl;
-	vector<double> occupation_number;
-	measure_occupation_number( ground_state_variance , sites , size ,  occupation_number );
-	for(int j = 1 ; j <= size ; j++) cerr << j << " " << occupation_number[j-1] << endl;
 }
 
 
@@ -455,57 +350,23 @@ MPS
 find_fermi_sea(MPO H, const SiteSet sites, const int Nupfill, const int Ndnfill, Sweeps sweeps, double min_varH)
 {
     int N = length(sites);
-
-    if(Nupfill + Ndnfill > 2*N || Nupfill > N || Ndnfill > N)
-    {
-        cerr << "Filling larger than the one it can be hosted.\n";
-        exit(-1);
-    }
-
-    InitState state = InitState(sites,"0");
-
-    for(int j = 1; j <= Nupfill + Ndnfill; j += 1)
-    {
-        if(j <= Nupfill && j <= Ndnfill) state.set(j,"UpDn");
-        else if(j<=Nupfill) state.set(j,"Up");
-        else if(j<=Ndnfill) state.set(j,"Dn");
-    }
-
-    MPS psi0 = MPS(state); 
-
-    cerr << "Computing ground state...\n";
+    MPS psi0 = make_electron_product_state(sites, Nupfill, Ndnfill);
 
     auto [energy,psi_gs] = dmrg(H,psi0,sweeps,{"Quiet",true});
-    double E2 = inner(H,psi_gs,H,psi_gs) ;
-    double E  = inner(psi_gs,H,psi_gs);
-    double varE = E2 - E*E;
-    
+    double E    = inner(psi_gs,H,psi_gs);
+    double varE = inner(H,psi_gs,H,psi_gs) - E*E;
     if(abs(varE) > min_varH)
+        throw ITError(tinyformat::format("find_fermi_sea: energy variance %.3e larger than %.3e", varE, min_varH));
+
+    // check the filling
+    auto total_number = [&](const string& n)
     {
-        cerr << "Variance too large : " << varE << "\n";
-        exit(-1);
-    }
-
-    // check filling
-    AutoMPO ampo = AutoMPO(sites);
-    for(int j : range1(N)) ampo += 1, "Nup" , j;
-    MPO Nuptot = toMPO(ampo);
-
-    ampo = AutoMPO(sites);
-    for(int j : range1(N)) ampo += 1, "Ndn" , j;
-    MPO Ndntot = toMPO(ampo);
-
-    double nuptot = real(innerC(psi_gs,Nuptot,psi_gs));
-    double ndntot = real(innerC(psi_gs,Ndntot,psi_gs));
-
-     if( abs(Nupfill - nuptot) > 1E-7 ||  abs(Ndnfill - ndntot) > 1E-7 )
-    {
-        cerr << "Expected : " << Nupfill << " Computed : " << nuptot << "\n";
-        cerr << "Expected : " << Ndnfill << " Computed : " << ndntot << "\n";
-        exit(-1);
-    }
-
+        AutoMPO ampo = AutoMPO(sites);
+        for(int j : range1(N)) ampo += 1, n, j;
+        return real(innerC(psi_gs, toMPO(ampo), psi_gs));
+    };
+    if( abs(Nupfill - total_number("Nup")) > 1E-7 || abs(Ndnfill - total_number("Ndn")) > 1E-7 )
+        throw ITError("find_fermi_sea: the ground state does not have the requested filling");
 
     return psi_gs;
-
 }

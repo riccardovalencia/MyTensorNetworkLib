@@ -64,6 +64,29 @@ measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor
 }
 
 
+// dense identity from index `in` to index `out`
+
+ITensor
+make_identity_operator( const Index& in, const Index& out )
+{
+    ITensor I = ITensor(in, out);
+    for(int q = 1 ; q <= dim(in) ; q++) I.set(in(q), out(q), 1.);
+    return I;
+}
+
+
+// <psi| O |psi> for a single-site operator; the orthogonality center is moved to the site
+
+Cplx
+measure_local_operator( MPS* psi, const ITensor& O, const int site )
+{
+    (*psi).position(site);
+    ITensor ket = (*psi)(site);
+    ITensor bra = dag(prime(ket,"Site"));
+    return eltC(bra * O * ket);
+}
+
+
 // Insert a state within another state, such that you have a state |state_to_insert> that you want to put in another state |psi_t0> from site start to start+L
 
 void
@@ -174,137 +197,7 @@ insert_state(MPS* psi, MPS psi_seed, const int start, bool inverted,bool dagger)
             (*psi).set(j_psi,psi_seed(j));
         }
 
-        else
-        {
-            cerr << "There is no room for accomodating the state." << endl;
-            break;
-        }
-
-    }
-    (*psi).replaceSiteInds(phys_idx);
-}
-
-
-// // Insert a state within another state, such that you have a state |state_to_insert> that you want to put in another state |psi_t0> from site start to start+L
-// As we are dealing with sitesets with QN quantities, we have to define the link indices with a flux direction (In or Out)
-// -> psi(j) ->
-
-void
-insert_qn_state(MPS* psi, MPS psi_seed, const int start, bool inverted,bool dagger)
-{
-
-    IndexSet phys_idx = siteInds(*psi);
-    IndexSet phys_idx_seed = siteInds(psi_seed);
-
-    IndexSet link_idx = linkInds(*psi);
-    IndexSet link_idx_seed = linkInds(psi_seed);
-
-    int N      = length(phys_idx);
-    int N_seed = length(phys_idx_seed);
-
-    Index lj ;
-    Index rj ;
-    Index sj ;
-    ITensor Tj ;
-
-    if(inverted)
-    {
-        MPS psi_seed_inv = psi_seed;
-        int k = 1;
-    
-        for(int j= N_seed ; j >= 1; j--)
-        {
-            if(dagger) psi_seed_inv.set(k,dag(psi_seed(j)));
-            else psi_seed_inv.set(k,psi_seed(j)); 
-            k += 1;
-            
-        }
-
-        psi_seed = psi_seed_inv;
-        psi_seed.replaceSiteInds(phys_idx_seed);
-        psi_seed.replaceLinkInds(link_idx_seed);
-        link_idx_seed = linkInds(psi_seed);
-    }
-
-    // add tags to link indices, in order to avoid issues if we insert multiple copyes of the same state
-    IndexSet new_links = IndexSet(N_seed-1);
-    for(int j : range1(N_seed-1))
-	{
-		int j_psi = start + j - 1;
-        Index new_idx = addTags(link_idx_seed(j),"seed="+str(j_psi));
-        new_links[j-1] = new_idx;
-    }
-
-    psi_seed.replaceLinkInds(new_links);
-    link_idx_seed = linkInds(psi_seed);
-
-
-	for(int j : range1(N_seed))
-	{
-		int j_psi = start + j - 1;
-
-
-        if(j==1 && j_psi != 1)
-        {
-
-            // I have to add a right index
-            rj = link_idx(j_psi-1);
-            lj = link_idx_seed(j);
-            sj = phys_idx_seed(j);
-            Tj = ITensor(sj,rj,lj);
-
-            for(int l=1; l<= dim(lj) ; l++)
-			{
-            for(int r=1; r<= dim(rj); r++)
-            {
-            for(int d=1; d<= dim(sj); d++)
-            {
-                if(r==1) Tj.set(lj=l,sj=d,rj=r , eltC(psi_seed(j), sj=d, lj=l) );
-                else Tj.set(lj=l,sj=d,rj=r , 0 );
-            }
-            }
-			}
-
-            (*psi).set(j_psi,Tj);
-
-        }
-
-        else if (j==N_seed && j_psi != N)
-        {
-            // I have to add a left index
-            rj = link_idx_seed(j-1);
-            lj = link_idx(j_psi);
-            sj = phys_idx_seed(j);
-            Tj = ITensor(sj,rj,lj);
-
-            cerr << Tj << endl;
-            exit(0);
-            for(int l=1; l<= dim(lj) ; l++)
-			{
-            for(int r=1; r<= dim(rj); r++)
-            {
-            for(int d=1; d<= dim(sj); d++)
-            {
-                if(l==1) Tj.set(lj=l,sj=d,rj=r , eltC(psi_seed(j), sj=d, rj=r) );
-                else Tj.set(lj=l,sj=d,rj=r , 0 );		
-            }
-            }
-			}
-
-            (*psi).set(j_psi,Tj);
-        }
-
-        else if(j_psi <= N)
-        {
-            (*psi).set(j_psi,psi_seed(j));
-            cerr << "I have inserted the state on site : " << j_psi << "\n";
-        }
-
-        else
-        {
-            cerr << "There is no room for accomodating the state." << endl;
-            break;
-        }
+        else throw ITError("insert_state: psi_seed does not fit in psi from site start");
 
     }
     (*psi).replaceSiteInds(phys_idx);
@@ -363,13 +256,11 @@ insert_state(MPS* psi_t0, MPS state_to_insert, const SiteSet sites, const SiteSe
 		
 		else if(current_position_psi_t0==N)
 		{
-			cerr << "Siamo a : " << current_position_psi_t0 << endl;
 			leftindexj  = leftLinkIndex( state_to_insert, j);
 			rightindexj  = rightLinkIndex( state_to_insert, j);
 			physical = sites(current_position_psi_t0);
 			physical_state_to_insert = sites_state_to_insert(j);
 			psi_tocopy_j = state_to_insert(j);
-			cerr << psi_tocopy_j << endl;
 			Tj = ITensor(leftindexj, physical);
 			
 			for(int l=1; l<= dim(leftindexj) ; l++)
@@ -385,7 +276,6 @@ insert_state(MPS* psi_t0, MPS state_to_insert, const SiteSet sites, const SiteSe
 
 		else break;
 	}
-	cerr << "L effective : " << L_effective << endl;	
 			
     for(int j=1 ; j<=L_effective ; j++) (*psi_t0).set(j+start-1, copy_of_state_to_insert[j-1]);	
 
@@ -414,11 +304,7 @@ swap_sites( MPS *psi, int j1, int j2, double cut_off, int maxDim)
     }
 
 
-    if( j1 < 1 || j2 > length(sj))
-    {
-        cerr << "Index out of physical bound" << endl;
-        exit(0);
-    }
+    if( j1 < 1 || j2 > length(sj)) throw ITError("swap_sites: sites out of the chain");
 
     for(int j=j1 ; j<j2; j++)
     {
@@ -517,88 +403,13 @@ make_density_matrix_mpo(MPS psi )
 
 
 // ----------------------------------------------------------
-// Given a pure state psi, presented as an MPS, it return its density matrix representation |psi> <psi| as an MPO
-// Similar to above, but it uses a variation for fusing the link indices in a single one
-
-MPO 
-make_density_matrix_mpo_fused(MPS psi )
-{
-    // ket and bra (bra is primed)
-    MPS ket = psi;
-    MPS bra = dag(prime(psi));
-
-    // In order to merge the two MPS into an MPO (outer product), I use a similar procedure used in
-    // nmultMPO -> the idea is to perform a transformation so that we introduce a new link index.
-
-    // IndexSet 
-    IndexSet sA  = siteInds(psi);
-    IndexSet sB  = siteInds(bra);
-
-    int N = length(sA);
-    // MPO hosting the final MatrixProductDensityOperator
-    MPO rho = MPO(sA);
-    if(N==1)
-    {
-        rho.ref(1) = psi(1) * bra(1);
-    }
-
-    else
-    {    
-        IndexSet lA = linkInds(ket);
-        IndexSet lB = linkInds(bra);
-        IndexSet lrho = linkInds(rho);
-
-        ITensor clust, nfork; // helper ITensor
-
-
-        for(int i = 1 ; i <= N ; i++)
-        {
-            clust = psi(i) * bra(i);
-            if(i==1)
-            {
-                auto [C,c] = combiner(lA(i),lB(i));
-                clust = clust * C;
-                clust *= delta(c,lrho(i));
-            }
-
-            else if(i>1 && i < N)
-            {
-                auto [C,c] = combiner(lA(i-1),lB(i-1));
-                clust = clust * C;
-                auto [C2,c2] = combiner(lA(i),lB(i));
-                clust = clust * C2;
-                   
-                clust *= delta(c,lrho(i-1));
-                clust *= delta(c2,lrho(i));                
-            }
-
-            else
-            {
-                auto [C,c] = combiner(lA(i-1),lB(i-1));
-                clust = clust * C;
-                clust *= delta(c,lrho(i-1));
-            }
-            rho.ref(i) = clust;
-            cerr << rho(i) << endl;
-        }
-    }
-    return rho;
-
-
-}
-
-
-// ----------------------------------------------------------
 // compute the reduced density matrix bewteen sites i and j
 ITensor
 compute_reduced_density_matrix(MPS *psi, int i, int j)
 {
     int L = length(*psi);
 
-    if( i < 1 || i > L || j < 1 || j > L){
-        cerr << "Invalid set on which compute the reduced density matrix" << endl;
-        exit(-1);
-    }
+    if( i < 1 || i > L || j < 1 || j > L) throw ITError("compute_reduced_density_matrix: sites out of the chain");
 
     if( j < i){
         int tmp = j;
@@ -667,4 +478,23 @@ set_site_tensor( MPS* psi, const SiteSet& sites, int site, const vector<Cplx>& a
         else     wf.set(iv, amplitudes[d-1]);
     }
     (*psi).set(site, wf);
+}
+
+
+// ----------------------------------------------------------
+// project every site of psi onto the corresponding site of target_sites, keeping the first
+// min(dim(source), dim(target)) basis states
+
+MPS
+make_resized_state( MPS psi, const SiteSet& target_sites )
+{
+    for(int j = 1 ; j <= length(psi) ; j++)
+    {
+        Index s = siteIndex(psi, j);
+        Index t = target_sites(j);
+        ITensor P = ITensor(s, t);
+        for(int d = 1 ; d <= min(dim(s), dim(t)) ; d++) P.set(s(d), t(d), 1.);
+        psi.set(j, psi(j) * P);
+    }
+    return psi;
 }

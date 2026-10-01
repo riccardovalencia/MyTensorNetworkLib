@@ -3,854 +3,144 @@
  * @brief Implementation of impurity.h (the functions are documented in the header).
  */
 #include "impurity.h"
+#include "spin_chain.h"
+#include "tight_binding.h"
 #include "../mps/gates.h"
 #include <itensor/all.h>
-#include <cmath>
-#include <complex>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <string>
-#include <tuple>
+#include <algorithm>
 #include <vector>
 
 using namespace std;
 using namespace itensor;
 
 
-// Simulation of an impurity problem located on the first physical site.
-// Can be applied to the unfolded density matrix: 
-// the first half sites represent the bra and evolve via  -H
-// the second half sites represent the ket and evolve via +H
-// the bond in between site N and N+1 is where jump/nonunitary dynamics take place
-// This part takes care of the coherent dynamics - we have hopping of free spinful fermions
+// position (1..N) of site j of the doubled chain inside its half: bra 1..N, ket N+1..2N
+
+static int
+position_in_half(const int j, const int N)
+{
+    return (j > N) ? j - N : j;
+}
+
+
+// number of two-site gates of the half sharing the on-site terms of site j of the doubled chain
+
+static int
+count_bonds_in_half(const int j, const int N)
+{
+    return count_gates_containing(position_in_half(j, N), 1, 2, N);
+}
+
+
+// the bra evolves with exp(+i H^T t), i.e. with the generator -H^T
+
+static ITensor
+transpose_for_bra(const ITensor& H)
+{
+    return swapPrime(-H, 0, 1);
+}
+
 
 vector<TebdGate>
 make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
-{ 
-	// careful with local fields if not homogeneous - I have to flip the array. Remember that [1-N] corresponds to bra 
-	vector<double> Jket = J;
-	vector<double> Jbra = J;
+{
+    int N = length(sites)/2;
 
-	vector<double> hupket = hup;
-	vector<double> hupbra = hup;
+    // couplings on the doubled chain: bra (reversed), central bra-ket bond (no hopping), ket
+    vector<double> J2(J.rbegin(), J.rend());
+    J2.push_back(0.);
+    J2.insert(J2.end(), J.begin(), J.end());
 
-	vector<double> hdnket = hdn;
-	vector<double> hdnbra = hdn;
-
-	reverse(Jbra.begin()  , Jbra.end());
-	reverse(hupbra.begin(), hupbra.end());
-	reverse(hdnbra.begin(), hdnbra.end());
-
-	// hopping in the doubled space
-	vector<double> J2;
-	J2.insert( J2.end(), Jbra.begin(), Jbra.end() );
-	// acting on the bond connecting bra - ket (so it should be 0)
-	J2.push_back(0.);
-	J2.insert( J2.end(), Jket.begin(), Jket.end() );
-
-	// local fields in the doubled space
-
-	vector<double> hup2;
-	vector<double> hdn2;
-
-	hup2.insert( hup2.end(), hupbra.begin(), hupbra.end() );
-	hup2.insert( hup2.end(), hupket.begin(), hupket.end() );
-	hdn2.insert( hdn2.end(), hdnbra.begin(), hdnbra.end() );
-	hdn2.insert( hdn2.end(), hdnket.begin(), hdnket.end() );
-
-	// N is always even and corresponds to the physical size
-	int N2 = length(sites);
-	int N = N2/2;
+    vector<double> hup2(hup.rbegin(), hup.rend());
+    hup2.insert(hup2.end(), hup.begin(), hup.end());
+    vector<double> hdn2(hdn.rbegin(), hdn.rend());
+    hdn2.insert(hdn2.end(), hdn.begin(), hdn.end());
 
     vector<TebdGate> gates;
-	vector<TebdGate> gates_ket;
-	vector<TebdGate> gates_bra;
-	
-	for(int j=1 ; j <= N2-1 ; j+=1)
-	{
-		// act on bra j \in [1,N] or ket space j \in [N+1,2*N]
-		if(j!=N)
-		{
-			cerr << "Site : " << j << "\n";
-
-			vector<ITensor> Adagup;
-			vector<ITensor> Aup;
-
-			vector<ITensor> Adagdn;
-			vector<ITensor> Adn;
-
-			vector<ITensor> Nup;
-			vector<ITensor> Ndn;
-
-			vector<ITensor> Id;
-
-			vector<ITensor> AdagupFi;
-			vector<ITensor>	AupFi;
-			vector<ITensor>	FiAdn;
-			vector<ITensor>	FiAdagdn;
-
-
-			for(int q=j ; q<=j+1; q++)
-			{
-				Adagup.push_back(op(sites,"Adagup",q) );
-				Aup.push_back(   op(sites,"Aup",q) );
-				Adagdn.push_back(op(sites,"Adagdn",q) );
-				Adn.push_back(   op(sites,"Adn",q) );
-				Nup.push_back(   op(sites,"Nup",q) );
-				Ndn.push_back(   op(sites,"Ndn",q) );
-				Id.push_back(op(sites,"Id",q));
-
-
-				AdagupFi.push_back(op(sites,"Adagup*F",q));
-				AupFi.push_back(op(sites,"Aup*F",q));
-				FiAdn.push_back(op(sites,"F*Adn",q));
-				FiAdagdn.push_back(op(sites,"F*Adagdn",q));
-
-
-			}
-
-			ITensor H, H_S , H_SS;
-
-			// build single site
-		
-			if(j == 1 || j == (N+1) ) H_S = (hup2[j-1] * Nup[0] + hdn2[j-1] * Ndn[0]) * Id[1] ;
-			else                      H_S = (hup2[j-1] * Nup[0] + hdn2[j-1] * Ndn[0]) * Id[1] / 2.;
-
-			if(j == N-1 || j == 2*N-1) H_S += Id[0] * (hup2[j] * Nup[1] + hdn2[j] * Ndn[1]) ;
-			else                       H_S += Id[0] * (hup2[j] * Nup[1] + hdn2[j] * Ndn[1]) / 2.      ;
-
-			cerr << "Site : " << j     << " -> h : " << hup2[j-1] << "\n";
-			cerr << "Site : " << j + 1 << " -> h : " << hup2[j] << "\n";
-
-			// two sites hopping
-			
-			if(j>N)
-			{
-				H_SS   = J2[j-1] * (  AdagupFi[0] * Aup[1]   - AupFi[0] * Adagup[1] );
-				H_SS  += J2[j-1] * (  Adagdn[0]   * FiAdn[1] - Adn[0] * FiAdagdn[1] );
-			}
-			else
-			{
-				// the ordering of the physical indices is the opposite with respect to the indices
-				// used here (the bra is inverted)
-				H_SS   = J2[j-1] * (  Aup[0] * AdagupFi[1] - Adagup[0] * AupFi[1] );
-				H_SS  += J2[j-1] * (  FiAdn[0] * Adagdn[1] - FiAdagdn[0]  * Adn[1] );
-			}
-
-
-			cerr << "Site : " << j << " -> " <<  J2[j-1] << endl;
-			if(j<N){
-				// action on bra (it is exp(+i H^T t))
-				// attempt - the sign is due to the convention of the sites 
-				H = - H_S - H_SS ;
-				H = swapPrime(H,0,1); // NOT SURE
-				TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
-				gates_bra.push_back(g);
-			}
-			// action on ket
-			else
-			{
-				H = H_S + H_SS ;
-				TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
-				gates_ket.push_back(g);
-			}
-	
-		}
-		
-	}
-
-
-	vector<TebdGate> gates_ket_reversed = gates_ket;
-	vector<TebdGate> gates_bra_reversed = gates_bra;
-	
-	reverse(gates_ket_reversed.begin(), gates_ket_reversed.end());
-	reverse(gates_bra_reversed.begin(), gates_bra_reversed.end());
-
-	for(TebdGate g : gates_bra)  		 gates.push_back(g);
-	for(TebdGate g : gates_ket) 		 gates.push_back(g);
-	for(TebdGate g : gates_ket_reversed) gates.push_back(g);
-	for(TebdGate g : gates_bra_reversed) gates.push_back(g);
-
-	return gates;
+    for(int j = 1 ; j <= 2*N-1 ; j++)
+    {
+        if(j == N) continue;
+        bool bra = (j < N);
+        ITensor H = make_free_fermion_bond_hamiltonian(sites, j, J2[j-1], {hup2[j-1], hup2[j]}, {hdn2[j-1], hdn2[j]},
+                                                       count_bonds_in_half(j, N), count_bonds_in_half(j+1, N), bra);
+        if(bra) H = transpose_for_bra(H);
+        gates.push_back(TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()));
+    }
+    return make_symmetric_sweep(gates);
 }
-
-
-// Simulation of an impurity problem located on the first physical site.
-// The system is made of N spin-1/2 (no mixed basis).
-// Can be applied to the unfolded density matrix: 
-// the first half sites represent the bra and evolve via -H
-// the second half sites represent the ket and evolve via +H
-// the bond in between site N and N+1 is where jump/nonunitary dynamics take place
 
 
 vector<TebdGate>
-make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const double gamma, const double dt)
+make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
 {
-
-	// N is always even and corresponds to the physical size
-	int N2 = length(sites);
-	int N = N2/2;
+    int N = length(sites)/2;
 
     vector<TebdGate> gates;
-
-	double Jxx = J[0];
-	double Jyy = J[1];
-	double Jzz = J[2];
-
-	double hx  = h[0];
-	double hy  = h[1];
-	double hz  = h[2];
-
-	for(int j=1 ; j <= N2-1 ; j+=1)
-	{
-		cerr << "Site : " << j << "\n";
-
-		vector<ITensor> X;
-		vector<ITensor> Y;
-		vector<ITensor> Z;
-		vector<ITensor> Id;
-
-		for(int q=j ; q<=j+1; q++)
-		{
-			Id.push_back(     op(sites,"Id",q) );
-			X.push_back(  2 * op(sites,"Sx",q) );
-			Y.push_back(  2 * op(sites,"Sy",q) );
-			Z.push_back(  2 * op(sites,"Sz",q) );
-		}
-
-		ITensor H, H_S , H_SS;
-
-		// act on bra j \in [1,N] or ket space j \in [N+1,2*N]
-		if(j!=N)
-		{
-			if(j % N ==1) H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] ;
-			else          H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] / 2.;
-
-			if(j == N-1 || j == 2*N-1) H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1]) ;
-			else                       H_S  += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1]) / 2.      ;
-
-			H_SS  = Jxx * X[0] * X[1] + Jyy * Y[0] * Y[1] + Jzz * Z[0] * Z[1];
-
-			// action on bra (it is exp(+i H^T t))
-			if(j<N){
-				H = -H_S - H_SS;
-				H = swapPrime(H,0,1);
-			}
-			// action on ket
-			else    H =  H_S + H_SS;
-		}
-
-
-		if(j !=N)
-		{
-			TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
-			gates.push_back(g);
-		}
-
-
-	}
-
-	for(int j=N2-1 ; j >= 1; j-=1)
-	{
-		cerr << "Site : " << j << "\n";
-
-		vector<ITensor> X;
-		vector<ITensor> Y;
-		vector<ITensor> Z;
-		vector<ITensor> Id;
-
-		for(int q=j ; q<=j+1; q++)
-		{
-			Id.push_back(     op(sites,"Id",q) );
-			X.push_back(  2 * op(sites,"Sx",q) );
-			Y.push_back(  2 * op(sites,"Sy",q) );
-			Z.push_back(  2 * op(sites,"Sz",q) );
-		}
-
-		ITensor H, H_S , H_SS;
-
-		// act on bra j \in [1,N] or ket space j \in [N+1,2*N]
-		if(j!=N)
-		{
-			if(j ==1 || j==N+1) H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] ;
-			else       H_S = (hx * X[0] + hy * Y[0] + hz * Z[0]) * Id[1] / 2.;
-
-			if(j == N-1 || j == 2*N-1) H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1]) ;
-			else           H_S   += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1]) / 2.      ;
-
-			H_SS  = Jxx * X[0] * X[1] + Jyy * Y[0] * Y[1] + Jzz * Z[0] * Z[1];
-
-
-			// action on bra
-			if(j<N){
-				H = -H_S - H_SS;
-				H = swapPrime(H,0,1);
-			}
-			// action on ket
-			else    H =  H_S + H_SS;
-		}
-
-
-		if(j !=N)
-		{
-			TebdGate g = TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()); 
-			gates.push_back(g);
-		}
-		
-	}
-
-
-	return gates;
+    for(int j = 1 ; j <= 2*N-1 ; j++)
+    {
+        if(j == N) continue;
+        ITensor H = make_spin_chain_bond_hamiltonian(sites, J, h, j, count_bonds_in_half(j, N), count_bonds_in_half(j+1, N));
+        if(j < N) H = transpose_for_bra(H);
+        gates.push_back(TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,H).gate()));
+    }
+    return make_symmetric_sweep(gates);
 }
 
 
-// Simulation of an impurity problem located on the first physical site.
-// Can be applied to the unfolded density matrix: 
-// the first half sites represent the bra and evolve via -H
-// the second half sites represent the ket and evolve via +H
-// the bond in between site N and N+1 is where jump/nonunitary dynamics take place
+// Three-site term on (j, j+1, j+2), p = position of j in its half: the next-nearest-neighbour
+// couplings in full, the fields and the nearest-neighbour couplings divided by the number of
+// three-site gates sharing them
+
+static ITensor
+make_three_site_spin_hamiltonian(const SiteSet& sites, const int j, const int p, const int N, const vector<double>& J, const vector<double>& J_NNN, const vector<double>& h)
+{
+    vector<ITensor> I;
+    vector<vector<ITensor> > pauli(3);   // pauli[c][a]: X, Y or Z (c = 0, 1, 2) on site j + a
+    for(int q = j ; q <= j+2 ; q++)
+    {
+        I.push_back(op(sites,"Id",q));
+        pauli[0].push_back(2 * op(sites,"Sx",q));
+        pauli[1].push_back(2 * op(sites,"Sy",q));
+        pauli[2].push_back(2 * op(sites,"Sz",q));
+    }
+    // product of the operators O[a] on the sites a in `on` and of identities elsewhere
+    auto embed = [&](const vector<ITensor>& O, const vector<int>& on)
+    {
+        auto factor = [&](int a) { return (find(on.begin(), on.end(), a) != on.end()) ? O[a] : I[a]; };
+        return factor(0) * factor(1) * factor(2);
+    };
+
+    ITensor H;
+    for(int c = 0 ; c < 3 ; c++)
+        for(int a = 0 ; a < 3 ; a++)
+            H += h[c] / double(count_gates_containing(p+a, 1, 3, N)) * embed(pauli[c], {a});
+    for(int c = 0 ; c < 3 ; c++)
+    {
+        H += J[c] / double(count_gates_containing(p,   2, 3, N)) * embed(pauli[c], {0, 1});
+        H += J[c] / double(count_gates_containing(p+1, 2, 3, N)) * embed(pauli[c], {1, 2});
+    }
+    for(int c = 0 ; c < 3 ; c++) H += J_NNN[c] * embed(pauli[c], {0, 2});
+    return H;
+}
 
 
 vector<TebdGate>
 make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt)
 {
-
-	// N is always even and corresponds to the physical size
-	int N2 = length(sites);
-	int N = N2/2;
-
-
-    vector<TebdGate> gates, gates_bra, gates_ket;
-
-	double Jxx = J[0];
-	double Jyy = J[1];
-	double Jzz = J[2];
-
-	double hx  = h[0];
-	double hy  = h[1];
-	double hz  = h[2];
-
-
-	vector<double> hx_tot;
-	vector<double> Jzz_tot;
-	for(int j : range1(N))   hx_tot.push_back(0);
-	for(int j : range1(N-1)) Jzz_tot.push_back(0);
-
-	if(N<3)
-	{
-		cerr << "Less than 3-sites. Not possible to implement 3-site TEBD.\n";
-		exit(0);
-	}
-
-	else if(N==3)
-	{
-		for(int j = 1; j < N2 ; j+=3)
-		{
-			ITensor H, H_S , H_SS, H_SSS;
-
-			int js = j;
-			int jf = js+2;
-				
-			vector<double> hx_vec = { hx, hx, hx};
-			vector<double> hy_vec = { hy, hy, hy};
-			vector<double> hz_vec = { hz, hz, hz};
-			
-			// nearest-neighbor interactions - when acting in the bulk
-			vector<double> Jxx_vec = {Jxx,Jxx};
-			vector<double> Jyy_vec = {Jyy,Jyy};
-			vector<double> Jzz_vec = {Jzz,Jzz};
-
-			vector<ITensor> Xj;
-			vector<ITensor> Yj;
-			vector<ITensor> Zj;
-			vector<ITensor> Ij;
-
-			for(int q=js ; q<= jf; q++)
-			{
-				Ij.push_back(      op(sites,"Id",q) );
-				Xj.push_back(  2 * op(sites,"Sx",q) );
-				Yj.push_back(  2 * op(sites,"Sy",q) );
-				Zj.push_back(  2 * op(sites,"Sz",q) );
-			}
-
-			H_S   = hx_vec[0] * Xj[0] * Ij[1] * Ij[2];
-			H_S  += hx_vec[1] * Ij[0] * Xj[1] * Ij[2];
-			H_S  += hx_vec[2] * Ij[0] * Ij[1] * Xj[2];
-
-			H_S  += hy_vec[0] * Yj[0] * Ij[1] * Ij[2];
-			H_S  += hy_vec[1] * Ij[0] * Yj[1] * Ij[2];
-			H_S  += hy_vec[2] * Ij[0] * Ij[1] * Yj[2];
-
-			H_S  += hz_vec[0] * Zj[0] * Ij[1] * Ij[2];
-			H_S  += hz_vec[1] * Ij[0] * Zj[1] * Ij[2];
-			H_S  += hz_vec[2] * Ij[0] * Ij[1] * Zj[2];
-
-			H_SS   = Jxx_vec[0] * Xj[0] * Xj[1] * Ij[2] ;
-			H_SS  += Jxx_vec[1] * Ij[0] * Xj[1] * Xj[2] ;
-
-			H_SS  += Jyy_vec[0] * Yj[0] * Yj[1] * Ij[2] ;
-			H_SS  += Jyy_vec[1] * Ij[0] * Yj[1] * Yj[2] ;
-
-			H_SS  += Jzz_vec[0] * Zj[0] * Zj[1] * Ij[2] ;
-			H_SS  += Jzz_vec[1] * Ij[0] * Zj[1] * Zj[2] ;
-
-			H_SSS  = J_NNN[0] * Xj[0] * Ij[1] * Xj[2] ;
-			H_SSS += J_NNN[1] * Yj[0] * Ij[1] * Yj[2] ;
-			H_SSS += J_NNN[2] * Zj[0] * Ij[1] * Zj[2] ;
-
-
-			vector<int> jn = {js,js+1,js+2};
-			if(j<N){
-				// action on bra (it is exp(+i H^T t))
-
-				H = -H_S - H_SS - H_SSS;
-				H = swapPrime(H,0,1);
-
-				TebdGate g = TebdGate(jn,dt/2.,H);
-				gates_bra.push_back(g);
-			}
-			// action on ket
-			else
-			{
-				H = H_S + H_SS + H_SSS;
-				TebdGate g = TebdGate(jn,dt/2.,H);
-				gates_ket.push_back(g);
-
-			}
-		}
-	}
-
-	else
-	{
-		for(int layer = 1 ; layer <= 3 ; layer ++)
-		{
-			for(int j = layer ; j <= N-2 ; j+=3)
-			{
-			
-				cerr << "Layer : " << layer << " site : " << j << "\n";
-
-				ITensor H, H_S , H_SS, H_SSS;
-
-				int js = j;
-				int jf = js + 2;
-				
-				vector<double> hx_vec,   hy_vec,  hz_vec; 
-				// nearest-neighbor interactions - when acting in the bulk
-				vector<double> Jxx_vec = {Jxx/2.,Jxx/2.};
-				vector<double> Jyy_vec = {Jyy/2.,Jyy/2.};
-				vector<double> Jzz_vec = {Jzz/2.,Jzz/2.};
-
-				vector<ITensor> Xj;
-				vector<ITensor> Yj;
-				vector<ITensor> Zj;
-				vector<ITensor> Ij;
-
-				for(int q=js ; q<= jf; q++)
-				{
-					Ij.push_back(     op(sites,"Id",q) );
-					Xj.push_back(  2 * op(sites,"Sx",q) );
-					Yj.push_back(  2 * op(sites,"Sy",q) );
-					Zj.push_back(  2 * op(sites,"Sz",q) );
-				}
-
-
-				if( js % N == 1 )
-				{
-					hx_vec = {hx, hx/2. , hx/3.};
-					hy_vec = {hy, hy/2. , hy/3.};
-					hz_vec = {hz, hz/2. , hz/3.};
-				}
-				else if( js % N == 2 )
-				{
-					hx_vec = {hx/2. , hx/3. , hx/3.};
-					hy_vec = {hy/2. , hy/3. , hy/3.};
-					hz_vec = {hz/2. , hz/3. , hz/3.};
-				}
-				else if(jf % (N-1) == 0)
-				{
-					hx_vec = {hx/3. , hx/3. , hx/2.};
-					hy_vec = {hy/3. , hy/3. , hy/2.};
-					hz_vec = {hz/3. , hz/3. , hz/2.};
-				}
-				else if(jf % N == 0)
-				{
-					hx_vec = {hx/3. , hx/2. , hx};
-					hy_vec = {hy/3. , hy/2. , hy};
-					hz_vec = {hz/3. , hz/2. , hz};
-				}
-				else
-				{
-					hx_vec = {hx/3. , hx/3. , hx/3.};
-					hy_vec = {hy/3. , hy/3. , hy/3.};
-					hz_vec = {hz/3. , hz/3. , hz/3.};
-				}
-
-				if( js%N == 1) // First physical site (it technically correspond to the last site of the bra, but since couplings are homogeneous it does not matter)
-				{
-					Jxx_vec[0] = Jxx;
-					Jyy_vec[0] = Jyy;
-					Jzz_vec[0] = Jzz;
-				}
-
-				if( jf%N == 0) // Last physical site
-				{
-					Jxx_vec[1] = Jxx;
-					Jyy_vec[1] = Jyy;
-					Jzz_vec[1] = Jzz;
-				}
-
-
-				for(double hj : hx_vec) cerr << hj << " ";
-				cerr << "\n";
-
-
-				Jzz_tot[j-1] += Jzz_vec[0];
-				Jzz_tot[j]   += Jzz_vec[1];
-
-				H_S   = hx_vec[0] * Xj[0] * Ij[1] * Ij[2];
-				H_S  += hx_vec[1] * Ij[0] * Xj[1] * Ij[2];
-				H_S  += hx_vec[2] * Ij[0] * Ij[1] * Xj[2];
-
-				H_S  += hy_vec[0] * Yj[0] * Ij[1] * Ij[2];
-				H_S  += hy_vec[1] * Ij[0] * Yj[1] * Ij[2];
-				H_S  += hy_vec[2] * Ij[0] * Ij[1] * Yj[2];
-
-				H_S  += hz_vec[0] * Zj[0] * Ij[1] * Ij[2];
-				H_S  += hz_vec[1] * Ij[0] * Zj[1] * Ij[2];
-				H_S  += hz_vec[2] * Ij[0] * Ij[1] * Zj[2];
-
-				H_SS   = Jxx_vec[0] * Xj[0] * Xj[1] * Ij[2] ;
-				H_SS  += Jxx_vec[1] * Ij[0] * Xj[1] * Xj[2] ;
-
-				H_SS  += Jyy_vec[0] * Yj[0] * Yj[1] * Ij[2] ;
-				H_SS  += Jyy_vec[1] * Ij[0] * Yj[1] * Yj[2] ;
-
-				H_SS  += Jzz_vec[0] * Zj[0] * Zj[1] * Ij[2] ;
-				H_SS  += Jzz_vec[1] * Ij[0] * Zj[1] * Zj[2] ;
-
-				H_SSS  = J_NNN[0] * Xj[0] * Ij[1] * Xj[2] ;
-				H_SSS += J_NNN[1] * Yj[0] * Ij[1] * Yj[2] ;
-				H_SSS += J_NNN[2] * Zj[0] * Ij[1] * Zj[2] ;
-
-
-				vector<int> jn = {js,js+1,js+2};
-				if(j<N){
-					// action on bra (it is exp(+i H^T t))
-
-					H = -H_S - H_SS - H_SSS;
-					H = swapPrime(H,0,1);
-
-					TebdGate g = TebdGate(jn,dt/2.,H);
-					gates_bra.push_back(g);
-				}
-				// action on ket
-				else
-				{
-					H = H_S + H_SS + H_SSS;
-					TebdGate g = TebdGate(jn,dt/2.,H);
-					gates_ket.push_back(g);
-
-				}
-			}
-
-			// acting on ket
-			for(int j = N + layer ; j <= N2-2 ; j+=3)
-			{
-			
-				cerr << "Layer : " << layer << " site : " << j << "\n";
-
-				ITensor H, H_S , H_SS, H_SSS;
-
-				int js = j;
-				int jf = js + 2;
-				
-				vector<double> hx_vec,   hy_vec,  hz_vec; 
-				// nearest-neighbor interactions - when acting in the bulk
-				vector<double> Jxx_vec = {Jxx/2.,Jxx/2.};
-				vector<double> Jyy_vec = {Jyy/2.,Jyy/2.};
-				vector<double> Jzz_vec = {Jzz/2.,Jzz/2.};
-
-				vector<ITensor> Xj;
-				vector<ITensor> Yj;
-				vector<ITensor> Zj;
-				vector<ITensor> Ij;
-
-				for(int q=js ; q<= jf; q++)
-				{
-					Ij.push_back(     op(sites,"Id",q) );
-					Xj.push_back(  2 * op(sites,"Sx",q) );
-					Yj.push_back(  2 * op(sites,"Sy",q) );
-					Zj.push_back(  2 * op(sites,"Sz",q) );
-				}
-
-
-				if( js == N + 1 )
-				{
-					hx_vec = {hx, hx/2. , hx/3.};
-					hy_vec = {hy, hy/2. , hy/3.};
-					hz_vec = {hz, hz/2. , hz/3.};
-				}
-				else if( js == N+2 )
-				{
-					hx_vec = {hx/2. , hx/3. , hx/3.};
-					hy_vec = {hy/2. , hy/3. , hy/3.};
-					hz_vec = {hz/2. , hz/3. , hz/3.};
-				}
-				else if(jf == N2 - 1)
-				{
-					hx_vec = {hx/3. , hx/3. , hx/2.};
-					hy_vec = {hy/3. , hy/3. , hy/2.};
-					hz_vec = {hz/3. , hz/3. , hz/2.};
-				}
-				else if(jf == N2)
-				{
-					hx_vec = {hx/3. , hx/2. , hx};
-					hy_vec = {hy/3. , hy/2. , hy};
-					hz_vec = {hz/3. , hz/2. , hz};
-				}
-				else
-				{
-					hx_vec = {hx/3. , hx/3. , hx/3.};
-					hy_vec = {hy/3. , hy/3. , hy/3.};
-					hz_vec = {hz/3. , hz/3. , hz/3.};
-				}
-
-				if( js == N+1) // First physical site (it technically correspond to the last site of the bra, but since couplings are homogeneous it does not matter)
-				{
-					Jxx_vec[0] = Jxx;
-					Jyy_vec[0] = Jyy;
-					Jzz_vec[0] = Jzz;
-				}
-
-				if( jf == N2) // Last physical site
-				{
-					Jxx_vec[1] = Jxx;
-					Jyy_vec[1] = Jyy;
-					Jzz_vec[1] = Jzz;
-				}
-
-				for(double hj : hx_vec) cerr << hj << " ";
-				cerr << "\n";
-				
-				hx_tot[j%N-1]   += hx_vec[0];
-				hx_tot[j%N] += hx_vec[1];
-				hx_tot[j%N+1] += hx_vec[2];
-
-
-				H_S   = hx_vec[0] * Xj[0] * Ij[1] * Ij[2];
-				H_S  += hx_vec[1] * Ij[0] * Xj[1] * Ij[2];
-				H_S  += hx_vec[2] * Ij[0] * Ij[1] * Xj[2];
-
-				H_S  += hy_vec[0] * Yj[0] * Ij[1] * Ij[2];
-				H_S  += hy_vec[1] * Ij[0] * Yj[1] * Ij[2];
-				H_S  += hy_vec[2] * Ij[0] * Ij[1] * Yj[2];
-
-				H_S  += hz_vec[0] * Zj[0] * Ij[1] * Ij[2];
-				H_S  += hz_vec[1] * Ij[0] * Zj[1] * Ij[2];
-				H_S  += hz_vec[2] * Ij[0] * Ij[1] * Zj[2];
-
-				H_SS   = Jxx_vec[0] * Xj[0] * Xj[1] * Ij[2] ;
-				H_SS  += Jxx_vec[1] * Ij[0] * Xj[1] * Xj[2] ;
-
-				H_SS  += Jyy_vec[0] * Yj[0] * Yj[1] * Ij[2] ;
-				H_SS  += Jyy_vec[1] * Ij[0] * Yj[1] * Yj[2] ;
-
-				H_SS  += Jzz_vec[0] * Zj[0] * Zj[1] * Ij[2] ;
-				H_SS  += Jzz_vec[1] * Ij[0] * Zj[1] * Zj[2] ;
-
-				H_SSS  = J_NNN[0] * Xj[0] * Ij[1] * Xj[2] ;
-				H_SSS += J_NNN[1] * Yj[0] * Ij[1] * Yj[2] ;
-				H_SSS += J_NNN[2] * Zj[0] * Ij[1] * Zj[2] ;
-
-
-				vector<int> jn = {js,js+1,js+2};
-				if(j<N)
-				{
-					// action on bra (it is exp(+i H^T t))
-					H = -H_S - H_SS - H_SSS;
-					H = swapPrime(H,0,1);
-
-					TebdGate g = TebdGate(jn,dt/2.,H);
-					gates_bra.push_back(g);
-				}
-				// action on ket
-				else
-				{
-					H = H_S + H_SS + H_SSS;
-					TebdGate g = TebdGate(jn,dt/2.,H);
-					gates_ket.push_back(g);
-				}
-			}
-				
-		}
-	}
-
-	// total magnetic field on each site
-
-	for(double q : hx_tot) cerr << q << " ";
-	cerr << "\n";
-	for(double q : Jzz_tot) cerr << q << " ";
-	cerr << "\n";
-
-	vector<TebdGate> gates_ket_reversed = gates_ket;
-	vector<TebdGate> gates_bra_reversed = gates_bra;
-	
-	reverse(gates_ket_reversed.begin(), gates_ket_reversed.end());
-	reverse(gates_bra_reversed.begin(), gates_bra_reversed.end());
-
-	for(TebdGate g : gates_bra)  		   gates.push_back(g);
-	for(TebdGate g : gates_ket) 		   gates.push_back(g);
-	for(TebdGate g : gates_ket_reversed) gates.push_back(g);
-	for(TebdGate g : gates_bra_reversed) gates.push_back(g);
-
-	return gates;
-}
-
-
-// Gates of impurity problem (bath treated exactly in energy basis)
-// this results in a hihgly non local Hamiltonian. Specifically
-// H = 
-// we do not implement the swap gates as gates, but directly in the TEBD algorithm.
-
-// We move from the center of the chain (where the bond connecting bra and ket is located)
-// moving towards the outer part
-
-// we feed in input J_eps, hup, hdn in the right order (acting on sites from 1 to N) in the TRUE system
-// wee perform first evolution of the bra [1,N]
-// then, we perform the evolution of the ket [N+1,2*N]
-// we start from the center, so that the first interaction is nearest-neighbor and then
-// we should apply swapgates
-
-vector<TebdGate>
-make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
-{
-	// N is always even and corresponds to the physical size
-	int N2 = length(sites);
-	int N = N2/2;
-
-
-    vector<TebdGate> gates;
-	vector<TebdGate> gates_ket;
-
-	// collection of gates
-
-	vector<ITensor> Adagup;
-	vector<ITensor> Aup;
-
-	vector<ITensor> Adagdn;
-	vector<ITensor> Adn;
-
-	vector<ITensor> Nup;
-	vector<ITensor> Ndn;
-
-	vector<ITensor> Id;
-
-	vector<ITensor> AdagupFi;
-	vector<ITensor>	AupFi;
-	vector<ITensor>	FiAdn;
-	vector<ITensor>	FiAdagdn;
-
-
-	for(int q=1 ; q<=N2; q++)
-	{
-		Adagup.push_back(op(sites,"Adagup",q) );
-		Aup.push_back(   op(sites,"Aup",q) );
-		Adagdn.push_back(op(sites,"Adagdn",q) );
-		Adn.push_back(   op(sites,"Adn",q) );
-		Nup.push_back(   op(sites,"Nup",q) );
-		Ndn.push_back(   op(sites,"Ndn",q) );
-		Id.push_back(op(sites,"Id",q));
-		AdagupFi.push_back(op(sites,"Adagup*F",q));
-		AupFi.push_back(op(sites,"Aup*F",q));
-		FiAdn.push_back(op(sites,"F*Adn",q));
-		FiAdagdn.push_back(op(sites,"F*Adagdn",q));
-
-	}
-	
-	cerr << "Couplings.\n\n";
-
-	for(double z : J) cerr << z << " ";
-	cerr << "\n\n";
-
-	// Action of the Hamiltonian on the bra
-	// we start from the center of the chain
-
-	cerr << "Entering bra cycle.\n\n";
-	for(int j=N-1 ; j>=1 ; j--)
-	{
-
-		ITensor H , H_S , H_SS;
-
-		// build single site - the impurity is set only at the first bond
-		if(j==N-1)
-		{
-			H_S = (hup[N-j-1] * Nup[N-1] + hdn[N-j-1] * Ndn[N-1]) * Id[N-2] ;
-			H_S += Id[N-1] * (hup[N-j] * Nup[j-1] + hdn[N-j] * Ndn[j-1]);
-		}
-		else  H_S = Id[N-1] * (hup[N-j] * Nup[j-1] + hdn[N-j] * Ndn[j-1]);
-
-
-		// two sites hopping
-		
-		H_SS   = J[N-j-1] * (  Aup[j-1] * AdagupFi[N-1] - Adagup[j-1]   * AupFi[N-1] );
-		H_SS  += J[N-j-1] * (  FiAdn[j-1] * Adagdn[N-1] - FiAdagdn[j-1] * Adn[N-1]   );
-		
-		cerr << J[N-j-1] << " ";
-
-
-		H = - H_S - H_SS ;
-		H = swapPrime(H,0,1); 
-		TebdGate g = TebdGate({j,N}, BondGate(sites,j,N,BondGate::tReal,dt/2.,H).gate()); 
-		gates.push_back(g);
-
-
-    }
-	cerr << "\n\n";
-
-	vector<TebdGate> gates_reversed = gates;
-	reverse(gates_reversed.begin(), gates_reversed.end());
-	for(TebdGate g : gates_reversed)  gates.push_back(g);
-
-
-	cerr << "Entering ket cycle.\n\n";
-
-	for(int j=N+2 ; j<=N2 ; j++)
-	{
-
-		ITensor H , H_S , H_SS;
-
-		// build single site - the impurity is set only at the first bond
-		if(j==N+2)
-		{
-			H_S =  (hup[abs(N-j)-1] * Nup[N] + hdn[abs(N-j)-1] * Ndn[N]) * Id[N+1] ;
-			H_S += Id[N] * (hup[abs(N-j)] * Nup[j-1] + hdn[abs(N-j)] * Ndn[j-1]);
-		}
-		else H_S = Id[N] * (hup[abs(N-j)] * Nup[j-1] + hdn[abs(N-j)] * Ndn[j-1]);
-
-
-		// two sites hopping
-		
-		H_SS   = J[abs(N-j)-2] * (  AdagupFi[N] * Aup[j-1]   - AupFi[N] * Adagup[j-1] );
-		H_SS  += J[abs(N-j)-2] * (  Adagdn[N]   * FiAdn[j-1] - Adn[N] * FiAdagdn[j-1] );
-		
-		cerr << J[abs(N-j)-2] << " ";
-
-		H = H_S + H_SS ;
-		TebdGate g = TebdGate({N+1,j}, BondGate(sites,N+1,j,BondGate::tReal,dt/2.,H).gate()); 
-		gates_ket.push_back(g);
-
-
+    int N = length(sites)/2;
+    if(N < 3) throw ITError("make_spin_impurity_nnn_gates: three-site gates need at least 3 physical sites");
+
+    // three layers of non-overlapping gates in each half: [1,2,3] [4,5,6] ..., [2,3,4] ..., [3,4,5] ...
+    vector<TebdGate> gates_bra, gates_ket;
+    for(int layer = 1 ; layer <= 3 ; layer++)
+    {
+        for(int j = layer ; j <= N-2 ; j += 3)
+            gates_bra.push_back(TebdGate({j,j+1,j+2}, dt/2., transpose_for_bra(make_three_site_spin_hamiltonian(sites, j, j, N, J, J_NNN, h))));
+        for(int j = N + layer ; j <= 2*N-2 ; j += 3)
+            gates_ket.push_back(TebdGate({j,j+1,j+2}, dt/2., make_three_site_spin_hamiltonian(sites, j, j-N, N, J, J_NNN, h)));
     }
 
-	gates_reversed = gates_ket;
-	reverse(gates_reversed.begin(), gates_reversed.end());
-	for(TebdGate g : gates_reversed)  gates_ket.push_back(g);
-	for(TebdGate g : gates_ket) gates.push_back(g);
-
-
-	return gates;
-
+    vector<TebdGate> gates = gates_bra;
+    gates.insert(gates.end(), gates_ket.begin(), gates_ket.end());
+    return make_symmetric_sweep(gates);
 }

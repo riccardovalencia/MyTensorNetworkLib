@@ -24,11 +24,8 @@ make_electron_product_state(const SiteSet sites, const int Nupfill, const int Nd
 {
     int N = length(sites);
 
-    if(Nupfill + Ndnfill > 2*N || Nupfill > N || Ndnfill > N)
-    {
-        cerr << "Filling larger than the one it can be hosted.\n";
-        exit(-1);
-    }
+    if(Nupfill > N || Ndnfill > N)
+        throw ITError("make_electron_product_state: more electrons of one spin than sites");
 
     InitState state = InitState(sites,"0");
 

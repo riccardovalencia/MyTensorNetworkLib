@@ -120,38 +120,6 @@ set_cat_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha )
 }
 
 
-// ----------------------------------------------------------------------
-// Initial bosonic state of the form |n0> |0000...0>.
-
-
-
-
-// ----------------------------------------------------------------------
-// Initial vacuum bosonic state |0000...0>.
-
-
-// ----------------------------------------------------------------------
-// Initial vacuum bosonic state |0000...0>.
-
-
-// ----------------------------------------------------------------------
-// Initial all one bosonic state |1111...1>.
-
-
-// Initial bosonic state of the form |000..0> |alpha>_j |0000...0>, such that a|alpha> = alpha|alpha>.
-
-
-
-
-// Initial bosonic state of the form |000..0> |alpha>_j |0000...0>, such that a|alpha> = alpha|alpha>.
-
-
-
-
-
-
-
-
 // factorial n!
 
 double
@@ -188,112 +156,59 @@ squeezed_state_amplitude( const double r, const int k)
 
 
 //----------------------------------------------------------------------
-// expectation value: <\sigma_j^x^2>
+// local observables (sigma^x = a + a^dag)
+
+static ITensor
+make_sigma_x(const SiteSet& sites, const int j)
+{
+	return op(sites, "A", j) + op(sites, "Adag", j);
+}
+
+
 double 
 measure_sigma_x_squared( MPS *state , const SiteSet sites , const int j )
 {
-	ITensor observable = op(sites, "A", j);
-	observable += op(sites,"Adag",j);
-	ITensor observable2 = prime(observable);
-
-	(*state).position(j);
-	
-	auto ket = (*state)(j);
-	auto bra = dag(prime(prime(ket,"Site"),"Site"));
-	double expectation_value = elt(bra * observable * observable2 * ket);
-
-	return expectation_value;
-
+	ITensor X = make_sigma_x(sites, j);
+	return real(measure_local_operator(state, multSiteOps(X, X), j));
 }
 
 
-//----------------------------------------------------------------------
-// expectation value: <\sigma_j^x>
 double 
 measure_sigma_x( MPS *state , const SiteSet sites , const int j )
 {
-	ITensor observable = op(sites, "A", j);
-	observable += op(sites,"Adag",j);
-
-	(*state).position(j);
-	
-	auto ket = (*state)(j);
-	auto bra = dag(prime(ket,"Site"));
-	double expectation_value = elt(bra * observable * ket);
-
-	return expectation_value;
-
+	return real(measure_local_operator(state, make_sigma_x(sites, j), j));
 }
 
 
-//----------------------------------------------------------------------
-// expectation value: <\sigma_j^x n_j>
 double 
 measure_sigma_x_n( MPS *state , const SiteSet sites , const int j )
 {
-	ITensor observable = op(sites, "A", j);
-	observable += op(sites,"Adag",j);
-	ITensor observable2 = prime(op(sites,"N",j));
-
-	(*state).position(j);
-	
-	auto ket = (*state)(j);
-	auto bra = dag(prime(prime(ket,"Site"),"Site"));
-	double expectation_value = elt(bra * observable * observable2 * ket);
-
-	return expectation_value;
-
+	return real(measure_local_operator(state, multSiteOps(make_sigma_x(sites, j), op(sites, "N", j)), j));
 }
 
 
-//----------------------------------------------------------------------
-// expectation value: <n_j \sigma_j^x>
 double 
 measure_n_sigma_x( MPS *state , const SiteSet sites , const int j )
 {
-	ITensor observable = op(sites,"N",j);
-	ITensor observable2 = op(sites, "A", j);
-	observable2 += op(sites,"Adag",j);
-	observable2 = prime(observable2);
-
-	(*state).position(j);
-	
-	auto ket = (*state)(j);
-	auto bra = dag(prime(prime(ket,"Site"),"Site"));
-	double expectation_value = elt(bra * observable * observable2 * ket);
-
-	return expectation_value;
-
+	return real(measure_local_operator(state, multSiteOps(op(sites, "N", j), make_sigma_x(sites, j)), j));
 }
 
-
-// measure occupation number along the 1D chain
 
 void 
 measure_occupation_number( MPS *ground_state , const SiteSet sites , const int size ,  vector<double> &occupation_number )
 {
-for(int j = 1 ; j <= size ; j++)
-	{
-	ITensor observable = op(sites, "N" , j);
-	(*ground_state).position(j);
-	auto ket = (*ground_state)(j);
-	auto bra = dag(prime(ket,"Site"));
-	complex<double> expectation_value = eltC(bra * observable * ket);
-	occupation_number.push_back( expectation_value.real() );
-	}
+	for(int j = 1 ; j <= size ; j++)
+		occupation_number.push_back( real(measure_local_operator(ground_state, op(sites, "N", j), j)) );
 }
 
 
 double
 compute_imbalance( vector<double> &occupation_number, int k)
 {
-
 	double nk = occupation_number[k];
 	occupation_number.erase(occupation_number.begin()+k);
 	double nmax = *max_element(occupation_number.begin(), occupation_number.end());
-	
 	return (nk-nmax)/(nk+nmax);
-
 }
 
 
@@ -301,75 +216,48 @@ double compute_max_cutoff_probability(vector<vector<double> > &projector_all_sit
 {
 	double maximum = -1;
 	for(int j = 1 ; j <= size ; j++) maximum = std::max(projector_all_sites[j-1][cut_off-1], maximum);
-
 	return maximum;
-
 }
 
-
-// measure squareoccupation number along the 1D chain
 
 void 
 measure_occupation_number_squared( MPS *ground_state , const SiteSet sites , const int size ,  vector<double> &square_occupation_number )
 {
-for(int j = 1 ; j <= size ; j++)
+	for(int j = 1 ; j <= size ; j++)
 	{
-	ITensor observable = op(sites, "N" , j);
-	ITensor observable2 = prime(op(sites, "N" , j));
-
-	(*ground_state).position(j);
-	auto ket = (*ground_state)(j);
-	auto bra = dag(prime(prime(ket,"Site"),"Site"));
-	double expectation_value = elt(bra * observable * observable2 * ket);
-	square_occupation_number.push_back( expectation_value );
+		ITensor Nj = op(sites, "N", j);
+		square_occupation_number.push_back( real(measure_local_operator(ground_state, multSiteOps(Nj, Nj), j)) );
 	}
-	
 }
 
 
-//---------------------------------------------------------------------
-
-// measure of the projector along all the sites and all the Fock space
-
-void measure_fock_probabilities( MPS *ground_state , const SiteSet sites , const int size , const int cut_off_fock_space ,  vector<vector<double> > &projector_all_sites ,  vector<double> &occupation_number)
+void
+measure_fock_probabilities( MPS *ground_state , const SiteSet sites , const int size , const int cut_off_fock_space ,  vector<vector<double> > &projector_all_sites )
 {
 	for(int j = 1 ; j <= size ; j++)
 	{
-	vector<double> projector_single_site;
-	(*ground_state).position(j);
-
-
-	double check_number_particles = 0.;
-	double check_normalization_projector = 0. ;
-
-	for( int n = 0 ; n <= cut_off_fock_space ; n++ )
+		Index s = sites(j);
+		vector<double> probabilities;
+		for( int n = 0 ; n <= cut_off_fock_space ; n++ )
 		{
-		Index physical_index = sites(j);
-		Index physical_index_prime = prime(sites(j));
-		ITensor projector = ITensor(physical_index, physical_index_prime); //initialized with all the elements equal to zero.
-	
-		projector.set(physical_index(n+1),physical_index_prime(n+1),1.);
-
-		ITensor ket = (*ground_state)(j);
-		ITensor bra = dag(prime((*ground_state)(j),"Site"));
-		
-		complex<double> expectation_value_c = eltC(bra * projector * ket);
-		double expectation_value = expectation_value_c.real();
-		projector_single_site.push_back(expectation_value);
-
-		check_number_particles += n * expectation_value ;
-		check_normalization_projector += expectation_value;
-	
+			ITensor projector = ITensor(s, prime(s));   // |n><n|
+			projector.set(s(n+1), prime(s)(n+1), 1.);
+			probabilities.push_back( real(measure_local_operator(ground_state, projector, j)) );
 		}
-
-	cerr << "Site : " << j << " Difference (occupation_number - projector) " << (occupation_number[j-1]-check_number_particles) << endl;	
-	cerr << "Site : " << j << " Normalization projector (sum of projectors should be 1) : " << check_normalization_projector << endl;	
-	projector_all_sites.push_back(projector_single_site);
+		projector_all_sites.push_back(probabilities);
 	}
 }
 
 
-// Measure the covariance matrix size X size. Each element is <N_i N_j>_c - 
+// <O_i P_j>: two-point function for i != j, product of the operators on the same site otherwise
+static Cplx
+measure_pair(MPS *psi, const SiteSet& sites, const ITensor& O_i, const ITensor& P_j, const int i, const int j)
+{
+	if(i != j) return measure_two_point_function(psi, sites, O_i, P_j, i, j);
+	return measure_local_operator(psi, multSiteOps(O_i, P_j), i);
+}
+
+
 void
 measure_number_covariance( MPS *psi , const SiteSet sites , vector<vector<double> > &covariance_matrix_NN_system, vector<vector<double> > &covariance_matrix_NN_gaussian, vector<vector<double> > &relative_error)
 {
@@ -377,126 +265,39 @@ measure_number_covariance( MPS *psi , const SiteSet sites , vector<vector<double
 
 	(*psi).position(1);
 	(*psi).normalize();
-	
+
 	for(int i = 1; i <= size; i++)
 	{
-		vector<double> covariance_ij;
-		vector<double> covariance_ij_gaussian;
-		vector<double> relative_error_ij;
-
+		vector<double> covariance_ij, covariance_ij_gaussian, relative_error_ij;
 		for(int j = 1; j <= size ; j++)
 		{
-			
-			double NiNj;
-			complex<double> Aid_Ajd ;
-			complex<double> Aid_Aj  ;
-			complex<double> Ai_Aj   ; 
-			complex<double> Ai_Ajd  ;
+			ITensor Ai  = op(sites, "A" , i),    Aj  = op(sites, "A" , j);
+			ITensor Adi = op(sites, "Adag" , i), Adj = op(sites, "Adag" , j);
+			ITensor Ni  = op(sites, "N" , i),    Nj  = op(sites, "N" , j);
 
-			// define A 
-			ITensor Ai_op  = op(sites, "A" , i);
-			ITensor Aj_op  = op(sites, "A" , j);
-			ITensor Adi_op  = op(sites, "Adag" , i);
-			ITensor Adj_op  = op(sites, "Adag" , j);
+			Cplx NiNj_c  = measure_pair(psi, sites, Ni,  Nj,  i, j);
+			double NiNj  = (i != j) ? abs(NiNj_c) : real(NiNj_c);
+			Cplx Aid_Ajd = measure_pair(psi, sites, Adi, Adj, i, j);
+			Cplx Ai_Aj   = measure_pair(psi, sites, Ai,  Aj,  i, j);
+			Cplx Aid_Aj  = measure_pair(psi, sites, Adi, Aj,  i, j);
+			Cplx Ai_Ajd  = measure_pair(psi, sites, Ai,  Adj, i, j);
 
-			(*psi).position(i);
-			auto ket = (*psi)(i);
-			auto bra = dag(prime(ket,"Site"));
-			complex<double> Ai = eltC( bra * Ai_op * ket);
+			double ni = real(measure_local_operator(psi, Ni, i));
+			double nj = real(measure_local_operator(psi, Nj, j));
+			Cplx   ai = measure_local_operator(psi, Ai, i);
+			Cplx   aj = measure_local_operator(psi, Aj, j);
 
-			(*psi).position(j);
-			ket = (*psi)(j);
-			bra = dag(prime(ket,"Site"));
-			complex<double> Aj = eltC( bra * Aj_op * ket);
+			// Wick factorization of <n_i n_j>_c for a Gaussian state
+			Cplx NiNj_gaussian_connected = (Aid_Ajd * Ai_Aj + Aid_Aj * Ai_Ajd) - 2 * abs(ai)*abs(ai) * abs(aj)*abs(aj);
+			double NiNj_connected = NiNj - ni*nj;
 
-			// attempt - 14.12.21
-			ITensor Ni_op  = op(sites, "N" , i);
-			ITensor Nj_op  = op(sites, "N" , j);
-
-
-			if( i != j)
-			{
-				NiNj    = abs(measure_two_point_function(psi,sites ,Ni_op,Nj_op , i , j));
-				Aid_Ajd = measure_two_point_function(psi,sites,Adi_op,Adj_op , i , j);
-				Ai_Aj   = measure_two_point_function(psi,sites,Ai_op,Aj_op , i , j);
-				Aid_Aj  = measure_two_point_function(psi,sites,Adi_op,Aj_op  , i , j);
-				Ai_Ajd  = measure_two_point_function(psi,sites,Ai_op,Adj_op  , i , j);	
-			}
-
-
-			else
-			{
-				(*psi).position(i);
-				auto ket = (*psi)(i);
-				auto bra =  dag(prime(prime(ket,"Site"),"Site"));
-				NiNj = elt(bra * prime(Ni_op) * Ni_op * ket);
-				Aid_Ajd = eltC(bra * prime(Adi_op) * Adi_op * ket);
-				Ai_Aj   = eltC(bra * prime(Ai_op) * Ai_op * ket);
-				Aid_Aj = eltC(bra * prime(Adi_op) * Ai_op * ket);
-				Ai_Ajd = eltC(bra * prime(Ai_op) * Adi_op * ket);
-
-			}
-		
-			(*psi).position(i);
-			ket = (*psi)(i);
-			bra = dag(prime(ket,"Site"));
-			double Ni = elt( bra * Ni_op * ket);
-			Ai = eltC( bra * Ai_op * ket);
- 
-			(*psi).position(j);
-			ket = (*psi)(j);
-			bra = dag(prime(ket,"Site"));
-			double Nj = elt( bra * Nj_op * ket);
-			Aj = eltC( bra * Aj_op * ket);
-
-			if( i == j && i==1)
-			{
-			cerr << " Observables " << endl;
-			cerr << "NN : " << NiNj << endl;
-			cerr << "N : " << Ni << endl;
-			cerr << "A : " << Ai << endl; 
-			cerr << "AdA : " << Aid_Aj << endl;
-			cerr << "AdAd : " << Aid_Ajd << endl;
-			}
-
-
-			// measure average occupation number
-			ITensor observable = op(sites, "N" , i);
-			(*psi).position(i);
-			ket = (*psi)(i);
-			bra = dag(prime(ket,"Site"));
-			double ni = eltC(bra * observable * ket).real();
-
-			observable = op(sites, "N" , j);
-			(*psi).position(j);
-			ket = (*psi)(j);
-			bra = dag(prime(ket,"Site"));
-			double nj = eltC(bra * observable * ket).real();
-
-			if( i == j && i==1)
-			{
-			cerr << "N_" << i << " " << ni << " " << Ni << endl;
-
-
-			}
-
-
-			complex<double> NiNj_gaussian_approx_connected = (Aid_Ajd * Ai_Aj + Aid_Aj * Ai_Ajd) - 2 * abs(Ai)*abs(Ai) * abs(Aj)*abs(Aj);
-			double NiNj_connected = (NiNj - Ni*Nj);
-		
-			if( i == j && i==1)
-			{
-			cerr << "N_" << i << "N_" << j << " : " << NiNj_gaussian_approx_connected << " " << NiNj_connected << " " << (abs(NiNj_gaussian_approx_connected)-NiNj_connected)/abs(NiNj_gaussian_approx_connected) << endl;
-			}
 			covariance_ij.push_back(NiNj_connected);
-			covariance_ij_gaussian.push_back(NiNj_gaussian_approx_connected.real());
-			relative_error_ij.push_back((NiNj_gaussian_approx_connected.real()-NiNj_connected)/NiNj_connected);
-
+			covariance_ij_gaussian.push_back(NiNj_gaussian_connected.real());
+			relative_error_ij.push_back((NiNj_gaussian_connected.real()-NiNj_connected)/NiNj_connected);
 		}
 		covariance_matrix_NN_system.push_back(covariance_ij);
 		covariance_matrix_NN_gaussian.push_back(covariance_ij_gaussian);
 		relative_error.push_back(relative_error_ij);
-		
 	}
 }
 
@@ -533,22 +334,11 @@ measure_variance_p(MPS *psi, MPO *A, MPO *Adag )
 double
 measure_squeezing(MPS *psi, const SiteSet sites, const int j)
 {
-	if( j <= length(*psi) )
-	{
-		ITensor Nj = op(sites, "N" , j);
-		ITensor adag2 = op(sites, "Adag", j) * prime(op(sites, "Adag",j));
-		adag2.mapPrime(2,1);
-
-
-		(*psi).position(j);
-		auto ket = (*psi)(j);
-		auto bra = dag(prime(ket,"Site"));
-		complex<double> Nj_exp = eltC(bra * Nj * ket);
-		complex<double> adag2_exp = eltC(bra * adag2 * ket);
-		double squeezing = 	1 + 2 * Nj_exp.real() - 2 * abs(adag2_exp);
-		return squeezing;
-	}
-	else return -1;
+	if( j > length(*psi) ) return -1;
+	ITensor Adag = op(sites, "Adag", j);
+	Cplx Nj_exp    = measure_local_operator(psi, op(sites, "N", j), j);
+	Cplx adag2_exp = measure_local_operator(psi, multSiteOps(Adag, Adag), j);
+	return 1 + 2 * Nj_exp.real() - 2 * abs(adag2_exp);
 }
 
 

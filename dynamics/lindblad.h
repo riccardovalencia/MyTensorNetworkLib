@@ -30,14 +30,23 @@ make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<in
 vector<DissipativeGate>
 make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt);
 
-/** @brief Dissipators with two-site jump operators L = Ti Tj (see OperatorPair). */
+/**
+ * @brief Dissipators of operator pairs (Ti on site i, Tj on site j, rate gamma, see OperatorPair):
+ *        gamma [Ti rho Tj^dag + Tj rho Ti^dag - 1/2 ({Tj^dag Ti, rho} + {Ti^dag Tj, rho})], which is
+ *        gamma D[T] for i = j. Only i = j and |i - j| = 1 are implemented (ITError otherwise).
+ *
+ * The gates are built with dt/2 and returned as a symmetric sequence (make_symmetric_sweep).
+ */
 vector<DissipativeGate>
 make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrain, const double dt);
 
 /**
- * @brief Dissipators with jump operators acting on arbitrary groups of sites.
+ * @brief Dissipators gamma_k D[L_k] with two-site jump operators L_k (ITError for other sizes).
+ *
+ * The gates are built with dt/2 and returned as a symmetric sequence (make_symmetric_sweep).
  * @param Lij_list Jump operators.
- * @param Lj_sites Sites of each jump operator.
+ * @param Lj_sites Sites of each jump operator (two neighbouring sites).
+ * @param gammaj   Rates.
  * @warning Not tested.
  */
 vector<DissipativeGate>
