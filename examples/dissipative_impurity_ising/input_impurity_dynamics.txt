@@ -1,0 +1,12 @@
+input
+{
+N = 8
+hx = 0.5
+Jxx = 0.2
+Jzzz = 0.0
+gamma = 0.5
+Tness = 2
+T = 2
+dt = 0.05
+maxDim = 64
+}

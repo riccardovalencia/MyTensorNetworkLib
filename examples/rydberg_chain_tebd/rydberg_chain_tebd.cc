@@ -27,22 +27,27 @@ namespace fs = std::filesystem;
 // (transverse trap 5 times weaker). The actual interactions V_j are computed from the displaced positions.
 // sigmax = 0 gives the clean chain. seed selects the disorder realization.
 //
-// Usage: ./rydberg_chain_tebd [N] [M] [V2] [Omega] [T] [dt] [maxDim] [sigmax] [seed]
+// Usage: ./rydberg_chain_tebd input.txt
+//   input parameters (with defaults in the code): N, M, V2, Omega, T, dt, maxDim, sigmax, seed
 // Output: data/<file_root>.txt     -> t, fidelity with initial state, half-chain entropy, max bond dimension
 //         data/<file_root>_nj.txt  -> t, Rydberg density n_j on each site
 
 int main(int argc, char* argv[])
 {
-    // Hamiltonian and simulation parameters (defaults allow running with no arguments)
-    int    N      = argc > 1 ? atoi(argv[1]) : 12;
-    int    M      = argc > 2 ? atoi(argv[2]) : 2;      // number of initial consecutive excitations
-    double V2     = argc > 3 ? atof(argv[3]) : 2.;
-    double Omega  = argc > 4 ? atof(argv[4]) : 0.1;
-    double T      = argc > 5 ? atof(argv[5]) : 10.;
-    double dt     = argc > 6 ? atof(argv[6]) : 0.05;
-    int    maxDim = argc > 7 ? atoi(argv[7]) : 64;
-    double sigmax = argc > 8 ? atof(argv[8]) : 0.;     // disorder on atomic positions (units of d1)
-    int    seed   = argc > 9 ? atoi(argv[9]) : 1;      // disorder realization
+    if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
+
+    InputGroup input = InputGroup(argv[1], "input");
+
+    // Hamiltonian and simulation parameters (missing entries take these defaults)
+    int    N      = input.getInt("N", 12);
+    int    M      = input.getInt("M", 2);      // number of initial consecutive excitations
+    double V2     = input.getReal("V2", 2.);
+    double Omega  = input.getReal("Omega", 0.1);
+    double T      = input.getReal("T", 10.);
+    double dt     = input.getReal("dt", 0.05);
+    int    maxDim = input.getInt("maxDim", 64);
+    double sigmax = input.getReal("sigmax", 0.);     // disorder on atomic positions (units of d1)
+    int    seed   = input.getInt("seed", 1);      // disorder realization
 
     double V1        = 1.;
     double cut_off   = 1E-12;

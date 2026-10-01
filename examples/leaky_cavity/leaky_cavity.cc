@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
     if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
 
     InputGroup input = InputGroup(argv[1], "input");
+
     int    N        = input.getInt("N", 3);
     int    max_occ  = input.getInt("max_occ", 2);
     double h        = input.getReal("h", 1.);

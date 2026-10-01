@@ -74,7 +74,7 @@ int main()
     MPS psi = initial_computational_state(sites, "1100000000");     // |down down up up ...>_z
 
     vector<double> Delta(N, -1.), Omega(N, 0.1), V(N-1, 1.);
-    vector<MyBondGate> gates = gates_rydberg_up_to_VNN(sites, Delta, Omega, V, 0.05);
+    vector<MyBondGate> gates = gates_rydberg_up_to_vnn(sites, Delta, Omega, V, 0.05);
     for(int step = 0; step < 100; step++)
     {
         for(MyBondGate g : gates) psi = apply_gate(psi, g.gate(), g.jn(), {"Cutoff=", 1E-12, "MaxDim=", 64});
@@ -85,10 +85,11 @@ int main()
 }
 ```
 
-The [examples](examples/) contain Makefiles that compile a driver and link it against the library (rebuilding the library when needed).
+The [examples](examples/) are built all at once by `examples/Makefile` (`cd examples && make`), which links them against the library (rebuilding it when needed); `make run` runs each of them on its sample input.
 
 ## Conventions
 
+- Names: files and functions in snake_case (acronyms in lowercase, e.g. `perform_dmrg`), classes in PascalCase.
 - Sites are 1-indexed, as in ITensor.
 - Spin-1/2: `|0> = |up_z>`, `|1> = |down_z>`. The excitation (Rydberg) projector is `n = (1 - Z)/2 = |down_z><down_z|`.
 - X, Y, Z denote Pauli matrices; S^a = sigma^a/2 (ITensor `"Sx"`, `"Sy"`, `"Sz"`).
@@ -99,31 +100,67 @@ The [examples](examples/) contain Makefiles that compile a driver and link it ag
 
 ## Migration from the previous layout
 
-Drivers written for the previous version need `#include "mytn.h"` instead of `spin_boson.h`, `bosons.h`, `fermions.h`, `transverse_field_ising_chain.h` or `core.h`, and the following renames:
+Drivers written for previous versions need `#include "mytn.h"` instead of `spin_boson.h`, `bosons.h`, `fermions.h`, `transverse_field_ising_chain.h` or `core.h`, and the following renames:
 
 | Old name | New name |
 |---|---|
-| `gates_local_lindbland` | `gates_local_lindblad` |
-| `gates_nearest_neighbour_local_lindbland` | `gates_nearest_neighbour_local_lindblad` |
-| `gates_local_nsites_lindbland` | `gates_local_nsites_lindblad` |
-| `TEBD_lindbland_time_evolve` | `TEBD_lindblad_time_evolve` |
-| `MPO_lindbland_time_evolve` | `MPO_lindblad_time_evolve` |
-| `TEBD_long_range_int_lindbland_time_evolve` | `TEBD_long_range_int_lindblad_time_evolve` |
-| `compute_norm_purifed_impurity(_QN)` | `compute_norm_purified_impurity(_QN)` |
+| `bQEM_dressed_operator` | `bqem_dressed_operator` |
+| `build_file_TEBD` | `build_file_tebd` |
+| `build_TEBD_dt_step_H` | `build_tebd_dt_step` |
+| `build_TEBD_dt_step_H_open` | `build_tebd_dt_step_open` |
+| `build_totalSx` | `build_total_sx` |
+| `compute_norm_purifed_impurity` | `compute_norm_purified_impurity` |
+| `compute_norm_purifed_impurity_QN` | `compute_norm_purified_impurity_qn` |
+| `compute_variance_H_mmGcbQEM` | `compute_variance_hamiltonian_bqem` |
+| `exp_H_mmGcbQEM_n0_notfixed` | `exp_hamiltonian_bqem_n0_not_fixed` |
 | `exctract_reduced_density_matrix` | `extract_reduced_density_matrix` |
+| `from_MPS_to_MPDO` | `from_mps_to_mpdo` |
+| `from_MPS_to_MPDO_v2` | `from_mps_to_mpdo_v2` |
+| `gates_coherent_part_spin_dissipative_NNN_interactions_impurity_model` | `gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model` |
+| `gates_local_lindbland` | `gates_local_lindblad` |
+| `gates_local_nsites_lindbland` | `gates_local_nsites_lindblad` |
+| `gates_nearest_neighbour_local_lindbland` | `gates_nearest_neighbour_local_lindblad` |
+| `gates_rydberg_up_to_VNN` | `gates_rydberg_up_to_vnn` |
+| `gates_rydberg_up_to_VNNN` | `gates_rydberg_up_to_vnnn` |
+| `gates_rydberg_up_to_VNNN_deprecated` | `gates_rydberg_up_to_vnnn_deprecated` |
 | `generaring_function_sim_size` | `generating_function_sim_size` |
-| `weigth_coherent_state`, `weigth_squeezed_state` | `weight_coherent_state`, `weight_squeezed_state` |
+| `get_data_DMRG` | `get_data_dmrg` |
+| `get_data_TEBD` | `get_data_tebd` |
+| `H_mmGcbQEM` | `hamiltonian_bqem` |
+| `H_mmGcbQEM_minus` | `hamiltonian_bqem_minus` |
+| `H_mmGcbQEM_n0_not_fixed` | `hamiltonian_bqem_n0_not_fixed` |
+| `H_mmGcbQEM_n0_untouched` | `hamiltonian_bqem_n0_untouched` |
+| `H_mmGcbQEM_onsite` | `hamiltonian_bqem_onsite` |
+| `H_mmGcbQEM_onsite_hopping` | `hamiltonian_bqem_onsite_hopping` |
+| `H_mmGcbQEM_onsite_nonext` | `hamiltonian_bqem_onsite_nonext` |
+| `H_mmGcbQEM_with_drift` | `hamiltonian_bqem_with_drift` |
+| `H_number_conserving_fermions` | `hamiltonian_number_conserving_fermions` |
+| `H_number_conserving_fermions_impurity` | `hamiltonian_number_conserving_fermions_impurity` |
+| `H_tight_binding_electrons` | `hamiltonian_tight_binding_electrons` |
+| `insert_QN_state` | `insert_qn_state` |
+| `MPO_lindbland_time_evolve` | `mpo_lindblad_time_evolve` |
+| `perform_DMRG` | `perform_dmrg` |
+| `perform_DMRG_meanfield` | `perform_dmrg_meanfield` |
+| `perform_DMRG_soft` | `perform_dmrg_soft` |
+| `perform_DMRG_variance` | `perform_dmrg_variance` |
+| `print_input_DMRG` | `print_input_dmrg` |
+| `print_input_DMRG_hopping` | `print_input_dmrg_hopping` |
+| `TEBD_lindbland_time_evolve` | `tebd_lindblad_time_evolve` |
+| `TEBD_long_range_int_lindbland_time_evolve` | `tebd_long_range_int_lindblad_time_evolve` |
+| `weigth_coherent_state` | `weight_coherent_state` |
+| `weigth_squeezed_state` | `weight_squeezed_state` |
 | `initial_computational_state(sites, vector<int>)` | `initial_computational_state(sites, "0101...")` |
 | `initial_state_all_UP/DOWN(sites, &psi, N)` | `psi = initial_computational_state(sites, "00..."/"11...", "x")` |
 | `initial_state_DOMAIN_WALL(sites, &psi, N)` | `psi = initial_computational_state(sites, "0..01..1", "x")` |
 | `initial_state_vacuum_state(&psi, sites, size)` (no link indices) | `initial_state_vacuum_state_correct_link(&psi, sites, size)` |
-| `compute_variance_H_mmGcbQEM(..., s, c)` | `compute_variance_H_mmGcbQEM(..., s, c, symmetry_sector_dir)` |
+| `compute_variance_H_mmGcbQEM(..., s, c)` | `compute_variance_hamiltonian_bqem(..., s, c, symmetry_sector_dir)` |
 | `scalar_product_different_n0/_cutoff(..., s, c)` | `scalar_product_different_n0/_cutoff(..., s, c, symmetry_sector_dir)` |
 | `search_ground_state_max_bond_chi(_no_v)(..., scaling_bond_dimension)` | `search_ground_state_max_bond_chi(_no_v)(..., scaling_bond_dimension, symmetry_sector_dir)` |
 
 Behaviour fixes with respect to the previous version: `measure_magnetization` and the purified-state measurements
 return `<sigma^y>` with the correct sign; `initialize_spin_boson_state` uses the azimuthal angle `phi`;
-`H_tight_binding_electrons` adds the on-site fields on every site; `get_data_TEBD` reads `total_time` from `argv[8]`.
+`hamiltonian_tight_binding_electrons` adds the on-site fields on every site; `get_data_tebd` reads `total_time` from `argv[8]`;
+`doubling_space_gates` maps the gates to the correct sites of the bra-ket chain.
 
 ## License
 

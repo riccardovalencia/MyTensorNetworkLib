@@ -1,80 +1,81 @@
 # Examples
 
-Each example lives in its own folder with a `Makefile` that compiles the driver and links it against
-`lib/libmytn.a` (the library is built or updated automatically by `make`).
+Complete simulations built on MyTensorNetworkLib. Each folder contains one or more programs
+`<name>.cc`, a sample input `input_<name>.txt` for each of them (small parameters, a few seconds of
+run time) and writes its results to `<folder>/data/`.
 
-Set `LIBRARY_DIR` to your ITensor v3 folder (the one containing `options.mk`), either by editing the
-`Makefile` or on the command line:
+## Build and run
+
+A single [Makefile](Makefile) builds all the examples (and the library, if needed):
 
 ```bash
-cd examples/rydberg_chain_tebd
-make LIBRARY_DIR=/path/to/itensor
-./rydberg_chain_tebd            # default parameters
-./rydberg_chain_tebd 20 2 2.0 0.1 10 0.05 128   # N M V2 Omega T dt maxDim
-./rydberg_chain_tebd 20 2 2.0 0.1 10 0.05 128 0.01 3   # ... + position disorder sigmax, seed
+cd examples
+make LIBRARY_DIR=/path/to/itensor      # all programs (LIBRARY_DIR: folder of ITensor v3 with options.mk)
+make run                               # run every program on its sample input
 ```
 
-Examples reading parameters from an input file are run as `./<app> input.txt` (an `input.txt` with
-small, quick parameters is provided; missing entries take the defaults written in the source).
+New `.cc` files in an example folder are compiled automatically. To run a single program:
+
+```bash
+cd rydberg_chain_tebd
+./rydberg_chain_tebd input_rydberg_chain_tebd.txt
+```
+
+## Input files
+
+All programs read their parameters from a file in the ITensor `InputGroup` format; missing entries
+take the defaults written at the top of `main`:
+
+```
+input
+{
+N = 12
+dt = 0.05
+state = up
+}
+```
 
 ## List of examples
 
-- `rydberg_chain_tebd`: closed dynamics of a 1D Rydberg chain (interactions up to next-nearest
-  neighbours, anti-blockade detunings) starting from a kink state, using 3-site TEBD gates
-  (`gates_rydberg_up_to_vnnn`). Optional gaussian disorder on the atomic positions (`sigmax`, `seed`),
-  reproducing Fig. S1 of https://arxiv.org/abs/2309.12392. Writes fidelity, half-chain entanglement entropy, max bond dimension
-  and Rydberg densities `n_j(t)` to `data/`.
+### `rydberg_chain_tebd`
+Closed dynamics of a 1D Rydberg chain (interactions up to next-nearest neighbours, anti-blockade
+detunings) from a kink state, with 3-site TEBD gates (`gates_rydberg_up_to_vnnn`).
+Optional gaussian disorder on the atomic positions reproduces Fig. S1 of arXiv:2309.12392.
+- Inputs: `N`, `M` (initial excitations), `V2`, `Omega`, `T`, `dt`, `maxDim`, `sigmax`, `seed`.
+- Output: fidelity, half-chain entropy, bond dimension; Rydberg densities `n_j(t)`.
 
-- `rydberg_in_leaky_cavity` (`./tn_rydberg_in_leaky_cavity input.txt`): N Rydberg atoms with
-  nearest-neighbour interactions coupled to a single lossy cavity mode (open Dicke model with Rydberg
-  interactions). The density matrix is purified into a doubled bra-ket MPS; long-range photon-matter
-  gates are applied with swap gates. Writes norm, total `Sx`, `Sz`, photon number, max bond dimension,
-  and local `sx_j`, `sz_j` to `data/`. `sub_tn_rydberg_in_leaky_cavity.sh` runs a sweep over the
-  coupling `g`.
-- `collective_light_matter_unitary` (`./tn_unitary_collective_light_matter_systems`): closed dynamics
-  of the Dicke (or Tavis-Cummings, via `photon_matter_coupling`) model starting from a spin coherent
-  state. Parameters are set at the top of `main`. Benchmarked against exact diagonalization.
-- `collective_light_matter_dissipative` (`./tn_leaky_collective_light_matter_systems_dynamics input.txt`):
-  Dicke model with photon losses, solved via the Lindblad master equation in the purified (doubled)
-  space.
+### `leaky_cavity`
+N spin-1/2 coupled to a lossy cavity mode (open Dicke or Tavis-Cummings model), optionally with
+Rydberg interactions `V`. The density matrix is purified into a bra-ket MPS; the boson reaches every
+spin with swap gates.
+- Inputs: `N`, `max_occ`, `h`, `g` (in units of the critical coupling), `V`, `kappa`, `T`, `dt`,
+  `cut_off`, `maxDim`, `coupling` (`dicke` or `tavis`).
+- Sample inputs: `input_leaky_cavity.txt` (Rydberg atoms) and `input_leaky_cavity_dicke.txt` (V = 0).
+- Output: Tr(rho), first-spin magnetizations, photon number, bond dimension; profiles `<X_j>`, `<Z_j>`.
+- `sweep_g.sh`: runs a sweep over `g`.
 
-- `dissipative_impurity_ising`: Ising chain with a dephasing impurity on the first site,
-  H = -sum_j Z_j Z_{j+1} + Jxx sum_j X_j X_{j+1} + hx sum_j X_j (optionally + Jzzz sum_j Z_j Z_{j+2}),
-  L = sqrt(gamma) Z_1 (https://arxiv.org/abs/2404.04255). The density matrix is purified on 2N sites
-  (bra mirrored on sites 1..N, ket on N+1..2N) and evolved from the ground state of H (DMRG).
-  All programs write to `data/`:
-  - `./tn_ising_model_impurity N hx Jxx gamma Tness T dt maxDim`: evolves up to `Tness` saving the state
-    every 0.2 time units, then computes the autocorrelation <Z_1(t) Z_1(0)> up to time `T`.
-  - `./tn_ising_model_impurity_NNN_interactions N hx Jxx Jzzz gamma Tness T dt maxDim`: same with the
-    next-nearest-neighbour coupling `Jzzz` (three-site gates).
-  - `./tn_ising_model_impurity_measure ...` and `./tn_ising_model_impurity_measure_NNN ...` (same
-    arguments as the corresponding dynamics): post-processing of the saved states (local
-    magnetizations, trace, bond dimension).
-  - `./DMRG_Ising_up_NNN N hx_max Jxx Jzzz`: ground states and their energy variance and
-    magnetization for hx from 1.1 to hx_max.
-  - `./tn_ising_model_pure N hx Jxx T dt maxDim`: coherent TEBD of a pure state starting from the
-    ground state of the same Hamiltonian (a check: the state must stay stationary).
+### `cavity_unitary`
+Closed dynamics of the Dicke or Tavis-Cummings model (pure state), benchmarked with exact
+diagonalization.
+- Inputs: `N`, `max_occ`, `omega0`, `h`, `g`, `theta` (initial polar angle, units of pi), `T`, `dt`,
+  `cut_off`, `maxDim`, `coupling`.
+- Output: fidelity, `<S^x>/N`, `<S^z>/N`, `<a^dag a>/N`, bond dimension.
 
-  Note: the autocorrelation part of `tn_ising_model_impurity_measure_NNN` reads states
-  (`..._psi_autocorr_t...`) that the dynamics programs do not save, so its output file stays empty.
+### `dissipative_impurity_ising`
+Ising chain with a dephasing impurity on the first site (arXiv:2404.04255),
+H = -sum Z_j Z_{j+1} + Jxx sum X_j X_{j+1} + Jzzz sum Z_j Z_{j+2} + hx sum X_j, L = sqrt(gamma) Z_1.
+- `impurity_dynamics`: from the ground state of H, Lindblad evolution of the purified density matrix
+  up to `Tness` (profile `<X_j>`, Tr rho, bond dimension), then the autocorrelation
+  `<Z_1(t) Z_1(0)>` up to `T`. Inputs: `N`, `hx`, `Jxx`, `Jzzz`, `gamma`, `Tness`, `T`, `dt`, `maxDim`.
+- `ground_state_scan`: DMRG ground states for a range of `hx` (energy, variance, central
+  magnetization). Inputs: `N`, `Jxx`, `Jzzz`, `hx_min`, `hx_max`, `dhx`.
 
-- `ising_full_counting_statistics`: quench in the Ising chain in longitudinal and transverse fields,
-  H = -J sum_j (X_j X_{j+1} + hx X_j + hz Z_j), and full counting statistics of the subsystem
-  magnetization (https://arxiv.org/abs/2005.01679). The programs share files in `data/`:
-  - `./TEBD_TLIC state N J hxChoice hzChoice ttotal tstep nmeas bonddim 0`: TEBD from |+x...+x>
-    (state 0), |-x...-x> (1) or a domain wall (2); saves the state every `nmeas` steps.
-    hx and hz are chosen by index from the lists in `get_data` (io/input.h); the last argument is
-    unused (it selected local/cluster runs in the original code).
-  - `./FULL_COUNTING_STATISTICS N hxChoice hzChoice tstep nmeas numberPoints maxLength 0`: generating
-    function G(theta) = <exp(i theta S^x_A)> of the saved states, for blocks of 1..maxLength sites.
-  - `./ENTROPY_HALF N tstep nmeas 0`, `./ENTROPY_ALL N tstep nmeas 0`: entanglement entropy (natural
-    log) of the saved states across the central bond / every bond.
-  - `./TLIC_compute_thermal N hx hz`: thermal state at the energy of |+x...+x>, by imaginary-time
-    evolution of the identity, and its generating function.
-
-  Typical run:
-  ```bash
-  ./TEBD_TLIC 0 8 1 1 3 2 0.01 50 64 0
-  ./FULL_COUNTING_STATISTICS 8 1 3 0.01 50 40 4 0
-  ./ENTROPY_HALF 8 0.01 50 0
-  ```
+### `ising_full_counting_statistics`
+Ising chain in longitudinal and transverse fields, H = -J sum (X_j X_{j+1} + hx X_j + hz Z_j), and
+full counting statistics of the block magnetization (arXiv:2005.01679).
+- `ising_quench`: TEBD from a product state along x (`state` = `up`, `down`, `wall`); every 0.5
+  time units the entanglement entropy across each bond and the generating function
+  G_l(theta) = <exp(i theta S^x_A)> of blocks of l = 1..N/2 sites.
+  Inputs: `N`, `J`, `hx`, `hz`, `T`, `dt`, `maxDim`, `state`.
+- `ising_thermal`: thermal state at the energy of |+x...+x> (imaginary-time evolution of the identity)
+  and its generating function. Inputs: `N`, `J`, `hx`, `hz`, `dbeta`.

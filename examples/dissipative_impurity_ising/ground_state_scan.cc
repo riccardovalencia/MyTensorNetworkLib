@@ -16,16 +16,21 @@ namespace fs = std::filesystem;
 // Output (data/): <root>.txt with hx, energy, energy variance <H^2> - <H>^2 and the magnetization
 // <X>, <Y>, <Z> of the central site.
 //
-// Usage: ./ground_state_scan [N] [Jxx] [Jzzz] [hx_min] [hx_max] [dhx]
+// Usage: ./ground_state_scan input.txt
+//   input parameters (with defaults in the code): N, Jxx, Jzzz, hx_min, hx_max, dhx
 
 int main(int argc, char* argv[])
 {
-    int    N      = argc > 1 ? atoi(argv[1]) : 20;
-    double Jxx    = argc > 2 ? atof(argv[2]) : 0.2;
-    double Jzzz   = argc > 3 ? atof(argv[3]) : 0.;
-    double hx_min = argc > 4 ? atof(argv[4]) : 0.5;
-    double hx_max = argc > 5 ? atof(argv[5]) : 1.5;
-    double dhx    = argc > 6 ? atof(argv[6]) : 0.05;
+    if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
+
+    InputGroup input = InputGroup(argv[1], "input");
+
+    int    N      = input.getInt("N", 20);
+    double Jxx    = input.getReal("Jxx", 0.2);
+    double Jzzz   = input.getReal("Jzzz", 0.);
+    double hx_min = input.getReal("hx_min", 0.5);
+    double hx_max = input.getReal("hx_max", 1.5);
+    double dhx    = input.getReal("dhx", 0.05);
 
     double Jzz = -1.;
     int j_meas = N/2;

@@ -1,0 +1,12 @@
+input
+{
+N = 12
+M = 2
+V2 = 2.0
+Omega = 0.3
+T = 5
+dt = 0.05
+maxDim = 64
+sigmax = 0.0
+seed = 1
+}

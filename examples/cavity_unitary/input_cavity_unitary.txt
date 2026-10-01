@@ -1,0 +1,14 @@
+input
+{
+N = 3
+max_occ = 6
+omega0 = 1.0
+h = 0.5
+g = 1.5
+theta = 0.5
+T = 20
+dt = 0.005
+cut_off = 1E-8
+maxDim = 50
+coupling = dicke
+}

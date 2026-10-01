@@ -20,7 +20,8 @@ namespace fs = std::filesystem;
 //   <root>_gf_t<t>.txt    theta, Re G_1, Im G_1, ..., Re G_{N/2}, Im G_{N/2}
 // with the generating function G_l(theta) = <exp(i theta S^x_A)> for a block of l sites.
 //
-// Usage: ./ising_quench [N] [J] [hx] [hz] [T] [dt] [maxDim] [state]
+// Usage: ./ising_quench input.txt
+//   input parameters (with defaults in the code): N, J, hx, hz, T, dt, maxDim, state
 //        state = up (all |+x>, default), down (all |-x>) or wall (domain wall)
 
 // Write the generating function of blocks of 1..G_re.size() sites, one line per theta.
@@ -40,14 +41,18 @@ write_generating_function(const string file, const vector<double>& theta,
 
 int main(int argc, char* argv[])
 {
-    int    N      = argc > 1 ? atoi(argv[1]) : 16;
-    double J      = argc > 2 ? atof(argv[2]) : 1.;
-    double hx     = argc > 3 ? atof(argv[3]) : 0.1;
-    double hz     = argc > 4 ? atof(argv[4]) : 1.;
-    double T      = argc > 5 ? atof(argv[5]) : 5.;
-    double dt     = argc > 6 ? atof(argv[6]) : 0.01;
-    int    maxDim = argc > 7 ? atoi(argv[7]) : 128;
-    string state  = argc > 8 ? argv[8] : "up";
+    if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
+
+    InputGroup input = InputGroup(argv[1], "input");
+
+    int    N      = input.getInt("N", 16);
+    double J      = input.getReal("J", 1.);
+    double hx     = input.getReal("hx", 0.1);
+    double hz     = input.getReal("hz", 1.);
+    double T      = input.getReal("T", 5.);
+    double dt     = input.getReal("dt", 0.01);
+    int    maxDim = input.getInt("maxDim", 128);
+    string state  = input.getString("state", "up");
 
     double t_measure    = 0.5;    // time between measurements
     int    numberPoints = 100;    // values of theta in [-pi, pi)

@@ -31,19 +31,24 @@ namespace fs = std::filesystem;
 // Output (data/): <root>.txt (t, maxD, Tr rho), <root>_xj.txt (t, <X_1>, ..., <X_N>),
 //                 <root>_Tness<Tness>_z1z1.txt (t, Re, Im, |.| of <Z_1(t) Z_1(0)>)
 //
-// Usage: ./impurity_dynamics [N] [hx] [Jxx] [Jzzz] [gamma] [Tness] [T] [dt] [maxDim]
+// Usage: ./impurity_dynamics input.txt
+//   input parameters (with defaults in the code): N, hx, Jxx, Jzzz, gamma, Tness, T, dt, maxDim
 
 int main(int argc, char* argv[])
 {
-    int    N      = argc > 1 ? atoi(argv[1]) : 10;
-    double hx     = argc > 2 ? atof(argv[2]) : 0.5;
-    double Jxx    = argc > 3 ? atof(argv[3]) : 0.2;
-    double Jzzz   = argc > 4 ? atof(argv[4]) : 0.;
-    double gamma  = argc > 5 ? atof(argv[5]) : 0.5;
-    double Tness  = argc > 6 ? atof(argv[6]) : 5.;
-    double T      = argc > 7 ? atof(argv[7]) : 5.;
-    double dt     = argc > 8 ? atof(argv[8]) : 0.05;
-    int    maxDim = argc > 9 ? atoi(argv[9]) : 128;
+    if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
+
+    InputGroup input = InputGroup(argv[1], "input");
+
+    int    N      = input.getInt("N", 10);
+    double hx     = input.getReal("hx", 0.5);
+    double Jxx    = input.getReal("Jxx", 0.2);
+    double Jzzz   = input.getReal("Jzzz", 0.);
+    double gamma  = input.getReal("gamma", 0.5);
+    double Tness  = input.getReal("Tness", 5.);
+    double T      = input.getReal("T", 5.);
+    double dt     = input.getReal("dt", 0.05);
+    int    maxDim = input.getInt("maxDim", 128);
 
     double Jzz       = -1.;
     double cut_off   = 1E-14;

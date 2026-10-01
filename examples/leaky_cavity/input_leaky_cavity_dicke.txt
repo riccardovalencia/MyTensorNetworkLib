@@ -1,0 +1,13 @@
+input
+{
+N = 4
+max_occ = 8
+g = 1.6
+kappa = 0.4
+h = 0.2
+V = 0
+T = 5
+dt = 0.01
+maxDim = 256
+coupling = dicke
+}

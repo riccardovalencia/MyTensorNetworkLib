@@ -21,7 +21,8 @@ namespace fs = std::filesystem;
 // Output (data/): <root>_energy.txt (beta, energy density) and <root>_gf.txt (same format as the
 // generating functions of ising_quench).
 //
-// Usage: ./ising_thermal [N] [J] [hx] [hz] [dbeta]
+// Usage: ./ising_thermal input.txt
+//   input parameters (with defaults in the code): N, J, hx, hz, dbeta
 
 void
 write_generating_function(const string file, const vector<double>& theta,
@@ -39,11 +40,15 @@ write_generating_function(const string file, const vector<double>& theta,
 
 int main(int argc, char* argv[])
 {
-    int    N     = argc > 1 ? atoi(argv[1]) : 16;
-    double J     = argc > 2 ? atof(argv[2]) : 1.;
-    double hx    = argc > 3 ? atof(argv[3]) : 0.1;
-    double hz    = argc > 4 ? atof(argv[4]) : 1.;
-    double dbeta = argc > 5 ? atof(argv[5]) : 0.001;
+    if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
+
+    InputGroup input = InputGroup(argv[1], "input");
+
+    int    N     = input.getInt("N", 16);
+    double J     = input.getReal("J", 1.);
+    double hx    = input.getReal("hx", 0.1);
+    double hz    = input.getReal("hz", 1.);
+    double dbeta = input.getReal("dbeta", 0.001);
 
     int numberPoints = 100;
     int maxLength    = N/2;

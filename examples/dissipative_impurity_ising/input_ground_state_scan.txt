@@ -1,0 +1,9 @@
+input
+{
+N = 12
+Jxx = 0.2
+Jzzz = 0.0
+hx_min = 0.5
+hx_max = 1.5
+dhx = 0.1
+}

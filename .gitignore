@@ -6,13 +6,8 @@ lib/
 docs/
 
 # Example binaries and output
-examples/*/data/
-examples/rydberg_chain_tebd/rydberg_chain_tebd
-examples/leaky_cavity/leaky_cavity
-examples/collective_light_matter_unitary/tn_unitary_collective_light_matter_systems
-examples/dissipative_impurity_ising/impurity_dynamics
-examples/dissipative_impurity_ising/ground_state_scan
-examples/ising_full_counting_statistics/ising_quench
-examples/ising_full_counting_statistics/ising_thermal
-examples/*/*-g
-examples/*/.debug_objs/
+# (everything in an example folder except sources, inputs and scripts)
+examples/*/*
+!examples/*/*.cc
+!examples/*/*.txt
+!examples/*/*.sh
