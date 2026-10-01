@@ -52,8 +52,8 @@ measure_local_operator_purified(MPS *psi , const ITensor O, bool compute_normali
  * @param psi                   Purified state.
  * @param O                     Operator (as in measure_local_operator_purified), the same on both sites.
  * @param compute_normalization Divide by Tr(rho).
- * @param q1, q2    Different physical sites.
- * @param connected Subtract Tr(rho O_q1) Tr(rho O_q2).
+ * @param q1, q2                Different physical sites.
+ * @param connected             Subtract Tr(rho O_q1) Tr(rho O_q2).
  * @throws ITError if q1 == q2 or a site is outside 1..N.
  */
 complex<double>
