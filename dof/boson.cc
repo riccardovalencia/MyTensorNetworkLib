@@ -240,7 +240,7 @@ measure_fock_probabilities( MPS *ground_state , const SiteSet sites , const int 
 		vector<double> probabilities;
 		for( int n = 0 ; n <= cut_off_fock_space ; n++ )
 		{
-			ITensor projector = ITensor(s, prime(s));   // |n><n|
+			ITensor projector = ITensor(dag(s), prime(s));   // |n><n|
 			projector.set(s(n+1), prime(s)(n+1), 1.);
 			probabilities.push_back( real(measure_local_operator(ground_state, projector, j)) );
 		}

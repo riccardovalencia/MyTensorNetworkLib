@@ -7,5 +7,6 @@ hx_min = 0.5
 hx_max = 1.5
 dhx = 0.1
 hz = 0.0
-dmrg_sweeps = 20
+dmrg_restarts = 1
+dmrg_seed = 1
 }

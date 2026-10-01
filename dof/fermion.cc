@@ -19,13 +19,13 @@ using namespace std;
 using namespace itensor;
 
 
-MPS
-make_electron_product_state(const SiteSet sites, const int Nupfill, const int Ndnfill)
+InitState
+make_electron_init_state(const SiteSet sites, const int Nupfill, const int Ndnfill)
 {
     int N = length(sites);
 
     if(Nupfill > N || Ndnfill > N)
-        throw ITError("make_electron_product_state: more electrons of one spin than sites");
+        throw ITError("make_electron_init_state: more electrons of one spin than sites");
 
     InitState state = InitState(sites,"0");
 
@@ -36,6 +36,12 @@ make_electron_product_state(const SiteSet sites, const int Nupfill, const int Nd
         else if(j<=Ndnfill) state.set(j,"Dn");
     }
 
-    return MPS(state); 
+    return state;
+}
 
+
+MPS
+make_electron_product_state(const SiteSet sites, const int Nupfill, const int Ndnfill)
+{
+    return MPS(make_electron_init_state(sites, Nupfill, Ndnfill));
 }

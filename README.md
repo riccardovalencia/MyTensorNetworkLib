@@ -19,9 +19,9 @@ The library is organized by role. Each folder contains pairs `name.h` / `name.cc
 | | `mps_tools.h` | Embedding an MPS into another (`insert_state`), swaps, product-state tensors (`set_site_tensor`), local and two-point expectation values, density matrices. |
 | [dof](dof/) | `spin_half.h` | Spin-1/2 product states (`make_product_state`), Pauli operators, magnetization and correlations. |
 | | `boson.h` | Bosonic Fock, coherent, squeezed and cat states; occupations, Fock-space probabilities, squeezing. |
-| | `fermion.h` | Product states of spinful fermions. |
+| | `fermion.h` | Product states of spinful fermions (`InitState` and MPS). |
 | | `spin_boson.h` | Boson + spins site sets (cavity QED) and their purified (bra-ket) version; initial states. |
-| [models](models/) | `spin_chain.h` | Nearest-neighbour spin chains (bond terms and TEBD gates), Ising chain in longitudinal and transverse fields. |
+| [models](models/) | `spin_chain.h` | Short-range spin chains: MPO with nearest- and next-nearest-neighbour couplings (`make_spin_chain_mpo`), bond terms and TEBD gates, Ising chain in longitudinal and transverse fields. |
 | | `rydberg.h` | Rydberg arrays (up to next-nearest-neighbour interactions), PXP model. |
 | | `light_matter.h` | Dicke and Tavis-Cummings models (one boson coupled to all spins). |
 | | `impurity.h` | Impurity models on the purified density matrix (Kondo-like, dissipative spin impurity). |
@@ -31,7 +31,7 @@ The library is organized by role. Each folder contains pairs `name.h` / `name.cc
 | | `lindblad.h` | Dissipative gates for Lindblad dynamics on the vectorized density matrix; gates on the bra-ket chain. |
 | | `purified_state.h` | Trace and observables of a density matrix stored as a purified MPS. |
 | | `adiabatic.h` | Adiabatic ramps (bosonic quantum east model). |
-| [ground_state](ground_state/) | `dmrg.h` | DMRG drivers with increasing bond dimension, excited states, Fermi sea. |
+| [ground_state](ground_state/) | `dmrg.h` | Ground states with DMRG (`find_ground_state`): bond-dimension ramp, noise, convergence check, random restarts; Fermi sea. |
 | [analysis](analysis/) | `full_counting_statistics.h` | Generating function and cumulants of the subsystem magnetization. |
 | [io](io/) | `output.h` | Output files (site profiles, tables, generating functions, DMRG parameters). |
 | | `load.h` | Loading stored states. |
@@ -85,14 +85,32 @@ int main()
 }
 ```
 
+Ground states come from `find_ground_state`, which needs only the MPO; its parameters have defaults
+(see [ground_state/dmrg.h](ground_state/dmrg.h)):
+
+```cpp
+auto sites = SpinHalf(N, {"ConserveQNs=", false});
+MPO H = make_spin_chain_mpo(sites, {1., 1., 1.}, {0.3, 0.3, 0.3}, {0., 0., 0.1});   // J1-J2 chain in a field hz
+
+DmrgParameters parameters;          // max_dim 200, cutoff 1E-12, noise 1E-6, tolerance 1E-10, 30 sweeps
+parameters.number_restarts = 4;     // 4 runs from random states, the lowest energy is kept
+GroundState ground_state = find_ground_state(H, parameters);
+// ground_state.psi, .energy, .variance, .converged, .restart_energies
+```
+
+With conserved quantum numbers, pass the product state that fixes the sector instead:
+`find_ground_state(H, InitState(...), parameters)`. In the programs, `read_dmrg_parameters(input)` reads
+the parameters from the input file (keys `dmrg_max_dim`, `dmrg_cutoff`, `dmrg_noise`, `dmrg_tolerance`,
+`dmrg_max_sweeps`, `dmrg_restarts`, `dmrg_seed`).
+
 The [examples](examples/) are built all at once by `examples/Makefile` (`cd examples && make`), which links them against the library (rebuilding it when needed); `make run` runs each of them on its sample input and `make compare` compares them with exact diagonalization.
 
 ## Tests
 
-[tests/](tests/) contains integration tests: each example is run on a small input and compared with exact diagonalization, and the time-step convergence order of the TEBD schemes is checked.
+[tests/](tests/) contains integration tests: each example is run on a small input and compared with exact diagonalization, the time-step convergence order of the TEBD schemes is checked, and the DMRG ground-state search is tested where DMRG can get stuck (frustration, conserved quantities, quasi-degenerate ground states, metastable states, truncation).
 
 ```bash
-cd tests && make test LIBRARY_DIR=/path/to/itensor     # ~15 s; needs numpy, scipy and quimb
+cd tests && make test LIBRARY_DIR=/path/to/itensor     # ~45 s; needs numpy, scipy and quimb
 ```
 
 ## Conventions
@@ -139,7 +157,7 @@ by reference (`vector<BondGate>& gates`, `ITensor* hterm`) now return it.
 | `exctract_reduced_density_matrix` | `compute_reduced_density_matrix` |
 | `exp_H_mmGcbQEM_n0_notfixed` | `make_bosonic_east_model_evolution_mpo` (without `n0`) |
 | `expectation_value_sigma_x(_square, _n)`, `expectation_value_n_sigma_x` | `measure_sigma_x(_squared, _n)`, `measure_n_sigma_x` |
-| `fermi_sea_electrons` | `find_fermi_sea` |
+| `fermi_sea_electrons(H, sites, Nup, Ndn, sweeps, min_varH)` | `find_fermi_sea(H, sites, Nup, Ndn, parameters)` (returns a `GroundState`: check its `variance`) |
 | `from_MPS_to_MPDO`, `from_MPS_to_MPDO_v2` | `make_density_matrix_mpo` |
 | `gates_coherent_part_spin_dissipative_impurity_model` | `make_spin_impurity_gates` (without `Lj`, `gamma`) |
 | `gates_coherent_part_spin_dissipative_NNN_interactions_impurity_model` | `make_spin_impurity_nnn_gates` |
@@ -166,7 +184,6 @@ by reference (`vector<BondGate>& gates`, `ITensor* hterm`) now return it.
 | `initial_state_vacuum_state(_correct_link)` / `initial_state_all_one_state(_correct_link)` | `set_vacuum_state` / `set_unit_filling_state` |
 | `initial_state_n0_excitation(_pinned)` | `set_fock_excitation` |
 | `initial_state_cat_state_site_j` / `squeezed_state_site_j` / `kink_state` / `put_occupation` | `set_cat_state_on_site` / `set_squeezed_state_on_site` / `set_kink_state` / `set_site_occupation` |
-| `initialize_excited_state` | `set_excited_state_guess` |
 | `initialize_spin_boson_state` | `make_spin_boson_state` |
 | `insert_QN_state` | `insert_state` |
 | `max_projector_at_cutoff` | `compute_max_cutoff_probability` |
@@ -179,7 +196,9 @@ by reference (`vector<BondGate>& gates`, `ITensor* hterm`) now return it.
 | `measuring_moments` | `compute_cumulants` |
 | `MPO_lindbland_time_evolve`, `TEBD_lindbland_time_evolve`, `TEBD_long_range_int_lindbland_time_evolve` | `tebd_step` (one step; the loop and the output are in the program) |
 | `MyBondGate` / `MyBondGateDiss` / `MyTrainITensor` | `TebdGate` / `DissipativeGate` / `OperatorPair` |
-| `perform_DMRG(_meanfield, _soft, _variance)` | `perform_dmrg(_meanfield, _soft, _variance)` |
+| `perform_DMRG`, `perform_DMRG_soft` | `find_ground_state(H, parameters)` (no output files: write `energy` and `variance` in the program) |
+| `perform_DMRG_meanfield` | `find_ground_state(H, parameters)` with `max_dim = 1` (and several restarts) |
+| `perform_DMRG_variance` | `find_ground_state` of the MPO (H - E)^2 (`nmultMPO`) |
 | `print_input_DMRG(_hopping)` | `write_dmrg_input(_hopping)` |
 | `printing_generating_function` | `write_generating_function` |
 | `scalar_product_different_n0` / `_cutoff` | `compute_overlap_different_n0` / `compute_overlap_different_cutoffs` (with `symmetry_sector_dir`) |
@@ -193,8 +212,9 @@ by reference (`vector<BondGate>& gates`, `ITensor* hterm`) now return it.
 Removed without replacement: the drivers' file and argument helpers (`build_file_*`, `get_data*`, `print_info`,
 `print_input`, `print_matrix`, `print_occupation_number*`, `print_projector_fockspace*`; the examples read InputGroup
 files and write with `write_site_values` / `write_site_table`), `build_single_step_jumps_v2` and
-`build_TEBD_dt_step_H_open` (deprecated since 2022; use `make_bosonic_east_model_gates(..., "open", gamma)`), and
-`gates_coherent_unfolded_kondo_impurity_model_energy_basis` (it needs gates on non-consecutive sites).
+`build_TEBD_dt_step_H_open` (deprecated since 2022; use `make_bosonic_east_model_gates(..., "open", gamma)`),
+`gates_coherent_unfolded_kondo_impurity_model_energy_basis` (it needs gates on non-consecutive sites), and
+`initialize_excited_state` (initial guess of `perform_DMRG_variance`; `find_ground_state` starts from random states).
 
 Behaviour fixes with respect to the previous versions: `measure_magnetization` and the purified-state measurements
 return `<sigma^y>` with the correct sign, and `measure_local_operator_purified` no longer transposes the operator
@@ -203,7 +223,9 @@ on-site fields on every site; `make_purified_gates` maps the gates to the correc
 two-site dissipators (`make_two_site_dissipative_gates`, `make_multisite_dissipative_gates`) use the full identity on
 two sites; the three-site gates (`make_rydberg_gates_nnn`, `make_spin_impurity_nnn_gates`) split the on-site terms
 correctly for N <= 5; `compute_overlap_different_n0/_cutoffs` return |overlap|^2; `load_ground_state_max_bond_dimension`
-looks in the right folder for versions after the first; `gates_tavis_cummings` exchanged a and a^dag.
+looks in the right folder for versions after the first; `gates_tavis_cummings` exchanged a and a^dag;
+`make_pauli_operator`, `make_magnetization_operator` and `make_identity_operator` also work on sites with conserved
+quantum numbers (the input index is `dag`-ed).
 
 ## License
 

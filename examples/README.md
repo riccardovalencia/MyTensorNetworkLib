@@ -60,7 +60,23 @@ state = up
 }
 ```
 
+The programs that compute ground states (`find_ground_state`, [../ground_state/dmrg.h](../ground_state/dmrg.h))
+also read the DMRG parameters `dmrg_max_dim` (200), `dmrg_cutoff` (1E-12), `dmrg_noise` (1E-6, first
+sweeps only), `dmrg_tolerance` (1E-10, relative energy change between sweeps), `dmrg_max_sweeps` (30),
+`dmrg_restarts` (1: number of runs from random states, the lowest energy is kept) and `dmrg_seed`
+(0: different random states at every run).
+
 ## List of examples
+
+### `spin_chain_ground_state`
+Ground state of a spin-1/2 chain with nearest- and next-nearest-neighbour couplings and fields,
+H = sum_j (Jx X_j X_{j+1} + Jy Y_j Y_{j+1} + Jz Z_j Z_{j+1}) + sum_j (J2x X_j X_{j+2} + ...) + sum_j (hx X_j + hz Z_j),
+with `find_ground_state` (`make_spin_chain_mpo`). With `conserve_sz = 1` the search runs in the sector
+S^z = 0 of the Neel state (needs `hx = 0`, `Jx = Jy`, `J2x = J2y`, even `N`). Also the driver of the
+ground-state tests ([../tests](../tests/)).
+- Inputs: `N`, `Jx`, `Jy`, `Jz`, `J2x`, `J2y`, `J2z`, `hx`, `hz`, `conserve_sz`, `dmrg_*`.
+- Output: energy, variance and convergence flag; energy of every restart; profile `<Z_j>`, `<Z_j Z_{j+1}>`,
+  entanglement entropy of the bond (j, j+1).
 
 ### `rydberg_chain_tebd`
 Closed dynamics of a 1D Rydberg chain (interactions up to next-nearest neighbours, anti-blockade
@@ -92,10 +108,11 @@ H = -sum Z_j Z_{j+1} + Jxx sum X_j X_{j+1} + Jzzz sum Z_j Z_{j+2} + hx sum X_j, 
 - `impurity_dynamics`: from the ground state of H, Lindblad evolution of the purified density matrix
   up to `Tness` (profile `<X_j>`, Tr rho, bond dimension), then the autocorrelation
   `<Z_1(t) Z_1(0)>` up to `T`. Inputs: `N`, `hx`, `Jxx`, `Jzzz`, `gamma`, `Tness`, `T`, `dt`, `max_dim`,
-  `cut_off`, `t_measure`, `t_corr`, `dmrg_sweeps`, `hz` (symmetry-breaking field for the ground-state search).
+  `cut_off`, `t_measure`, `t_corr`, `hz` (symmetry-breaking field for the ground-state search), `dmrg_*`.
 - `ground_state_scan`: DMRG ground states for a range of `hx` (energy, variance, central
   magnetization). Inputs: `N`, `Jxx`, `Jzzz`, `hx_min`, `hx_max`, `dhx`, `hz` (symmetry-breaking
-  longitudinal field), `dmrg_sweeps`.
+  longitudinal field), `dmrg_*`. With `hz = 0` the ground state is almost degenerate in the ordered
+  phase and DMRG may return any combination of the two lowest states: fix `dmrg_seed` for reproducible output.
 
 ### `ising_full_counting_statistics`
 Ising chain in longitudinal and transverse fields, H = -J sum (X_j X_{j+1} + hx X_j + hz Z_j), and

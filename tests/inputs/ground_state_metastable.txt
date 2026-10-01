@@ -1,0 +1,15 @@
+input
+{
+N = 14
+Jx = 0.0
+Jy = 0.0
+Jz = -1.0
+J2x = 0.0
+J2y = 0.0
+J2z = 0.0
+hx = -0.1
+hz = -0.002
+conserve_sz = 0
+dmrg_restarts = 1
+dmrg_seed = 1
+}

@@ -83,7 +83,7 @@ make_product_state(const SiteSet sites , const string config , const string basi
 ITensor
 make_pauli_operator(const Index& in, const Index& out, const string& direction)
 {
-    ITensor S = ITensor(in, out);
+    ITensor S = ITensor(dag(in), out);
     if(direction == "x")
     {
         S.set(in(1),out(2),1.);
@@ -111,7 +111,7 @@ make_magnetization_operator(const Index& s, const string& direction)
 {
     if(hasTags(s,"Site,S=1/2")) return make_pauli_operator(s, prime(s), direction);
 
-    ITensor n = ITensor(s, prime(s));
+    ITensor n = ITensor(dag(s), prime(s));
     if(hasTags(s,"Site,Boson")) for(int d = 1 ; d <= dim(s) ; d++) n.set(s(d),prime(s)(d),d-1.);
     return n;
 }

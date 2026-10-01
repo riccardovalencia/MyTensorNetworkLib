@@ -1,0 +1,14 @@
+input
+{
+N = 12
+Jx = 0.2
+Jy = 0.0
+Jz = -1.0
+J2x = 0.0
+J2y = 0.0
+J2z = 0.0
+hx = 1.0
+hz = 0.0
+conserve_sz = 0
+dmrg_seed = 1
+}

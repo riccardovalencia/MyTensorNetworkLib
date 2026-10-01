@@ -69,7 +69,7 @@ measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor
 ITensor
 make_identity_operator( const Index& in, const Index& out )
 {
-    ITensor I = ITensor(in, out);
+    ITensor I = ITensor(dag(in), out);
     for(int q = 1 ; q <= dim(in) ; q++) I.set(in(q), out(q), 1.);
     return I;
 }

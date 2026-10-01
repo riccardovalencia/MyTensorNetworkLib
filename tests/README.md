@@ -13,7 +13,7 @@ make test TEST=test_integration.TensorNetworkVsExactDiagonalization.test_leaky_c
 ```
 
 Requirements: the ITensor v3 installation used for the library, Python 3.11+ with numpy, scipy and quimb
-(the same as the ED scripts of the examples). The whole suite takes about 15 seconds.
+(the same as the ED scripts of the examples). The whole suite takes about 45 seconds.
 Set `MYTN_KEEP_TEST_DATA=1` to keep the temporary folders with the TN and ED outputs of each test.
 
 ## How a test works
@@ -56,6 +56,24 @@ runs the same input with time steps dt and dt/2 and checks the ratio of the erro
 | `test_first_order_dissipative_step` | `impurity_nnn.txt`, 0.02 | 1 (first-order dissipative gates) | 2.01 |
 | `test_first_order_local_long_range_splitting` | `cavity_dicke.txt`, 0.005 | 1 (local and photon-matter sweeps in sequence) | 2.01 |
 
+`GroundStateSearch`: the DMRG driver `find_ground_state` ([../ground_state/dmrg.h](../ground_state/dmrg.h)),
+through the example `spin_chain_ground_state`, on short-range spin-1/2 chains of 12-18 sites in the
+regimes where DMRG can get stuck. ED is a Lanczos ground state (in the sector S^z = 0 when S^z is
+conserved). Compared: the energy and the profile `<Z_j>`, `<Z_j Z_{j+1}>`, entanglement entropy S(j, j+1).
+
+| Test | Input | What it exercises | Energy error | Profile error | Tolerances (E, profile) |
+|---|---|---|---|---|---|
+| `test_frustrated_j1_j2_chain` | `ground_state_j1j2.txt` | J1-J2 Heisenberg chain (J2 = 0.3) in a field, no conserved quantities, random initial states, 2 restarts | 8.7e-11 | 1.2e-9 | 1e-8, 1e-6 |
+| `test_conserved_magnetization` | `ground_state_xxz_sz.txt` | XXZ chain with next-nearest-neighbour couplings, conserved S^z: start from the Neel state (`InitState` overload) | 9.4e-11 | 1.8e-9 | 1e-8, 1e-6 |
+| `test_quasi_degenerate_ground_state` | `ground_state_quasi_degenerate.txt` | Ising chain near its transition, gap 8.5e-4: with ITensor's default 2 Davidson iterations per bond DMRG stops in a mixture of the two lowest states (energy error 4.5e-4) | 1.8e-10 | 6e-4 (`<Z_j>`) | 1e-8, 2e-3 |
+| `test_restarts_escape_metastable_state` | `ground_state_metastable.txt` | ferromagnetic Ising chain magnetized against a weak field: ~1/3 of the single runs end in this metastable state (variance ~1e-11, so only the energy reveals it); the test finds such a seed and checks that 8 restarts from it return the ground state | 7.2e-12 | 6.0e-11 | 1e-8, 1e-6 |
+| `test_bond_dimension_convergence` | `ground_state_critical_ising.txt` | critical transverse-field Ising chain with `max_dim` = 4, 8, 16: the energy error must drop by more than 100 at each doubling | 1.5e-4, 1.9e-7, 4.5e-11 | | ratios > 100, last < 1e-8 |
+
+The DMRG tolerances are not set by the observed errors (~1e-10, round-off and cutoff) but by the
+errors of the failures they are meant to catch, which are orders of magnitude larger. Replacing the
+10 Davidson iterations with ITensor's default 2, or returning the first restart instead of the
+lowest one, makes `test_quasi_degenerate_ground_state` and `test_restarts_escape_metastable_state` fail.
+
 Notes on the inputs:
 - The impurity tests with `Jxx` or `Jzzz` use `hx = 1.5`: the ground state is then gapped, so DMRG
   finds a unique initial state (for `hx = 0.5` the two lowest states are almost degenerate and the TN
@@ -68,7 +86,7 @@ Notes on the inputs:
 2. If the example has no ED script yet, write `<program>_exact_diagonalization.py` next to the program,
    with a `main(input_file)` returning the dictionary of `save_and_compare` results (see
    [../examples/exact_diagonalization_tools.py](../examples/exact_diagonalization_tools.py)).
-3. Add a method to `TensorNetworkVsExactDiagonalization` in [test_integration.py](test_integration.py):
+3. Add a method to `TensorNetworkVsExactDiagonalization` (or `GroundStateSearch`) in [test_integration.py](test_integration.py):
 
    ```python
    def test_my_model(self):

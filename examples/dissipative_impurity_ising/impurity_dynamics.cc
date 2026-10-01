@@ -31,7 +31,8 @@ namespace fs = std::filesystem;
 //                 <root>_Tness<Tness>_z1z1.txt (t, Re, Im, |.| of <Z_1(t) Z_1(0)>)
 //
 // Usage: ./impurity_dynamics input.txt
-//   input parameters (with defaults in the code): N, hx, Jxx, Jzzz, gamma, Tness, T, dt, max_dim
+//   input parameters (with defaults in the code): N, hx, Jxx, Jzzz, gamma, Tness, T, dt, max_dim,
+//   cut_off, t_measure, t_corr, hz, and the DMRG parameters dmrg_* (read_dmrg_parameters, ground_state/dmrg.h)
 
 int main(int argc, char* argv[])
 {
@@ -51,8 +52,8 @@ int main(int argc, char* argv[])
     double cut_off     = input.getReal("cut_off", 1E-14);     // SVD truncation
     double t_measure   = input.getReal("t_measure", 0.2);     // profile measurements during the relaxation
     double t_corr      = input.getReal("t_corr", 0.05);       // autocorrelation measurements
-    int    dmrg_sweeps = input.getInt("dmrg_sweeps", 20);     // ground-state search
     double hz          = input.getReal("hz", 0.);             // symmetry-breaking field, ground-state search only
+    DmrgParameters dmrg_parameters = read_dmrg_parameters(input);
 
     double Jzz       = -1.;
     bool   dissipative = abs(gamma) > 1E-10;
@@ -64,23 +65,10 @@ int main(int argc, char* argv[])
 
     SiteSet sites_phys = SpinHalf(N, {"ConserveQNs=", false});
 
-    auto ampo = AutoMPO(sites_phys);
-    for(int j = 1 ; j < N ; j++)
-    {
-        ampo += 4 * Jzz, "Sz", j, "Sz", j+1;
-        ampo += 4 * Jxx, "Sx", j, "Sx", j+1;
-    }
-    for(int j = 1 ; j < N-1 ; j++) ampo += 4 * Jzzz, "Sz", j, "Sz", j+2;
-    for(int j = 1 ; j <= N ; j++)  ampo += 2 * hx, "Sx", j;
-    for(int j = 1 ; j <= N ; j++)  ampo += 2 * hz, "Sz", j;   // only for the ground-state search
-    MPO H = toMPO(ampo);
-
-    auto sweeps = Sweeps(dmrg_sweeps);
-    sweeps.maxdim() = 10,10,10,20,20,40,40,100,200,200;
-    sweeps.cutoff() = 1E-14;
-    sweeps.noise()  = 0;
-    auto [energy, psi] = dmrg(H, randomMPS(sites_phys), sweeps, {"Quiet", true});
-    cerr << "Ground-state energy: " << energy << "\n";
+    MPO H = make_spin_chain_mpo(sites_phys, {Jxx, 0., Jzz}, {0., 0., Jzzz}, {hx, 0., hz});
+    GroundState ground_state = find_ground_state(H, dmrg_parameters);
+    MPS psi = ground_state.psi;
+    cerr << "Ground-state energy: " << ground_state.energy << "  variance: " << ground_state.variance << "\n";
 
     // ---------------------------------
     // Purified state on 2N sites: bra (mirrored, conjugated) on 1..N, ket on N+1..2N

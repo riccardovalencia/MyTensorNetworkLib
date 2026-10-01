@@ -2,11 +2,12 @@
 
 Each test runs a TN program of examples/ on a small input of tests/inputs/ in a temporary folder,
 then the exact-diagonalization script of the same example (its main(input_file)), and checks that
-the largest |TN - ED| over all the compared observables is below a tolerance. The tolerances are
-set by the expected discretization errors (Trotter step, imaginary-time step, first-order
-dissipative step), not by the truncation, which is negligible for these sizes: each tolerance is
-about three times the error observed when the tests were written (listed in README.md), so that a
-regression is caught while round-off and DMRG noise are not.
+the largest |TN - ED| over all the compared observables is below a tolerance. For the dynamics the
+tolerances are set by the expected discretization errors (Trotter step, imaginary-time step,
+first-order dissipative step), not by the truncation, which is negligible for these sizes: each
+tolerance is about three times the error observed when the tests were written (listed in README.md),
+so that a regression is caught while round-off and DMRG noise are not. The ground-state tests
+(GroundStateSearch) check the DMRG driver in the regimes where DMRG can get stuck.
 
 Run from tests/ with `make test`, or `python3 -m unittest -v test_integration` once the examples
 are built. Set MYTN_KEEP_TEST_DATA=1 to keep the temporary folders (their paths are printed).
@@ -145,6 +146,72 @@ class TensorNetworkVsExactDiagonalization(unittest.TestCase):
         comparisons = run_and_compare('dissipative_impurity_ising', 'impurity_dynamics', 'impurity_nnn.txt')
         self.assert_matches_exact_diagonalization(comparisons, 1e-2)
 
+
+class GroundStateSearch(unittest.TestCase):
+    """find_ground_state (ground_state/dmrg.h) on short-range spin chains of 12-18 sites, through the
+    example spin_chain_ground_state, against Lanczos: energy and profile j, <Z_j>, <Z_j Z_{j+1}>,
+    entanglement entropy S(j, j+1). The DMRG errors are truncation errors (cutoff 1E-12), ~1e-9."""
+
+    example = ('spin_chain_ground_state', 'spin_chain_ground_state')
+
+    def ground_state(self, input_name, **overrides):
+        return run_and_compare(*self.example, input_name, **overrides)
+
+    def energy_error(self, comparisons):
+        return comparisons['energy']['E']
+
+    def assert_matches_exact_diagonalization(self, comparisons, energy_tolerance, profile_tolerance):
+        self.assertIsNotNone(comparisons['energy'], 'no TN energy to compare with')
+        self.assertIsNotNone(comparisons['profile'], 'no TN profile to compare with')
+        profile_error, label = max((diff, column) for column, diff in comparisons['profile'].items())
+        print(f'\n  |E_TN - E_ED| = {self.energy_error(comparisons):.2e} (tolerance {energy_tolerance:.0e}),'
+              f' max profile error {profile_error:.2e} ({label}, tolerance {profile_tolerance:.0e})', file=sys.stderr, end=' ')
+        self.assertLess(self.energy_error(comparisons), energy_tolerance)
+        self.assertLess(profile_error, profile_tolerance, f'profile error {profile_error:.2e} at {label}')
+
+    def test_frustrated_j1_j2_chain(self):
+        """Heisenberg chain with next-nearest-neighbour J2 = 0.3 (frustrated, dimerized phase) and a
+        field hz, without conserved quantities: random initial states, 2 restarts."""
+        comparisons = self.ground_state('ground_state_j1j2.txt')
+        self.assert_matches_exact_diagonalization(comparisons, 1e-8, 1e-6)
+
+    def test_conserved_magnetization(self):
+        """XXZ chain with next-nearest-neighbour couplings (gapless) with conserved S^z: DMRG starts from
+        the Neel product state (InitState overload), the noise lets the bond dimension grow."""
+        comparisons = self.ground_state('ground_state_xxz_sz.txt')
+        self.assert_matches_exact_diagonalization(comparisons, 1e-8, 1e-6)
+
+    def test_quasi_degenerate_ground_state(self):
+        """Ising chain close to its transition, gap 8.5e-4 above the (Z2-symmetric) ground state. With
+        ITensor's 2 Davidson iterations per bond DMRG stops in a mixture of the two lowest states
+        (energy error ~1e-4, <Z_j> ~ 1); the admixture left here is ~1e-4 in <Z_j>."""
+        comparisons = self.ground_state('ground_state_quasi_degenerate.txt')
+        self.assert_matches_exact_diagonalization(comparisons, 1e-8, 2e-3)
+
+    def test_restarts_escape_metastable_state(self):
+        """Ferromagnetic Ising chain, weak transverse field hx = 0.1, longitudinal field hz = 0.002: the
+        state magnetized against hz is a local minimum where a single DMRG run gets stuck (~1/3 of the
+        seeds, with variance ~1e-11). Find a seed whose first run gets stuck, then check that 8 restarts
+        from the same seed (the first run is the same) return the ground state."""
+        stuck_seed = None
+        for seed in range(1, 21):
+            if self.energy_error(self.ground_state('ground_state_metastable.txt', dmrg_seed=seed)) > 1e-2:
+                stuck_seed = seed
+                break
+        if stuck_seed is None:
+            self.skipTest('no single run stuck in the metastable state for seeds 1-20')
+        comparisons = self.ground_state('ground_state_metastable.txt', dmrg_seed=stuck_seed, dmrg_restarts=8)
+        print(f'\n  seed {stuck_seed}: single run stuck, 8 restarts:', file=sys.stderr, end=' ')
+        self.assert_matches_exact_diagonalization(comparisons, 1e-8, 1e-6)
+
+    def test_bond_dimension_convergence(self):
+        """Critical transverse-field Ising chain: the energy error is a truncation error that drops by
+        orders of magnitude when the maximal bond dimension doubles (4 -> 8 -> 16), down to round-off."""
+        errors = [self.energy_error(self.ground_state('ground_state_critical_ising.txt', dmrg_max_dim=D)) for D in (4, 8, 16)]
+        print(f'\n  |E_TN - E_ED| for max_dim 4, 8, 16: {", ".join(f"{e:.1e}" for e in errors)}', file=sys.stderr, end=' ')
+        self.assertGreater(errors[0], 100 * errors[1])
+        self.assertGreater(errors[1], 100 * errors[2])
+        self.assertLess(errors[2], 1e-8)
 
 
 class TimeStepConvergence(unittest.TestCase):

@@ -1,0 +1,17 @@
+input
+{
+N = 16
+Jx = 1.0
+Jy = 1.0
+Jz = 1.0
+J2x = 0.3
+J2y = 0.3
+J2z = 0.3
+hx = 0.0
+hz = 0.1
+conserve_sz = 0
+dmrg_max_dim = 100
+dmrg_noise = 1E-6
+dmrg_restarts = 2
+dmrg_seed = 1
+}

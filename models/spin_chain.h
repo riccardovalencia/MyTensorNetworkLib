@@ -1,6 +1,6 @@
 /**
  * @file spin_chain.h
- * @brief Nearest-neighbour spin-1/2 chains: TEBD gates.
+ * @brief Short-range spin-1/2 chains: MPO of the Hamiltonian, TEBD gates.
  *
  * X, Y, Z are Pauli matrices. Unless stated otherwise the gate lists implement one
  * second-order Trotter step of length dt: a forward sweep with dt/2 followed by the reversed
@@ -14,6 +14,21 @@
 
 using namespace std;
 using namespace itensor;
+
+/**
+ * @brief MPO of the spin chain with nearest- and next-nearest-neighbour couplings
+ *        H = sum_j (hx X_j + hy Y_j + hz Z_j) + sum_j (Jxx X_j X_{j+1} + Jyy Y_j Y_{j+1} + Jzz Z_j Z_{j+1})
+ *          + sum_j (J2xx X_j X_{j+2} + J2yy Y_j Y_{j+2} + J2zz Z_j Z_{j+2}).
+ *
+ * The terms are written with S^+ and S^-, so that H conserves the total S^z, and the MPO can be
+ * built on sites with conserved quantum numbers, when hx = hy = 0, Jxx = Jyy and J2xx = J2yy.
+ * @param sites Spin-1/2 site set.
+ * @param J     Nearest-neighbour couplings {Jxx, Jyy, Jzz}.
+ * @param J2    Next-nearest-neighbour couplings {J2xx, J2yy, J2zz}.
+ * @param h     Fields {hx, hy, hz}.
+ */
+MPO
+make_spin_chain_mpo(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h);
 
 /**
  * @brief Two-site term on the bond (j, j+1) of the spin chain of make_spin_chain_gates.

@@ -21,7 +21,7 @@ using namespace itensor;
 static ITensor
 make_spin_ladder(const Index& s, bool lower)
 {
-    ITensor S = ITensor(s, prime(s));
+    ITensor S = ITensor(dag(s), prime(s));
     if(hasTags(s,"Site,S=1/2"))
     {
         if(lower) S.set(s(1), prime(s)(2), 1.);
@@ -34,7 +34,7 @@ make_spin_ladder(const Index& s, bool lower)
 static ITensor
 make_boson_ladder(const Index& s, bool annihilate)
 {
-    ITensor A = ITensor(s, prime(s));
+    ITensor A = ITensor(dag(s), prime(s));
     for(int d = 1 ; d < dim(s) ; d++)
     {
         if(annihilate) A.set(s(d+1), prime(s)(d), sqrt(d));

@@ -12,6 +12,47 @@ using namespace itensor;
 
 
 // ----------------------------------------------------------
+// MPO
+
+// Jxx X_j X_k + Jyy Y_j Y_k + Jzz Z_j Z_k, with X = S+ + S-, Y = -i (S+ - S-), Z = 2 Sz;
+// terms with zero coefficient are left out (they would break the S^z conservation)
+
+static void
+add_spin_coupling(AutoMPO& ampo, const vector<double> J, const int j, const int k)
+{
+    double same = J[0] - J[1], opposite = J[0] + J[1];
+    if(same != 0.)
+    {
+        ampo += same, "S+", j, "S+", k;
+        ampo += same, "S-", j, "S-", k;
+    }
+    if(opposite != 0.)
+    {
+        ampo += opposite, "S+", j, "S-", k;
+        ampo += opposite, "S-", j, "S+", k;
+    }
+    if(J[2] != 0.) ampo += 4 * J[2], "Sz", j, "Sz", k;
+}
+
+
+MPO
+make_spin_chain_mpo(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h)
+{
+    int N = length(sites);
+    auto ampo = AutoMPO(sites);
+    for(int j = 1 ; j <= N ; j++)
+    {
+        if(h[0] != 0.) { ampo += h[0], "S+", j;  ampo += h[0], "S-", j; }
+        if(h[1] != 0.) { ampo += -Cplx_i * h[1], "S+", j;  ampo += Cplx_i * h[1], "S-", j; }
+        if(h[2] != 0.) ampo += 2 * h[2], "Sz", j;
+    }
+    for(int j = 1 ; j < N   ; j++) add_spin_coupling(ampo, J,  j, j+1);
+    for(int j = 1 ; j < N-1 ; j++) add_spin_coupling(ampo, J2, j, j+2);
+    return toMPO(ampo);
+}
+
+
+// ----------------------------------------------------------
 // fields of site j divided among the count bonds sharing it, plus the couplings of the bond (j, j+1)
 
 ITensor

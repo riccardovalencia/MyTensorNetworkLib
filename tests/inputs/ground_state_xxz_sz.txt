@@ -1,0 +1,14 @@
+input
+{
+N = 18
+Jx = 1.0
+Jy = 1.0
+Jz = 0.5
+J2x = 0.2
+J2y = 0.2
+J2z = 0.1
+hx = 0.0
+hz = 0.0
+conserve_sz = 1
+dmrg_max_dim = 200
+}
