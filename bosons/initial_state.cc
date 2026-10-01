@@ -9,67 +9,6 @@
 using namespace std;
 using namespace itensor;
 
-//----------------------------------------------------------------------
-//all spins UP along X
-
-void 
-initial_state_all_UP( const SpinHalf sites , MPS* psi , const int N)
-	{
-	for(int i=1; i<=N; i++)
-		{
-		auto si = sites(i);
-		auto wf = ITensor(si);
-		
-		wf.set(si(1), 1/sqrt(2));
-		wf.set(si(2), 1/sqrt(2));
-	
-		(*psi).set(i,wf);
-		}
-	}
-	
-//----------------------------------------------------------------------
-//all spins DOWN along X
-
-void 
-initial_state_all_DOWN( const SpinHalf sites , MPS* psi , const int N)
-	{
-	for(int i=1; i<=N; i++)
-		{
-		auto si = sites(i);
-		auto wf = ITensor(si);
-		
-		wf.set(si(1), 1/sqrt(2));
-		wf.set(si(2), -1/sqrt(2));
-	
-		(*psi).set(i,wf);
-		}
-	}
-	
-//----------------------------------------------------------------------
-//half chain DOWN along X, half chain UP along X (domain wall with single kink)
-	
-void
-initial_state_DOMAIN_WALL( const SpinHalf sites , MPS* psi , const int N)
-	{
-	for(int i=1; i<=N; i++)
-		{
-		auto si = sites(i);
-		auto wf = ITensor(si);
-		if( i <= N/2 )
-			{
-			wf.set(si(1), 1/sqrt(2));
-			wf.set(si(2), 1/sqrt(2));
-			}
-		else
-			{
-			wf.set(si(1), 1/sqrt(2));
-			wf.set(si(2), -1/sqrt(2));
-			}
-		(*psi).set(i,wf);
-		}
-	}
-
-
 // ----------------------------------------------------------------------
 // Initial bosonic state of the form |n0> |0000...0>.
 void
@@ -477,85 +416,6 @@ initial_state_cat_state_site_j( MPS* psi, const SiteSet sites, const int size , 
 }
 
 
-// Insert a state within another state, such that you have a state |state_to_insert> that you want to put in another state |psi_t0> from site start to start+L
-
-void
-insert_state(MPS* psi_t0, MPS state_to_insert, const SiteSet sites, const SiteSet sites_state_to_insert, const int start, const int L, const int N)
-{
-    vector<ITensor> copy_of_state_to_insert; 
-
-
-    Index leftindexj ;
-    Index rightindexj ;
-    Index physical ;
-	Index physical_state_to_insert;
-    ITensor psi_tocopy_j ;
-    ITensor Tj ;
-
-	int L_effective = 0;
-
-	for(int j=1 ; j<=L ; j++)
-	{
-		L_effective += 1;
-		int current_position_psi_t0 = start + j -1;
-		if(current_position_psi_t0<N)
-		{
-			if(j==1)     leftindexj  = leftLinkIndex(  *psi_t0, current_position_psi_t0);
-			else         leftindexj  = leftLinkIndex(  state_to_insert, j);
-			if(j==L)     rightindexj = rightLinkIndex( *psi_t0, current_position_psi_t0);
-			else         rightindexj = rightLinkIndex( state_to_insert, j);
-			physical    = sites(current_position_psi_t0);
-			physical_state_to_insert    = sites_state_to_insert(j);
-			psi_tocopy_j = state_to_insert(j);
-
-			Tj = ITensor(leftindexj, physical, rightindexj);
-			
-			for(int l=1; l<= dim(leftindexj) ; l++)
-			{
-				for(int r=1; r<= dim(rightindexj); r++)
-				{
-					for(int d=1; d<= dim(physical); d++)
-					{
-						if(j!=1 && j!=L) Tj.set(leftindexj=l,physical=d,rightindexj=r , eltC(psi_tocopy_j, leftindexj=l,physical_state_to_insert=d, rightindexj=r) );
-						else if(j==1) Tj.set(leftindexj=l,physical=d,rightindexj=r , eltC(psi_tocopy_j, physical_state_to_insert=d, rightindexj=r) );			
-						else if(j==L) Tj.set(leftindexj=l,physical=d,rightindexj=r , eltC(psi_tocopy_j, physical_state_to_insert=d, leftindexj=l) );
-					}
-				}
-			}
-
-			copy_of_state_to_insert.push_back(Tj);
-		}
-		
-		else if(current_position_psi_t0==N)
-		{
-			cerr << "Siamo a : " << current_position_psi_t0 << endl;
-			leftindexj  = leftLinkIndex( state_to_insert, j);
-			rightindexj  = rightLinkIndex( state_to_insert, j);
-			physical = sites(current_position_psi_t0);
-			physical_state_to_insert = sites_state_to_insert(j);
-			psi_tocopy_j = state_to_insert(j);
-			cerr << psi_tocopy_j << endl;
-			Tj = ITensor(leftindexj, physical);
-			
-			for(int l=1; l<= dim(leftindexj) ; l++)
-			{
-					for(int d=1; d<= dim(physical); d++)
-					{
-						Tj.set(leftindexj=l,physical=d , eltC(psi_tocopy_j, leftindexj=l,physical_state_to_insert=d, rightindexj=1));					
-					}
-			}
-
-			copy_of_state_to_insert.push_back(Tj);
-		}
-
-		else break;
-	}
-	cerr << "L effective : " << L_effective << endl;	
-			
-    for(int j=1 ; j<=L_effective ; j++) (*psi_t0).set(j+start-1, copy_of_state_to_insert[j-1]);	
-
-}
-
 // Initial state |0>^k \otimes |n_0> \otimes |GS(n_0)_L> \otimes |0>^(N-L-k-1)
 // It's a state with k 0's, n_0, the ground state of size L in this symmetry sector, and the other 0's.
 // The total size of the system is L
@@ -635,7 +495,7 @@ super_bosonic_coherent_state_from_ground_states( MPS *psi_coherent, const SiteSe
 
 	ifstream symmetry_sector_file;
 	string directory_symmetry = "/home/ricval/Documenti/Bosonic/Bosonic_Quantum_East_Model_Cpp/mmGcbQEM/symmetry_sector_minus";
-	string name_symmetry_sector_file = format("%s/symmetry_sector%d_maxcutoff30_s%.2f_c%.2f.dat",directory_symmetry,0,s,c);
+	string name_symmetry_sector_file = tinyformat::format("%s/symmetry_sector%d_maxcutoff30_s%.2f_c%.2f.dat",directory_symmetry,0,s,c);
 	cerr << name_symmetry_sector_file << endl;
 	symmetry_sector_file.open(name_symmetry_sector_file);
 

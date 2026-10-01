@@ -1,5 +1,10 @@
-#ifndef BUILD_HAMILTONIAN_H
-#define BUILD_HAMILTONIAN_H
+#ifndef MYTN_BOSONS_BUILD_HAMILTONIAN_H
+#define MYTN_BOSONS_BUILD_HAMILTONIAN_H
+
+// MPOs of the bosonic quantum east model (bQEM) and variants. Common parameters:
+//   size : number of sites, n0 : occupation of the fixed site 0 (symmetry sector),
+//   s : softening parameter (J = e^{-s}), c : nearest-neighbour density-density strength (1-2c).
+// Here sigma^x = a + a^dag.
 
 #include <itensor/all.h>
 

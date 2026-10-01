@@ -1,3 +1,4 @@
+#include "search_ground_state_max_bond_chi.h"
 #include <itensor/all.h>
 #include <iostream>
 #include <string>
@@ -37,20 +38,20 @@ search_ground_state_max_bond_chi(string results_dir , int size , int lambda, int
 
     Boson sites;
 
-    while( fileExists( format("%s/sites_file_n0%d",name_dir_s.str(), n0) ) == true ){
-        readFromFile(format("%s/sites_file_n0%d",name_dir_s.str(),n0), sites);        
+    while( fileExists( tinyformat::format("%s/sites_file_n0%d",name_dir_s.str(), n0) ) == true ){
+        readFromFile(tinyformat::format("%s/sites_file_n0%d",name_dir_s.str(),n0), sites);        
         MPS psi = randomMPS(sites);
 
-        while(fileExists( format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) ) == true)
+        while(fileExists( tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) ) == true)
         {
         bond_dimension = int(bond_dimension * scaling_bond_dimension);
         }
         bond_dimension = int(bond_dimension / scaling_bond_dimension ); 
 
-        readFromFile(format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(), n0 ,bond_dimension),psi);
+        readFromFile(tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(), n0 ,bond_dimension),psi);
         psi /= norm(psi);
 
-        cerr << "Opened file : " << format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
+        cerr << "Opened file : " << tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
 
         double variance_H = compute_variance_H_mmGcbQEM(&psi, sites, size , lambda, n0, symmetry_sector, s, c);
 
@@ -95,20 +96,20 @@ search_ground_state_max_bond_chi_no_v(string results_dir , int size , int lambda
     
     Boson sites;
 
-    if( fileExists( format("%s/sites_file_n0%d",name_dir_s.str(), n0) ) == true )
+    if( fileExists( tinyformat::format("%s/sites_file_n0%d",name_dir_s.str(), n0) ) == true )
     {
-        readFromFile(format("%s/sites_file_n0%d",name_dir_s.str(),n0), sites);        
+        readFromFile(tinyformat::format("%s/sites_file_n0%d",name_dir_s.str(),n0), sites);        
         MPS psi = randomMPS(sites);
 
-        while(fileExists( format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) ) == true)
+        while(fileExists( tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) ) == true)
         {
         bond_dimension = int(bond_dimension * scaling_bond_dimension);
         }
         bond_dimension = int(bond_dimension / scaling_bond_dimension ); 
 
-        readFromFile(format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(), n0 ,bond_dimension),psi);
+        readFromFile(tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(), n0 ,bond_dimension),psi);
         psi /= norm(psi);
-        cerr << "Opened file : " << format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
+        cerr << "Opened file : " << tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
         double variance_H = compute_variance_H_mmGcbQEM(&psi, sites, size , lambda, n0, symmetry_sector, s, c);
         cerr << "variance : " << variance_H << endl;
 

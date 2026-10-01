@@ -1,25 +1,14 @@
-#ifndef INITIAL_STATE
-#define INITIAL_STATE
+#ifndef MYTN_BOSONS_INITIAL_STATE_H
+#define MYTN_BOSONS_INITIAL_STATE_H
+
+// Initial states for bosonic chains (Fock, coherent, squeezed, cat states) and bQEM "super-bosonic" states.
+// Generic states (computational basis, insert_state, x-polarized spins) are in core/initial_state.h.
 
 #include <itensor/all.h>
+#include "../core/initial_state.h"
 
 using namespace std;
 using namespace itensor;
-
-//----------------------------------------------------------------------
-//all spins UP along X
-void 
-initial_state_all_UP( const SpinHalf , MPS* , const int );
-
-//----------------------------------------------------------------------
-//all spins DOWN along X
-void
-initial_state_all_DOWN( const SpinHalf , MPS* , const int );
-
-//----------------------------------------------------------------------
-//half chain DOWN along X, half chain UP along X (domain wall with single kink)
-void
-initial_state_DOMAIN_WALL( const SpinHalf , MPS* , const int );
 
 //----------------------------------------------------------------------
 //Initial bosonic state of the form |00..0> |n0> |0000...0>, where n0 is in the position `excitation_position`
@@ -34,6 +23,7 @@ initial_state_n0_excitation_pinned( MPS* psi, const SiteSet sites, const int siz
 
 // ----------------------------------------------------------------------
 // Initial vacuum bosonic state |0000...0>.
+// Note: sets the site tensors without link indices; prefer initial_state_vacuum_state_correct_link.
 void
 initial_state_vacuum_state( MPS* psi, const SiteSet sites, const int size );
 
@@ -72,15 +62,11 @@ initial_state_cat_state_site_j( MPS* psi, const SiteSet sites, const int size , 
 MPS
 super_bosonic_state(MPS ground_state, const SiteSet sites, const SiteSet ground_sites, const int L, const int N, const int n0, const int k);
 
-// Insert a state within another state, such that you have a state |ground_state> that you want to put in another state |psi_t0> from site start to start+L
-
-void
-insert_state(MPS* psi_t0, MPS state_to_insert, const SiteSet sites, const SiteSet sites_state_to_insert, const int start, const int L, const int N);
 
 
 // Return a super-bosonic coherent state via dressing of a single site coherent state
 MPS
-super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const double alpha, const double s, const double c, double dt, double T);
+super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double s, const double c, double dt, double T);
 
 
 // return the super-bosonic coherent state built as linear combinations of DMRG obtained ground state

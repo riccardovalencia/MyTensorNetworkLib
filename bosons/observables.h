@@ -1,17 +1,17 @@
-#ifndef OBSERVABLES_H
-#define OBSERVABLES_H
+#ifndef MYTN_BOSONS_OBSERVABLES_H
+#define MYTN_BOSONS_OBSERVABLES_H
+
+// Observables for bosonic chains: occupations, Fock-space projectors, covariance matrices, squeezing.
+// Entanglement entropy is in core/entanglement.h (note: entanglement_entropy(psi, site) is in base 2).
 
 #include <itensor/all.h>
+#include "../core/entanglement.h"
 #include <vector>
 
 using namespace itensor;
 using namespace std;
 
-double
-entanglement_entropy( MPS* , int  );
 
-void 
-measure_mx_mz( const SpinHalf , MPS , const int );
 
 // expectation value: <\sigma_j^x^2>
 double 

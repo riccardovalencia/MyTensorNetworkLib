@@ -1,3 +1,4 @@
+#include "scalar_product_two_cutoffs.h"
 #include <itensor/all.h>
 #include "build_hamiltonian.h"
 #include "observables.h"

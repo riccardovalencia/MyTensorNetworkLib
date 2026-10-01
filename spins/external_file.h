@@ -1,49 +1,34 @@
-#ifndef EXTERNAL_FILE_H
-#define EXTERNAL_FILE_H
+#ifndef MYTN_SPINS_EXTERNAL_FILE_H
+#define MYTN_SPINS_EXTERNAL_FILE_H
+
+// File names and console/file output for the Ising-chain simulations of the spins module.
 
 #include <itensor/all.h>
-#include <iostream>
-#include <string>
+#include <sstream>
 #include <ctime>
-
-#include <itensor/all.h>
-#include <iostream>
-#include <sstream> // for ostringstream
-#include <vector>
-#include <string>
-#include <iomanip>
-#include <complex>
 
 using namespace std;
 using namespace itensor;
 
-//----------------------------------------------------------------------
-//files to save the information about sites and the state
-void 
-build_file_TEBD( stringstream * ,  stringstream * , const int  );
-
-//----------------------------------------------------------------------
-//files to save information for measuring generating function and moments of a certain full counting statistics
+// sites_file = "sites_N<N>", psi_file = "psi_N<N>_nstep".
 void
-build_file_full_counting( stringstream * ,  stringstream * , stringstream * , stringstream * ,  stringstream * ,  stringstream * , const int );
+build_file_TEBD( stringstream *sites_file , stringstream *psi_file , const int N );
 
-//----------------------------------------------------------------------
-//file to save entanglement entropy of a one dimensional system
+// As build_file_TEBD, plus "N<N>_GF_real", "N<N>_GF_imag", "N<N>_Moments_real", "N<N>_Moments_imag".
 void
-build_file_entanglement_entropy( stringstream * ,  stringstream * , stringstream * , const int );
-	
-//----------------------------------------------------------------------
-//print input for time evolution in Ising model with longitudinal and transversal magnetic fields
-void
-print_input(int , double , double , double , double , double , double , double );
+build_file_full_counting( stringstream *sites_file , stringstream *psi_file , stringstream *save_real , stringstream *save_imag , stringstream *saveRealMoments , stringstream *saveImagMoments , const int N );
 
-//----------------------------------------------------------------------
-//print information during time evolution: time reached, time needed to do a single step, time needed in total, max bond dimension, entanglement entropy
+// As build_file_TEBD, plus save_file = "N<N>_entropy.dat".
+void
+build_file_entanglement_entropy( stringstream *sites_file , stringstream *psi_file , stringstream *save_file , const int N );
+
+// Write the simulation parameters to "input.txt" (ITensor InputGroup format).
+void
+print_input( int N , double J , double hx , double hz , double ttotal , double tstep , double nmeas , double bonddim );
+
+// Print time reached, timings, max bond dimension and half-chain entanglement entropy (natural log),
+// and return the entropy.
 double
-print_info( time_t , time_t  , MPS * , const int , const int , const int , const double );
-
-//----------------------------------------------------------------------
-//print at time fixed the generating function of a certain probability distribution
-
+print_info( time_t time_elapsed_step , time_t time_elapsed_total , MPS *psi , const int N , const int nmeas , const int n , const double tstep );
 
 #endif

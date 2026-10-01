@@ -1,9 +1,7 @@
 #include "TEBD_edge_dissipation.h"
 #include "observables.h"
-#include "MyClasses.h"
-// #include "/home/ricval/Documenti/MyLibrary/TDVP/tdvp.h"
-// #include "/home/ricval/Documenti/MyLibrary/TDVP/basisextension.h"
-#include "state_manipulation.h"
+#include "../core/MyClasses.h"
+#include "../core/state_manipulation.h"
 #include <itensor/all.h>
 #include <iostream>
 #include <math.h>       

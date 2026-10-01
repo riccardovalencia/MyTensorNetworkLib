@@ -1,3 +1,4 @@
+#include "scalar_product_different_n0.h"
 #include <itensor/all.h>
 #include "build_hamiltonian.h"
 #include "observables.h"

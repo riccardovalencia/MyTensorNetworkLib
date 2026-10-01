@@ -1,5 +1,5 @@
+#include "../core/entanglement.h"
 #include "external_file.h"
-#include "observables.h"
 #include "full_counting_statistics.h"
 #include <itensor/all.h>
 #include <iostream>
@@ -76,7 +76,7 @@ print_info( time_t time_elapsed_step , time_t  time_elapsed_total , MPS *psi , c
 	cout << "Time evolution : " << n * nmeas * tstep << "\n"
 		 << "Single Step Time : " << time_elapsed_step << "\n"
 		 << "Total Time : " <<  time_elapsed_total << "\n"
-		 << "Max bond dimension : " << maxM( *(psi) ) << "\n"
+		 << "Max bond dimension : " << maxLinkDim( *(psi) ) << "\n"
 		 << "Entanglement entropy : " << entropy << "\n" << endl;
 	return entropy;
 	}

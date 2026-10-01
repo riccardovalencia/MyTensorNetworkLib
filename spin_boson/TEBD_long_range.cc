@@ -1,7 +1,7 @@
 #include "TEBD_long_range.h"
 #include "observables.h"
-#include "MyClasses.h"
-#include "state_manipulation.h"
+#include "../core/MyClasses.h"
+#include "../core/state_manipulation.h"
 #include <itensor/all.h>
 #include <iostream>
 #include <math.h>       

@@ -1,7 +1,7 @@
 # Examples
 
-Each example lives in its own folder with a `Makefile` that compiles the driver together with the
-needed sources of MyTensorNetworkLib (no copies of the library are required).
+Each example lives in its own folder with a `Makefile` that compiles the driver and links it against
+`lib/libmytn.a` (the library is built or updated automatically by `make`).
 
 Set `LIBRARY_DIR` to your ITensor v3 folder (the one containing `options.mk`), either by editing the
 `Makefile` or on the command line:

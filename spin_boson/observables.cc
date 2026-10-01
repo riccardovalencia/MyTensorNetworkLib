@@ -497,28 +497,6 @@ compute_norm_purifed_impurity_QN(MPS (*psi))
 
 }
 
-// ----------------------------------------------------------
-// Compute entanglement entropy along the bond [site,site+1]
-
-double
-entanglement_entropy( MPS* psi , int site)
-	{
-	(*psi).position(site); 
-	ITensor wf = (*psi)(site) * (*psi)(site+1);
-	ITensor U  = (*psi)(site);
-	ITensor S,V;
-	auto spectrum = svd(wf,U,S,V);
-	
-	double SvN = 0.;
-	for(auto p : spectrum.eigs())
-		{
-		if(p > 1E-12) SvN += -p*log2(p);
-		}
-	return SvN;
-	}
-
-
-// ----------------------------------------------------------
 // Compute number of kinks (|\up_z \dw_z>) on a state psi
 
 double 

@@ -56,8 +56,7 @@ int main(int argc, char* argv[])
 
     SiteSet sites = SpinHalf(N, {"ConserveQNs=", false});
 
-    vector<int> initial_state;
-    for(int j : range1(N)) initial_state.push_back(j <= M ? 1 : 0);
+    string initial_state = string(M, '1') + string(N - M, '0');   // kink: "11000..."
 
     MPS psi    = initial_computational_state(sites, initial_state);
     MPS psi_t0 = psi;

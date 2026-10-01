@@ -1,25 +1,21 @@
-#ifndef GET_DATA_H
-#define GET_DATA_H
-//get_data.h
+#ifndef MYTN_SPINS_GET_DATA_H
+#define MYTN_SPINS_GET_DATA_H
+
+// Command-line parsing for the Ising-chain drivers of the spins module.
 
 using namespace std;
 
-//----------------------------------------------------------------------
-//input for time evolution of Ising chain in longitudinal (hx) e transversal magnetic field (hz)	
+// argv = state N J hxChoice hzChoice ttotal tstep nmeas bonddim localvscluster;
+// hx and hz are picked from fixed lists by their index.
+void
+get_data( char* argv[] , int *state , int *N , double *J , double *hx , double *hz , double *ttotal , double *tstep , int *nmeas , int *bonddim , int *localvscluster );
 
-void 
-get_data( char ** , int * , int * , double * , double * , double * , double * , double * , int * , int * , int *);
+// argv = N hxChoice hzChoice tstep nmeas numberPoints maxLength localvscluster.
+void
+get_data_meas( char* argv[] , int *N , int *hxChoice , int *hzChoice , double *tstep , int *nmeas , int *numberPoints , int *maxLength , int *localvscluster );
 
-//----------------------------------------------------------------------
-//input measuring full counting statistics of a certain oberservable 
+// argv = N tstep nmeas localvscluster.
+void
+get_data_entropy( char* argv[] , int *N , double *tstep , int *nmeas , int *localvscluster );
 
-void 
-get_data_meas( char** , int * , int * , int * , double * , int * , int * , int * , int * );
 #endif
-
-//----------------------------------------------------------------------
-//input for measuring entanglement entropy of a one dimensional system
-
-void 
-get_data_entropy( char** , int * , double * , int * , int *);
-

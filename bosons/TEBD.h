@@ -1,5 +1,9 @@
-#ifndef TEBD_H
-#define TEBD_H
+#ifndef MYTN_BOSONS_TEBD_H
+#define MYTN_BOSONS_TEBD_H
+
+// TEBD for the bosonic quantum east model (bQEM),
+//   H = -1/2 sum_j n_j ( e^{-s} (a_{j+1} + a^dag_{j+1}) - (1-2c) n_{j+1} - 1 ),  J = e^{-s},
+// closed and open (Lindblad, via the effective non-hermitian Hamiltonian) dynamics.
 
 #include <itensor/all.h>
 

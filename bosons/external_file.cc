@@ -94,7 +94,7 @@ print_occupation_number_realization_disorder( vector<double> &occupation_number,
 	// stringstream file_occupation_number ; 
 	// file_occupation_number << "occupation_number_size" << size << "_s" << int(s*100) << "_c" << int(c*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << "_t" << int(time) << "_index" << index << ".dat";
 	string file_occupation_number ; 
-	file_occupation_number = format("occupation_number_size%d_s%.2f_c%.2f_cutoff%d_n0%d_gamma%.3f_t%.3f_index%d.dat", size, s, c, cut_off_fock_space, n0, gamma, time, index);
+	file_occupation_number = tinyformat::format("occupation_number_size%d_s%.2f_c%.2f_cutoff%d_n0%d_gamma%.3f_t%.3f_index%d.dat", size, s, c, cut_off_fock_space, n0, gamma, time, index);
 	
 	ofstream save_file_occupation_number( file_occupation_number );
 	save_file_occupation_number << setprecision(set_output_precision);
@@ -114,7 +114,7 @@ print_projector_fockspace_realization_disorder( vector<vector<double> > &project
 	// stringstream file_projector_fock;
 	// file_projector_fock << "projector_fock_space_size" << size << "_s" << int(s*100) << "_c" << int(c*100) << "_cutoff" << cut_off_fock_space << "_n0" << n0 << "_chi" << bond_dimension << "_index" << index << ".dat";
 	string file_projector_fock ; 
-	file_projector_fock = format("projector_fock_space_size%d_s%.2f_c%.2f_cutoff%d_n0%d_gamma%.3f_t%.3f_index%d.dat", size, s, c, cut_off_fock_space, n0, gamma, time, index);
+	file_projector_fock = tinyformat::format("projector_fock_space_size%d_s%.2f_c%.2f_cutoff%d_n0%d_gamma%.3f_t%.3f_index%d.dat", size, s, c, cut_off_fock_space, n0, gamma, time, index);
 
 	ofstream save_file_projector_fock( file_projector_fock );
 	save_file_projector_fock << setprecision(set_output_precision);	
@@ -292,58 +292,3 @@ print_projector_fockspace_excited_states( vector<vector<double> > &projector_all
 //
 //
 //
-
-
-//----------------------------------------------------------------------
-//files to save the information about sites and the state
-void 
-build_file_TEBD( stringstream *sites_file ,  stringstream *psi_file , const int size )
-	{
-	*sites_file << "sites_size" << size ;
-	*psi_file << "psi_size" << size << "_nstep";
-	}
-	
-//----------------------------------------------------------------------
-//files to save information for measuring generating function and moments of a certain full counting statistics
-void
-build_file_full_counting( stringstream *sites_file ,  stringstream *psi_file , stringstream *save_real , stringstream *save_imag ,  stringstream *saveRealMoments ,  stringstream *saveImagMoments , const int N )
-	{
-		*sites_file << "sites_N" << N ;
-		*psi_file << "psi_N" << N << "_nstep";
-		*save_real << "N" << N <<  "_GF_real";
-		*save_imag << "N" << N <<  "_GF_imag";
-		*saveRealMoments << "N" << N <<  "_Moments_real";
-		*saveImagMoments << "N" << N <<  "_Moments_imag";
-	}	
-	
-//----------------------------------------------------------------------
-//file to save entanglement entropy of a one dimensional system
-void
-build_file_entanglement_entropy( stringstream *sites_file ,  stringstream *psi_file , stringstream *save_file , const int N )
-	{
-		*sites_file << "sites_N" << N ;
-		*psi_file << "psi_N" << N << "_nstep";
-		*save_file << "N" << N << "_entropy.dat";
-	}	
-	
-
-
-//----------------------------------------------------------------------
-//print information during time evolution: time reached, time needed to do a single step, time needed in total, max bond dimension, entanglement entropy
-//double
-//print_info( time_t time_elapsed_step , time_t  time_elapsed_total , MPS *psi , const int N , const int nmeas , const int n , const double tstep )
-	//{
-	//double entropy = entanglement_entropy( psi , N , N/2 );
-	//cout << "Time evolution : " << n * nmeas * tstep << "\n"
-		 //<< "Single Step Time : " << time_elapsed_step << "\n"
-		 //<< "Total Time : " <<  time_elapsed_total << "\n"
-		 //<< "Max bond dimension : " << maxM( *(psi) ) << "\n"
-		 //<< "Entanglement entropy : " << entropy << "\n" << endl;
-	//return entropy;
-	//}
-	
-//----------------------------------------------------------------------
-//print at time fixed the generating function of a certain probability distribution
-//nb function put in full_counting_statistics.* because otherwise there are compiling problems
-
-

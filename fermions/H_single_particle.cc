@@ -8,7 +8,7 @@
 // with c = (c_1,\sigma c_1,\sigma' , c_2,\sigma , c_2,\sigma' , ...)
 
 // ITensor
-// H_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful = false)
+// H_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 // {
 //     int L = 2 * N;
 //     vector<double> Jp = J;
@@ -68,7 +68,7 @@
 
 
 // ITensor
-// H_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful = false)
+// H_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 // {
 //     int L = 2 * N;
 //     vector<double> Jp = J;
@@ -95,7 +95,7 @@
 // }
 
 ITensor
-H_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful = false)
+H_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 {
     int L = N;
     vector<double> Jp = J;
@@ -122,7 +122,7 @@ H_number_conserving_fermions(const int N , const vector<double> J, const vector<
 }
 
 ITensor
-H_number_conserving_fermions_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful = false)
+H_number_conserving_fermions_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 {
     int L = N;
     vector<double> Jp = J;

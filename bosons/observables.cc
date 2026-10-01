@@ -15,45 +15,6 @@ using namespace itensor;
 using namespace std;
 
 //----------------------------------------------------------------------
-
-//measure of entanglement entropy centered in a certain site
-
-double
-entanglement_entropy( MPS* psi , int site)
-	{
-	(*psi).position(site); 
-	ITensor wf = (*psi)(site) * (*psi)(site+1);
-	ITensor U  = (*psi)(site);
-	ITensor S,V;
-	auto spectrum = svd(wf,U,S,V);
-	
-	double SvN = 0.;
-	for(auto p : spectrum.eigs())
-		{
-		if(p > 1E-12) SvN += -p*log(p);
-		}
-	return SvN;
-	}
-
-//----------------------------------------------------------------------
-
-//measure of longitudinal and trasnversal magnetization in each site
-
-// void 
-// measure_mx_mz( const SpinHalf sites , MPS psi , const int N)
-// 	{
-	
-// 	for( int j = 1 ; j <= N ; j++ )
-// 		{
-// 		psi.position(j);
-// 		Real Mx1 = 2 * (dag(prime(psi.A(j), "Site" )) * sites.op("Sx",j) * psi.A(j)).real();
-// 		Real Mz1 = 2 * (dag(prime(psi.A(j), "Site" )) * sites.op("Sz",j) * psi.A(j)).real();
-// 		cout << "Sx_" << j << " = " << Mx1 << "\n"
-// 			 << "Sz_" << j << " = " << Mz1 << endl;
-// 		}
-// 	}
-
-//----------------------------------------------------------------------
 // expectation value: <\sigma_j^x^2>
 double 
 expectation_value_sigma_x_square( MPS *state , const SiteSet sites , const int j )
@@ -537,7 +498,7 @@ compute_variance_H_mmGcbQEM(MPS *psi , const SiteSet sites, int size , int cut_o
 	double symmetry;
 	ifstream symmetry_sector_file;
 	string directory_symmetry = "/home/ricval/Documenti/Bosonic/Bosonic_Quantum_East_Model_Cpp/mmGcbQEM/symmetry_sector_minus";
-	string name_symmetry_sector_file = format("%s/symmetry_sector%d_maxcutoff30_s%.2f_c%.2f.dat",directory_symmetry,int(symmetry_sector),s,c);
+	string name_symmetry_sector_file = tinyformat::format("%s/symmetry_sector%d_maxcutoff30_s%.2f_c%.2f.dat",directory_symmetry,int(symmetry_sector),s,c);
 	cerr << name_symmetry_sector_file << endl;
 	symmetry_sector_file.open(name_symmetry_sector_file);
 

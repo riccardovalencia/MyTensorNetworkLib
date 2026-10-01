@@ -1,5 +1,7 @@
-#ifndef GET_DATA_H
-#define GET_DATA_H
+#ifndef MYTN_BOSONS_GET_DATA_H
+#define MYTN_BOSONS_GET_DATA_H
+
+// Command-line parsing for the bQEM drivers.
 //get_data.h
 
 using namespace std;

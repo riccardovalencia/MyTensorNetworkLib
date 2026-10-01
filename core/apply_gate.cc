@@ -1,4 +1,4 @@
-#include "general.h"
+#include "apply_gate.h"
 #include <itensor/all.h>
 using namespace std;
 using namespace itensor;

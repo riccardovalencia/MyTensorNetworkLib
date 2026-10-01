@@ -1,7 +1,7 @@
 #include "TEBD.h"
 #include "observables.h"
-#include "MyClasses.h"
-#include "state_manipulation.h"
+#include "../core/MyClasses.h"
+#include "../core/state_manipulation.h"
 #include <itensor/all.h>
 #include <iostream>
 #include <math.h>       
@@ -189,7 +189,7 @@ gates_spin_eff_model_bondgate(const SiteSet sites , const vector<double> J, cons
 		if(j <  N-1) H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1]) / 2. ;
 		else         H_S += Id[0] * (hx * X[1] + hy * Y[1] + hz * Z[1])      ;
 
-		for(int k=0 ; k<= Lj_sites.size(); k++)
+		for(int k=0 ; k < (int)Lj_sites.size(); k++)
 		{
 			if(Lj_sites[k]==j)
 			{

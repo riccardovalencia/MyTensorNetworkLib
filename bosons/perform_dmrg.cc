@@ -86,14 +86,14 @@ do
             cerr << "Noise is zero and it doesn't converge in 5 number sweeps! Increasing bond dimension and putting non zero noise" << endl;
             current_noise = original_noise;
             *ground_state /= norm(*ground_state);
-            writeToFile(format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
+            writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
             bond_dimension = int( bond_dimension * scaling_bond_dimension );
             }
         }
 
     else{
         *ground_state /= norm(*ground_state);
-        writeToFile(format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
+        writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
 
         bond_dimension = int( bond_dimension * scaling_bond_dimension );
         if(number_sweeps_done == 1)
@@ -210,7 +210,7 @@ do
             cerr << "Noise is zero and it doesn't converge in 5 number sweeps! Increasing bond dimension and putting non zero noise" << endl;
             current_noise = original_noise;
             *ground_state /= norm(*ground_state);
-            writeToFile(format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
+            writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
             bond_dimension = int( bond_dimension * scaling_bond_dimension );
             }
         }
@@ -218,7 +218,7 @@ do
     } while(  abs(delta_energy/sum_energy) > precision_dmrg && bond_dimension < max_bond_dimension);
 
 *ground_state /= norm(*ground_state);
-writeToFile(format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
+writeToFile(tinyformat::format("ground_state_file_n0%d_chi%d",n0,bond_dimension),*ground_state);
 
 if( bond_dimension > max_bond_dimension)
     {
