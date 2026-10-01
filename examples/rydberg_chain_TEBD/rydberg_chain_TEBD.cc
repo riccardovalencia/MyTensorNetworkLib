@@ -6,7 +6,7 @@
 #include <cmath>
 #include <filesystem>
 #include <random>
-#include "../../spin_boson.h"
+#include "mytn.h"
 
 using namespace std;
 using namespace itensor;

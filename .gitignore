@@ -3,6 +3,7 @@
 *.d
 build/
 lib/
+docs/
 
 # Example binaries and output
 examples/*/data/

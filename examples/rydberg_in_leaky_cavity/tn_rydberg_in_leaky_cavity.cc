@@ -8,7 +8,7 @@
 #include <fstream>	//output file
 #include <sstream>	//for ostringstream
 #include <iomanip>
-#include "../../spin_boson.h"
+#include "mytn.h"
 #include <filesystem>
 
 using namespace std;
@@ -115,7 +115,7 @@ int main(int argc , char* argv[]){
     insert_state(&psi_t, psi, N+2, false, false);
 
     // normalization
-    double  norm = compute_norm_purifed_impurity(&psi_t);
+    double  norm = compute_norm_purified_impurity(&psi_t);
     psi_t /= norm;
 
     // operators of interest
@@ -466,7 +466,7 @@ int main(int argc , char* argv[]){
 
         if (k % steps_measure == 0)
         {
-            norm = compute_norm_purifed_impurity(&psi_t);
+            norm = compute_norm_purified_impurity(&psi_t);
             cerr << t << " " << norm << "\n";
             save_file << t << " " << norm;
             for(string name : name_obs)

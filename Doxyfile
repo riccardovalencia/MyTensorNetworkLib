@@ -1,0 +1,15 @@
+# Minimal Doxygen configuration: run `doxygen Doxyfile` from the repository root.
+PROJECT_NAME           = "MyTensorNetworkLib"
+PROJECT_BRIEF          = "Tensor network methods on top of ITensor v3"
+OUTPUT_DIRECTORY       = docs
+INPUT                  = README.md mytn.h mps dof models dynamics ground_state analysis io
+FILE_PATTERNS          = *.h *.md
+RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = README.md
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+SORT_MEMBER_DOCS       = NO
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = YES

@@ -8,7 +8,7 @@
 #include <fstream>	//output file
 #include <sstream>	//for ostringstream
 #include <iomanip>
-#include "../../spin_boson.h"
+#include "mytn.h"
 #include <filesystem>
 
 using namespace std;

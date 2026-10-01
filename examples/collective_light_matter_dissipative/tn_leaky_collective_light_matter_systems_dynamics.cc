@@ -8,7 +8,7 @@
 #include <fstream>	//output file
 #include <sstream>	//for ostringstream
 #include <iomanip>
-#include "../../spin_boson.h"
+#include "mytn.h"
 #include <filesystem>
 
 using namespace std;
@@ -99,7 +99,7 @@ int main(int argc , char* argv[]){
     // inserting ket bewteen [N+1,2*N]
     insert_state(&psi_t, psi, N+2, false, false);
 
-    double  norm = compute_norm_purifed_impurity(&psi_t);
+    double  norm = compute_norm_purified_impurity(&psi_t);
     psi_t /= norm;
     // operators of interest
     Index sph   = sites(N+2);
@@ -443,7 +443,7 @@ int main(int argc , char* argv[]){
 
         if (k % steps_measure == 0)
         {
-            norm = compute_norm_purifed_impurity(&psi_t);
+            norm = compute_norm_purified_impurity(&psi_t);
             cerr << t << " " << norm << "\n";
             save_file << t << " " << norm;
             for(string name : name_obs)

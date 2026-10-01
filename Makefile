@@ -7,7 +7,7 @@
 
 LIBRARY_DIR ?= /home/riccardo/itensor
 
-MODULES = core spin_boson spins bosons fermions
+MODULES = mps dof models dynamics ground_state analysis io
 
 #################################################################
 
