@@ -70,6 +70,7 @@ class ConvergenceObserver : public DMRGObserver
 };
 
 
+// state, energy and convergence flag of one DMRG run
 struct DmrgRun
 {
     MPS    psi;
