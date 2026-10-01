@@ -114,45 +114,44 @@ compute_bosonic_east_model_energy_variance(MPS *psi , const SiteSet sites, int s
 ///@{
 
 /**
- * @brief Bond term on (j, j+1) of the bulk bosonic east model Hamiltonian with hopping J (the n_j term is
- *        assigned to the bond, the last bond also takes n_size).
- * @param hterm Output bond Hamiltonian.
- * @param J     Facilitated hopping amplitude (e^{-s}).
+ * @brief Bond term on (j, j+1) of the bulk Hamiltonian with hopping J (the n_j term is assigned to the
+ *        bond; the last bond also takes n_size).
+ * @param J Facilitated hopping amplitude (e^{-s}).
+ * @return Bond Hamiltonian.
  */
-void
-build_single_step( ITensor *hterm , const SiteSet sites , const int size , const double J , const double c , const int j );
+ITensor
+make_bosonic_east_model_bond_hamiltonian( const SiteSet sites , const int size , const double J , const double c , const int j );
 
-/** @brief As build_single_step, including the coupling to the virtual site 0 with occupation n0 on the first bond. */
-void
-build_single_step_n0( ITensor *hterm , const SiteSet sites , const int size , const int n0, const double J , const double c , const int j );
+/** @brief As make_bosonic_east_model_bond_hamiltonian, including the coupling to the virtual site 0 with occupation n0 on the first bond. */
+ITensor
+make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int size , const int n0, const double J , const double c , const int j );
 
 /**
- * @brief As build_single_step plus the effective non-hermitian term -i gamma/2 n_j^2 of
- *        dephasing L_j = sqrt(gamma) n_j.
+ * @brief As make_bosonic_east_model_bond_hamiltonian plus the effective non-hermitian term -i gamma/2 n_j^2
+ *        of dephasing L_j = sqrt(gamma) n_j.
  */
-void
-build_single_step_jumps( ITensor *hterm , const SiteSet sites , const int size , const double J , const double c , const double gamma, const int j);
+ITensor
+make_bosonic_east_model_bond_hamiltonian_dephasing( const SiteSet sites , const int size , const double J , const double c , const double gamma, const int j );
 
 /**
- * @brief As build_single_step plus -i/2 L_j^dag L_j for arbitrary local jump operators.
+ * @brief As make_bosonic_east_model_bond_hamiltonian plus -i/2 L_j^dag L_j for arbitrary local jump operators.
  * @param Lj  Jump operators, one per site.
  * @param Ljd Their hermitian conjugates.
  */
-void
-build_single_step_jumps_v2( ITensor *hterm , const SiteSet sites , const int size , const double J , const double c , const int j, vector<ITensor> &Lj, vector<ITensor> &Ljd);
+ITensor
+make_bosonic_east_model_bond_hamiltonian_jumps( const SiteSet sites , const int size , const double J , const double c , const int j, vector<ITensor> &Lj, vector<ITensor> &Ljd);
 
 /**
- * @brief Second-order Trotter step (BondGate list, for gateTEvol) of the bulk bosonic east model Hamiltonian.
- * @param gates    Output: gates are appended.
- * @param dynamics "closed" (default) or "open" (adds dephasing with rate gamma, see build_single_step_jumps).
+ * @brief Second-order Trotter step (BondGate list, for gateTEvol) of the bulk Hamiltonian.
+ * @param dynamics "closed" (default) or "open" (adds dephasing with rate gamma).
  * @param gamma    Dephasing rate (only for "open").
  */
-void
-build_tebd_dt_step(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c, const string dynamics = "closed" , const double gamma = 0.);
+vector<BondGate>
+make_bosonic_east_model_gates(const SiteSet sites, const int size, const double dt, const double J, const double c, const string dynamics = "closed" , const double gamma = 0.);
 
-/** @brief As build_tebd_dt_step with arbitrary local jump operators (see build_single_step_jumps_v2). */
-void
-build_tebd_dt_step_open(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd );
+/** @brief As make_bosonic_east_model_gates with arbitrary local jump operators (see make_bosonic_east_model_bond_hamiltonian_jumps). */
+vector<BondGate>
+make_bosonic_east_model_gates_open(const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd );
 ///@}
 
 #endif

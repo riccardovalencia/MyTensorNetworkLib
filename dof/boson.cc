@@ -20,129 +20,110 @@ using namespace std;
 using namespace itensor;
 
 
+// ----------------------------------------------------------
+// amplitudes of single-site states in the Fock basis |0>, ..., |dim-1>
+
+static vector<Cplx>
+fock_amplitudes( int dim, int n )
+{
+    vector<Cplx> a(dim, 0.);
+    a[n] = 1.;
+    return a;
+}
+
+static vector<Cplx>
+coherent_amplitudes( int dim, Cplx alpha )
+{
+    vector<Cplx> a;
+    for(int k = 0 ; k < dim ; k++) a.push_back(coherent_state_amplitude(alpha, k));
+    return a;
+}
+
+static vector<Cplx>
+squeezed_amplitudes( int dim, double r )
+{
+    vector<Cplx> a;
+    for(int k = 0 ; k < dim ; k++) a.push_back(k % 2 == 0 ? squeezed_state_amplitude(r, k) : 0.);
+    return a;
+}
+
+
+// ----------------------------------------------------------
+// product states
+
+void
+set_site_occupation( MPS* psi, const SiteSet sites, int site, int n )
+{
+    set_site_tensor(psi, sites, site, fock_amplitudes(dim(sites(site)), n));
+}
+
+void
+set_vacuum_state( MPS* psi, const SiteSet sites )
+{
+    for(int j = 1 ; j <= length(*psi) ; j++) set_site_occupation(psi, sites, j, 0);
+}
+
+void
+set_unit_filling_state( MPS* psi, const SiteSet sites )
+{
+    for(int j = 1 ; j <= length(*psi) ; j++) set_site_occupation(psi, sites, j, 1);
+}
+
+void
+set_fock_excitation( MPS* psi, const SiteSet sites, int n0, int site )
+{
+    set_vacuum_state(psi, sites);
+    set_site_occupation(psi, sites, site, n0);
+}
+
+void
+set_kink_state( MPS* psi, const SiteSet sites, int number_ones )
+{
+    for(int j = 1 ; j <= length(*psi) ; j++) set_site_occupation(psi, sites, j, j <= number_ones ? 1 : 0);
+}
+
+
+// ----------------------------------------------------------
+// coherent, squeezed and cat states
+
+void
+set_coherent_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha )
+{
+    set_vacuum_state(psi, sites);
+    set_site_tensor(psi, sites, site, coherent_amplitudes(dim(sites(site)), alpha));
+}
+
+void
+set_coherent_state_all_sites( MPS* psi, const SiteSet sites, Cplx alpha )
+{
+    for(int j = 1 ; j <= length(*psi) ; j++) set_site_tensor(psi, sites, j, coherent_amplitudes(dim(sites(j)), alpha));
+}
+
+void
+set_squeezed_state_on_site( MPS* psi, const SiteSet sites, int site, double r )
+{
+    set_vacuum_state(psi, sites);
+    set_site_tensor(psi, sites, site, squeezed_amplitudes(dim(sites(site)), r));
+}
+
+void
+set_cat_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha )
+{
+    // (|alpha> + |-alpha>) normalized
+    MPS plus  = randomMPS(sites);
+    MPS minus = randomMPS(sites);
+    set_coherent_state_on_site(&plus,  sites, site,  alpha);
+    set_coherent_state_on_site(&minus, sites, site, -alpha);
+    *psi = sqrt(0.5) * sum(plus, minus);
+    (*psi).position(1);
+    (*psi).normalize();
+}
+
+
 // ----------------------------------------------------------------------
 // Initial bosonic state of the form |n0> |0000...0>.
-void
-set_fock_excitation( MPS* psi, const SiteSet sites, const int size , const int n0 , const int excitation_position)
-{
-	
-	// SITE 1
-
-	Index sj = sites(1);
-	Index li = commonIndex((*psi)(1),(*psi)(2));
-	ITensor wf = ITensor(sj,li);
-
-	if(excitation_position == 1)
-	{
-		for( int d=1; d <= n0; d++) wf.set(sj(d),li(1), 0);
-		wf.set(sj(n0+1),li(1),1);
-		for( int d=n0+2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	}
-	else
-	{
-		wf.set(sj(1),li(1), 1);
-		for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	}
-	(*psi).set(1,wf);
-
-	// SITE 2 TO SIZE-1
-
-	for( int j = 2 ; j < size; j++)
-	{
-		sj = sites(j);
-		li = commonIndex((*psi)(j-1),(*psi)(j));
-		Index ri = commonIndex((*psi)(j),(*psi)(j+1));
-		wf = ITensor(sj,li,ri);
-
-		if(j==excitation_position)
-		{
-			for( int d=1; d <= n0; d++) wf.set(sj(d),li(1),ri(1), 0);
-			wf.set(sj(n0+1),li(1),ri(1),1);
-			for( int d=n0+2; d <= dim(sj); d++) wf.set(sj(d),li(1),ri(1), 0);
-		}
-		else
-		{
-			wf.set(sj(1),li(1),ri(1), 1);
-			for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1),ri(1), 0);
-		}
-		(*psi).set(j,wf);
-	}
-
-	// SITE SIZE (LAST ONE)
-	sj  = sites(size);
-	li = commonIndex((*psi)(size-1),(*psi)(size));
-	wf = ITensor(sj,li);
-
-	if(excitation_position == size)
-	{
-		for( int d=1; d <= n0; d++) wf.set(sj(d),li(1), 0);
-		wf.set(sj(n0+1),li(1),1);
-		for( int d=n0+2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	}
-	else
-	{
-		wf.set(sj(1),li(1), 1);
-		for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	}
-	(*psi).set(size,wf);
-
-}
 
 
-void
-set_fock_excitation_pinned( MPS* psi, const SiteSet sites, const int size , const int n0 , const int excitation_position)
-{
-	
-	// SITE 1
-
-	Index sj = sites(1);
-	Index li = commonIndex((*psi)(1),(*psi)(2));
-	ITensor wf = ITensor(sj,li);
-
-	if(excitation_position == 1)
-	{
-		sj = sites(1);
-		li = commonIndex((*psi)(1),(*psi)(2));
-		wf = ITensor(sj,li);
-		for( int d=1; d <= n0; d++) wf.set(sj(d),li(1), 0);
-		wf.set(sj(n0+1),li(1),1);
-		for( int d=n0+2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-		(*psi).set(1,wf);
-	}
-
-
-	// SITE 2 TO SIZE-1
-
-	else if(excitation_position > 1 && excitation_position < size)
-	{
-		sj = sites(excitation_position);
-		li = commonIndex((*psi)(excitation_position-1),(*psi)(excitation_position));
-		Index ri = commonIndex((*psi)(excitation_position),(*psi)(excitation_position+1));
-		wf = ITensor(sj,li,ri);
-
-
-		for( int d=1; d <= n0; d++) wf.set(sj(d),li(1),ri(1), 0);
-		wf.set(sj(n0+1),li(1),ri(1),1);
-		for( int d=n0+2; d <= dim(sj); d++) wf.set(sj(d),li(1),ri(1), 0);
-		
-		(*psi).set(excitation_position,wf);
-	}
-
-	// SITE SIZE (LAST ONE)
-	
-	if(excitation_position == size)
-	{
-		sj  = sites(size);
-		li = commonIndex((*psi)(size-1),(*psi)(size));
-		wf = ITensor(sj,li);
-		for( int d=1; d <= n0; d++) wf.set(sj(d),li(1), 0);
-		wf.set(sj(n0+1),li(1),1);
-		for( int d=n0+2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-		(*psi).set(size,wf);
-	}
-
-
-}
 
 
 // ----------------------------------------------------------------------
@@ -151,307 +132,24 @@ set_fock_excitation_pinned( MPS* psi, const SiteSet sites, const int size , cons
 
 // ----------------------------------------------------------------------
 // Initial vacuum bosonic state |0000...0>.
-void
-set_vacuum_state( MPS* psi, const SiteSet sites, const int size )
-{
-
-	Index sj = sites(1);
-	Index li = commonIndex((*psi)(1),(*psi)(2));
-	ITensor wf = ITensor(sj,li);
-	wf.set(sj(1),li(1), 1);
-	for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	(*psi).set(1,wf);
-
-	for( int j = 2 ; j < size; j++)
-	{
-		sj = sites(j);
-		li = commonIndex((*psi)(j-1),(*psi)(j));
-		Index ri = commonIndex((*psi)(j),(*psi)(j+1));
-		wf = ITensor(sj,li,ri);
-		wf.set(sj(1),li(1),ri(1), 1);
-		for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1),ri(1), 0);
-		(*psi).set(j,wf);
-	}
-
-	sj  = sites(size);
-	li = commonIndex((*psi)(size-1),(*psi)(size));
-	wf = ITensor(sj,li);
-	wf.set(sj(1),li(1), 1);
-	for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	(*psi).set(size,wf);
-}
 
 
 // ----------------------------------------------------------------------
 // Initial all one bosonic state |1111...1>.
-void
-set_unit_filling_state( MPS* psi, const SiteSet sites, const int size )
-{
-
-	Index sj = sites(1);
-	Index li = commonIndex((*psi)(1),(*psi)(2));
-	ITensor wf = ITensor(sj,li);
-	wf.set(sj(1),li(1), 0);
-	wf.set(sj(2),li(1), 1);
-	for( int d=3; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	(*psi).set(1,wf);
-
-	for( int j = 2 ; j < size; j++)
-	{
-		sj = sites(j);
-		li = commonIndex((*psi)(j-1),(*psi)(j));
-		Index ri = commonIndex((*psi)(j),(*psi)(j+1));
-		wf = ITensor(sj,li,ri);
-		wf.set(sj(1),li(1),ri(1), 0);
-		wf.set(sj(2),li(1),ri(1), 1);
-		for( int d=3; d <= dim(sj); d++) wf.set(sj(d),li(1),ri(1), 0);
-		(*psi).set(j,wf);
-	}
-
-	sj  = sites(size);
-	li = commonIndex((*psi)(size-1),(*psi)(size));
-	wf = ITensor(sj,li);
-	wf.set(sj(1),li(1), 0);
-	wf.set(sj(2),li(1), 1);
-	for( int d=3; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	(*psi).set(size,wf);
-}
 
 
 // Initial bosonic state of the form |000..0> |alpha>_j |0000...0>, such that a|alpha> = alpha|alpha>.
-void
-set_coherent_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const complex<double> alpha )
-{
-
-	Index sj = sites(1);
-	Index li = commonIndex((*psi)(1),(*psi)(2));
-	ITensor wf = ITensor(sj,li);
-
-	if(site==1)
-		{
-		for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), coherent_state_amplitude(alpha, d-1));
-		}
-	else
-		{
-		wf.set(sj(1), li(1), 1);
-		for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-		}
-	(*psi).set(1,wf);
-
-	for( int j = 2 ; j < size; j++)
-	{
-		sj = sites(j);
-		li = commonIndex((*psi)(j-1),(*psi)(j));
-		Index ri = commonIndex((*psi)(j),(*psi)(j+1));
-		wf = ITensor(sj,li,ri);
-		if(j==site)
-			{
-			for( int d=1; d <= dim(sj); d++) wf.set(sj(d), li(1), ri(1), coherent_state_amplitude(alpha, d-1));
-			}
-		else
-			{
-			wf.set(sj(1),li(1),ri(1), 1);
-			for( int d=2; d <= dim(sj); d++) wf.set(sj(d), li(1), ri(1), 0);
-			}
-		(*psi).set(j,wf);
-	}
-
-	sj  = sites(size);
-	li = commonIndex((*psi)(size-1),(*psi)(size));
-	wf = ITensor(sj,li);
-	
-	if(site==size)
-		{
-		for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), coherent_state_amplitude(alpha, d-1));
-		}
-	else
-		{
-		wf.set(sj(1),li(1), 1);
-		for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-		}
-	
-	(*psi).set(size,wf);
 
 
-}
-
-
-void
-set_coherent_state_all_sites( MPS* psi, const SiteSet sites, const int size , complex<double> alpha )
-{
-
-	Index sj = sites(1);
-	Index li = commonIndex((*psi)(1),(*psi)(2));
-	ITensor wf = ITensor(sj,li);
-
-
-	for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), coherent_state_amplitude(alpha, d-1));
-	(*psi).set(1,wf);
-
-
-	for( int j = 2 ; j < size; j++)
-	{
-		sj = sites(j);
-		li = commonIndex((*psi)(j-1),(*psi)(j));
-		Index ri = commonIndex((*psi)(j),(*psi)(j+1));
-		wf = ITensor(sj,li,ri);
-		for( int d=1; d <= dim(sj); d++) wf.set(sj(d), li(1), ri(1), coherent_state_amplitude(alpha, d-1));
-		(*psi).set(j,wf);
-
-	}
-
-	sj  = sites(size);
-	li = commonIndex((*psi)(size-1),(*psi)(size));
-	wf = ITensor(sj,li);
-
-
-	for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), coherent_state_amplitude(alpha, d-1));
-	(*psi).set(size,wf);
-}
 
 
 // Initial bosonic state of the form |000..0> |alpha>_j |0000...0>, such that a|alpha> = alpha|alpha>.
-void
-set_squeezed_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const double r )
-{
-
-	Index sj = sites(1);
 
 
-	if( size > 1)
-	{
-		Index li = commonIndex((*psi)(1),(*psi)(2));
-		ITensor wf = ITensor(sj,li);
-		if(site==1)
-			{
-			for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1),  squeezed_state_amplitude(r, d-1));
-			for( int d=2; d <= dim(sj); d+=2) wf.set(sj(d),li(1),  0);
-			}
-		else
-			{
-			wf.set(sj(1),li(1), 1);
-			for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-			}
-		(*psi).set(1,wf);
-
-		for( int j = 2 ; j < size; j++)
-		{
-			sj = sites(j);
-			li = commonIndex((*psi)(j-1),(*psi)(j));
-			Index ri = commonIndex((*psi)(j),(*psi)(j+1));
-			wf = ITensor(sj,li,ri);
-			if(j==site)
-				{
-				for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1),ri(1), squeezed_state_amplitude(r, d-1));
-				for( int d=2; d <= dim(sj); d+=2) wf.set(sj(d),li(1),ri(1),  0);
-				}
-			else
-				{
-				wf.set(sj(1),li(1),ri(1), 1);
-				for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1),ri(1), 0);
-				}
-			(*psi).set(j,wf);
-		}
-
-		sj  = sites(size);
-		li = commonIndex((*psi)(size-1),(*psi)(size));
-		wf = ITensor(sj,li);
-		
-		if(site==size)
-			{
-			for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1), squeezed_state_amplitude(r, d-1));
-			for( int d=2; d <= dim(sj); d+=2) wf.set(sj(d),li(1),  0);
-			}
-		else
-			{
-			wf.set(sj(1),li(1), 1);
-			for( int d=2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-			}
-		
-		(*psi).set(size,wf);
-	}
-
-	else
-	{
-		ITensor wf = ITensor(sj);
-		for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),  squeezed_state_amplitude(r, d-1));
-		for( int d=2; d <= dim(sj); d+=2) wf.set(sj(d),  0);
-		(*psi).set(size,wf);
-	}
 
 
-}
 
 
-void
-set_cat_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const complex<double> alpha )
-{
-	MPS psi_t_1 = randomMPS(sites);
-	MPS psi_t_2 = randomMPS(sites);
-	set_coherent_state_on_site( &psi_t_1, sites, size , site, alpha );
-	set_coherent_state_on_site( &psi_t_2, sites, size , site, -alpha );
-	*psi = sqrt(0.5) * sum(psi_t_1,psi_t_2);
-	(*psi).position(1);
-	(*psi).normalize();
-}
-
-
-void
-set_kink_state(MPS *psi, const SiteSet sites, const int number_ones)
-{
-	int L =  length(*psi);
-	
-	for(int j=1 ; j<= number_ones; j++)     set_site_occupation(psi,sites,j,1);
-	for(int j=number_ones + 1 ; j<= L; j++) set_site_occupation(psi,sites,j,0);
-
-}
-
-
-void
-set_site_occupation(MPS *psi, const SiteSet sites, const int position, const int n)
-{
-	Index sj;
-	Index li;
-	Index ri;
-	ITensor wf;
-	int L = length(*psi);
-	if( position == 1)
-	{
-		sj = sites(1);
-		li = commonIndex((*psi)(1),(*psi)(2));
-		wf = ITensor(sj,li);
-		for( int d=1; d <= n; d++) wf.set(sj(d),li(1), 0);
-		wf.set(sj(n+1),li(1),1);
-		for( int d=n+2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	}
-
-	else if( position == L)
-	{
-		sj  = sites(L);
-		li = commonIndex((*psi)(L-1),(*psi)(L));
-		wf = ITensor(sj,li);
-
-		for( int d=1; d <= n; d++) wf.set(sj(d),li(1), 0);
-		wf.set(sj(n+1),li(1),1);
-		for( int d=n+2; d <= dim(sj); d++) wf.set(sj(d),li(1), 0);
-	}
-
-	else
-	{
-		sj = sites(position);
-		li = commonIndex((*psi)(position-1),(*psi)(position));
-		ri = commonIndex((*psi)(position),(*psi)(position+1));
-		wf = ITensor(sj,li,ri);
-
-		for( int d=1; d <= n; d++) wf.set(sj(d),li(1),ri(1), 0);
-		wf.set(sj(n+1),li(1),ri(1),1);
-		for( int d=n+2; d <= dim(sj); d++) wf.set(sj(d),li(1),ri(1), 0);
-		
-	}
-
-	(*psi).set(position,wf);
-
-}
 
 
 // factorial n!

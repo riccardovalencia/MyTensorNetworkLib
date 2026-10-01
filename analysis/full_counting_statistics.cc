@@ -3,325 +3,140 @@
  * @brief Implementation of full_counting_statistics.h (the functions are documented in the header).
  */
 #include "full_counting_statistics.h"
-#include "../io/output.h"
 #include <itensor/all.h>
 #include <cmath>
 #include <complex>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <string>
-#include <tuple>
 #include <vector>
 
 using namespace std;
 using namespace itensor;
 
 
-//----------------------------------------------------------------------
-//return theta where to evaluate generating function
-double 
-theta_step( int col , int numberPoints )
-	{
-	double thetaStep;
-	if ( col <= numberPoints / 4 || col >= (3 * numberPoints / 4 - 1) ) thetaStep = ( M_PI - 1. ) / ( numberPoints / 4 );
-	else thetaStep = 2. / (numberPoints / 2.);	
-	return thetaStep;
-	}
+vector<double>
+make_theta_grid( int number_points )
+{
+    vector<double> theta = {-M_PI};
+    for(int k = 0 ; k < number_points - 1 ; k++)
+    {
+        bool outer = (k <= number_points / 4 || k >= (3 * number_points / 4 - 1));
+        theta.push_back(theta.back() + (outer ? (M_PI - 1.) / (number_points / 4) : 2. / (number_points / 2.)));
+    }
+    return theta;
+}
 
 
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
-// measure of the generating function of probability distribution function of total magnetization in a certain
-// subsystem at time fixed and size of subsystem on an input MPS (representing a pure state).
-// The subsystem is centered along the finite chain
-
-void
-generating_function_sim_size( vector<double> &singleGreal , vector<double> &singleGimag , int size , int N , int numberPoints , MPS* psi , const SpinHalf sites )
-	{
-	int start;
-	
-	if( size % 2 == 0)	start = ( N/2 - size / 2 );					//if size is even we go to the left of the center
-	else start = ( N/2 - (size + 1) / 2 ) ;
-	(*psi).position( start );	
-
-	double theta = -M_PI ;
-
-	for( int col = 0 ; col < numberPoints ; col++ ) 					//particular value of theta
-		{
-		ITensor Sx = sites.op( "Sx", start );
-		ITensor Obs = expHermitian(Sx , theta * 1_i  ); 
-		ITensor Meas;
-		
-		if( size == 0 )
-			{
-			Meas = (*psi)(start) * Obs * dag( prime( (*psi)(start) , "Site" ) );
-			}		
-		else
-			{
-			Index ir = commonIndex( (*psi)(start) , (*psi)(start + 1) , "Link");
-			Meas = (*psi)(start) * Obs * dag( prime( prime( (*psi)(start) , "Site" ) , ir ) );
-			
-			for( int row = 1 ; row < size ; row++ )
-				{
-				Sx = sites.op("Sx", start + row);
-				Obs = expHermitian(Sx , theta * 1_i  ); 
-				Meas *= (*psi)(start + row) ;
-				Meas *= Obs ;
-				Meas *= dag( prime( (*psi)(start + row) ) );
-				}
-			
-			Meas *= (*psi)( start + size );
-			Index il = commonIndex( (*psi)( start + size ), (*psi)( start + size -1 ), "Link");
-	
-			Sx = sites.op("Sx", start + size );
-			Obs = expHermitian(Sx , theta * 1_i  ); 
-			Meas *= Obs;
-			Meas *= dag( prime( prime( (*psi)( start + size ), il ) , "Site") );
-			}
-			
-		theta += theta_step( col , numberPoints);
-	
-		complex<double> SingleMeasure = eltC(Meas);
-		singleGreal.push_back( SingleMeasure.real() );
-		singleGimag.push_back( SingleMeasure.imag() );
-		}
-	}
+int
+block_start( int N, int block_size )
+{
+    int size = block_size - 1;
+    return (size % 2 == 0) ? N/2 - size/2 : N/2 - (size + 1)/2;
+}
 
 
-//----------------------------------------------------------------------
-//measure of generating function and saving of the information	
-void	
-measure_generating_function( MPS* psi , const SpinHalf sites , int N , int n , int maxLength , int numberPoints , stringstream* save_real , stringstream* save_imag )
-	{
-	vector<vector<double> > Greal;
-	vector<vector<double> > Gimag;
-	
-	stringstream save_real_two , save_imag_two;
-	save_real_two << (*save_real).str();
-	save_imag_two << (*save_imag).str();
-	
-	save_real_two << n << ".dat";
-	save_imag_two << n << ".dat";				
-		
-	if( fileExists( save_real_two.str() ) == false)
-		{
-		for( int size = 0 ; size < maxLength ; size++ )
-			{			
-			vector<double> singleGreal;
-			vector<double> singleGimag;			
-			generating_function_sim_size( singleGreal , singleGimag , size , N , numberPoints , psi , sites );
-			Greal.push_back( singleGreal );
-			Gimag.push_back( singleGimag );
-			}
-		
-		printing_generating_function( &save_real_two , numberPoints , maxLength , Greal );  
-		printing_generating_function( &save_imag_two , numberPoints , maxLength , Gimag );  
-		}
-	else cout << "The files " << save_real_two.str() << " and "
-			  << save_imag_two.str()
-			  << " already exist." << endl;
+// contraction <psi| prod_{j in A} exp(i theta S^x_j) |psi> with the orthogonality center at the
+// first site of the block: the parts of the chain outside the block contract to the identity
 
-	}	
+vector<complex<double> >
+compute_generating_function( MPS* psi, const SpinHalf sites, int block_size, const vector<double>& theta )
+{
+    int N     = length(*psi);
+    int start = block_start(N, block_size);
+    int end   = start + block_size - 1;
+    (*psi).position(start);
+
+    vector<complex<double> > G;
+    for(double th : theta)
+    {
+        auto phase = [&](int j) { return expHermitian(op(sites, "Sx", j), th * 1_i); };
+        ITensor contraction;
+        if(block_size == 1)
+        {
+            contraction = (*psi)(start) * phase(start) * dag(prime((*psi)(start), "Site"));
+        }
+        else
+        {
+            // first site: the left link is contracted between bra and ket
+            Index right = commonIndex((*psi)(start), (*psi)(start + 1), "Link");
+            contraction = (*psi)(start) * phase(start) * dag(prime(prime((*psi)(start), "Site"), right));
+            for(int j = start + 1 ; j < end ; j++)
+            {
+                contraction *= (*psi)(j);
+                contraction *= phase(j);
+                contraction *= dag(prime((*psi)(j)));
+            }
+            // last site: the right link is contracted between bra and ket
+            Index left = commonIndex((*psi)(end), (*psi)(end - 1), "Link");
+            contraction *= (*psi)(end);
+            contraction *= phase(end);
+            contraction *= dag(prime(prime((*psi)(end), left), "Site"));
+        }
+        G.push_back(eltC(contraction));
+    }
+    return G;
+}
 
 
-//----------------------------------------------------------------------
-//return the MPO of the total magnetization of a spin-1/2 system of a subsystem of size "size"
+// Tr(rho O): every site of the MPO is contracted with exp(i theta S^x_j) in the block and with the
+// identity outside
+
+vector<complex<double> >
+compute_generating_function( MPO* rho, const SpinHalf sites, int block_size, const vector<double>& theta )
+{
+    int N     = length(*rho);
+    int start = block_start(N, block_size);
+    int end   = start + block_size - 1;
+
+    vector<complex<double> > G;
+    for(double th : theta)
+    {
+        ITensor trace = (*rho)(1);
+        if(1 >= start && 1 <= end) trace *= expHermitian(op(sites, "Sx", 1), th * 1_i);
+        else                       trace *= op(sites, "Id", 1);
+        for(int j = 2 ; j <= N ; j++)
+        {
+            if(j >= start && j <= end)
+            {
+                trace *= (*rho)(j);
+                trace *= expHermitian(op(sites, "Sx", j), th * 1_i);
+            }
+            else trace *= (*rho)(j) * op(sites, "Id", j);
+        }
+        G.push_back(eltC(trace));
+    }
+    return G;
+}
+
+
 MPO
-make_block_sx_mpo( const SpinHalf sites , const int start ,  const int size )
-	{
-	
-	AutoMPO ampo(sites);
-		
-	for(int j = start ; j <= start + size ; j++) ampo += 1. , "Sx" , j ;
-
-	MPO totalSx = toMPO(ampo);	
-	
-	return totalSx;
-	}	
+make_block_sx_mpo( const SpinHalf sites, int start, int block_size )
+{
+    AutoMPO ampo(sites);
+    for(int j = start ; j < start + block_size ; j++) ampo += 1., "Sx", j;
+    return toMPO(ampo);
+}
 
 
-//----------------------------------------------------------------------
-// measure the first 4 moments of the full counting statistics of the total magnetization of a system of N spin-1/2 system
-// on a subsystem of size maxLength centered along the chain of size 
+vector<complex<double> >
+compute_cumulants( MPS* psi, const SpinHalf sites, int block_size )
+{
+    int start = block_start(length(*psi), block_size);
+    (*psi).position(start);
+    MPO Sx = make_block_sx_mpo(sites, start, block_size);
 
-void
-measuring_moments( MPS *psi , const SpinHalf sites , const int N , const int n , const int maxLength , stringstream* saveRealMoments , stringstream* saveImagMoments )
-	{
-	int start;
-	
-	vector<vector<double> > MReal;
-	vector<vector<double> > MImag; 
-	
-	stringstream saveRealMomentsTwo , saveImagMomentsTwo;
-	saveRealMomentsTwo << (*saveRealMoments).str() << n << ".dat";
-	saveImagMomentsTwo << (*saveImagMoments).str() << n << ".dat";	
+    // powers of the MPO: in ITensor v3, A*B = nmultMPO(A, prime(B)) with primes 2 -> 1
+    Args args_mult = {"MaxDim", 500, "Cutoff", 1E-16};
+    MPO Sx2 = nmultMPO(Sx, prime(Sx), args_mult);   Sx2.mapPrime(2,1);
+    MPO Sx3 = nmultMPO(Sx2, prime(Sx), args_mult);  Sx3.mapPrime(2,1);
+    MPO Sx4 = nmultMPO(Sx2, prime(Sx2), args_mult); Sx4.mapPrime(2,1);
 
+    // moments M_k = <(S^x_A)^k>
+    complex<double> M1 = innerC(*psi, Sx, *psi);
+    complex<double> M2 = innerC(*psi, Sx2, *psi);
+    complex<double> M3 = innerC(*psi, Sx3, *psi);
+    complex<double> M4 = innerC(*psi, Sx4, *psi);
 
-	if( fileExists( saveRealMomentsTwo.str() ) == false)
-		{
-		for( int size = 0 ; size < maxLength ; size ++) 
-			{
-			cout << "nmeas : " << n << "\tSize : " << size << endl;
-			if( size % 2 == 0)	start = ( N/2 - size / 2 );					//if size is even we go to the left of the center
-			else start = ( N/2 - (size + 1) / 2 ) ;
-		
-			(*psi).position( start );
-			MPO totalSx = make_block_sx_mpo( sites , start , size );
-	
-			// powers of the MPO: in ITensor v3, A*B = nmultMPO(A,prime(B)) with primes 2 -> 1
-			Args args_mult = {"MaxDim",500,"Cutoff",1E-16};
-			MPO Moment2 = nmultMPO(totalSx,prime(totalSx),args_mult); Moment2.mapPrime(2,1);
-			MPO Moment3 = nmultMPO(Moment2,prime(totalSx),args_mult); Moment3.mapPrime(2,1);
-			MPO Moment4 = nmultMPO(Moment2,prime(Moment2),args_mult); Moment4.mapPrime(2,1);
-	
-			complex<double> M1 = innerC( *psi , totalSx , *psi );
-			complex<double> M2 = innerC( *psi , Moment2 , *psi );
-			complex<double> M3 = innerC( *psi , Moment3 , *psi );
-			complex<double> M4 = innerC( *psi , Moment4 , *psi );
-		
-			complex<double> C1 = M1;
-			complex<double> C2 = M2 - M1*M1;
-			complex<double> C3 = M3 - 3*M2*M1 + 2*M1*M1*M1;
-			complex<double> C4 = M4 - 4*M3*M1 - 3*M2*M2 + 12*M2*M1*M1 - 6*M1*M1*M1*M1;
-			
-			vector<double> MSingleReal;
-			vector<double> MSingleImag;
-			
-			MSingleReal.push_back( C1.real() );
-			MSingleReal.push_back( C2.real() );
-			MSingleReal.push_back( C3.real() );
-			MSingleReal.push_back( C4.real() );
-					
-			MSingleImag.push_back( C1.imag() );
-			MSingleImag.push_back( C2.imag() );
-			MSingleImag.push_back( C3.imag() );
-			MSingleImag.push_back( C4.imag() );
-			
-			MReal.push_back( MSingleReal );
-			MImag.push_back( MSingleImag );
-			}
-					
-			ofstream SaveFileReal( saveRealMomentsTwo.str().c_str() );
-			ofstream SaveFileImag( saveImagMomentsTwo.str().c_str() ); 
-	
-			SaveFileReal << setprecision(10) << fixed;
-			SaveFileImag << setprecision(10) << fixed;
-	
-			int col , row;
-			
-			for( row = 0 ; row < maxLength ; row++ )
-				{
-				for( col = 0 ; col <= 3 ; col++ )
-					{
-					SaveFileReal << MReal[row][col] << " ";
-					SaveFileImag << MImag[row][col] << " ";
-					}
-				if( row != (maxLength-1) ) 
-					{
-					SaveFileReal << "\n";	
-					SaveFileImag << "\n";				
-					}
-				}
-				
-			SaveFileReal.close();	
-			SaveFileImag.close();	
-		}
-	
-	else cout << "The files " << saveRealMomentsTwo.str() << " and "
-			  << saveImagMomentsTwo.str()
-			  << " already exist.\n" << endl;		
-	
-	}
-
-
-// ======================================================================
-// Mixed states (density matrix rho given as an MPO)
-// ======================================================================
-
-//----------------------------------------------------------------------
-// measure of the generating function of probability distribution function of total magnetization in a certain
-// subsystem at time fixed and size of subsystem on an input MPO (representing a mixed state).
-// The subsystem is centered along the finite chain
-
-void
-generating_function_sim_size( vector<double> &singleGreal , vector<double> &singleGimag , int size , int N , int numberPoints , MPO* psi , const SpinHalf sites )
-	{
-	int start;
-	
-	if( size % 2 == 0)	start = ( N/2 - size / 2 );					//if size is even we go to the left of the center
-	else start = ( N/2 - (size + 1) / 2 ) ;
-
-	double theta = -M_PI ;
-    
-	for( int col = 0 ; col < numberPoints ; col++ ) 					//particular value of theta
-		{
-
-		ITensor Sx = op(sites, "Sx", start );
-		ITensor Obs = expHermitian(Sx , theta * 1_i  ); 
-
-		ITensor Meas;
-		
-        Meas = (*psi)(1);
-        Meas *= op(sites,"Id",1);
-
-        for( int j = 2 ; j < start ; j++) Meas *= (*psi)(j) * op(sites,"Id",j);
-	
-		if( size == 0 ) Meas *= (*psi)(start) * Obs ;
-					
-		else
-			{
-			for( int row = 0 ; row <= size ; row++ )
-				{
-				Sx = op(sites,"Sx", start + row);
-				Obs = expHermitian(Sx , theta * 1_i  ); 
-				Meas *= (*psi)(start + row) ;
-				Meas *= Obs ;
-				}
-
-			}
-        for( int j = start + size + 1 ; j <= N ; j++) Meas *= (*psi)(j) * op(sites,"Id",j);
-		
-		theta += theta_step( col , numberPoints);
-
-		complex<double> SingleMeasure = eltC(Meas);
-		singleGreal.push_back( SingleMeasure.real() );
-		singleGimag.push_back( SingleMeasure.imag() );
-		}
-	}
-
-
-//----------------------------------------------------------------------
-//measure of generating function and saving of the information	
-void	
-measure_generating_function( MPO* rho , const SpinHalf sites , int N , int maxLength , int numberPoints , double hx , double hz)
-	{
-	vector<vector<double> > Greal;
-	vector<vector<double> > Gimag;
-	
-	stringstream save_real_two , save_imag_two;
-	
-	save_real_two << "Termal_N" << N << "_hx_" << hx << "_hz_" << hz << "_GF_real.dat";
-	save_imag_two << "Termal_N" << N << "_hx_" << hx << "_hz_" << hz << "_GF_imag.dat";
-
-	if( fileExists( save_real_two.str() ) == false)
-		{
-		for( int size = 0 ; size < maxLength ; size++ )
-			{			
-			vector<double> singleGreal;
-			vector<double> singleGimag;			
-			generating_function_sim_size( singleGreal , singleGimag , size , N , numberPoints , rho , sites );
-			Greal.push_back( singleGreal );
-			Gimag.push_back( singleGimag );
-			}
-		
-		printing_generating_function( &save_real_two , numberPoints , maxLength , Greal );  
-		printing_generating_function( &save_imag_two , numberPoints , maxLength , Gimag );  
-		}
-	else cout << "The files " << save_real_two.str() << " and "
-			  << save_imag_two.str()
-			  << " already exist." << endl;
-
-	}
+    return {M1,
+            M2 - M1*M1,
+            M3 - 3.*M2*M1 + 2.*M1*M1*M1,
+            M4 - 4.*M3*M1 - 3.*M2*M2 + 12.*M2*M1*M1 - 6.*M1*M1*M1*M1};
+}

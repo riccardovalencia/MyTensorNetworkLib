@@ -97,4 +97,17 @@ compute_reduced_density_matrix(MPS * psi, int i, int j);
 complex<double>
 measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor op_j, int i, int j);
 
+/**
+ * @brief Set site `site` of *psi to the single-site state sum_d amplitudes[d-1] |d>, keeping the link
+ *        indices of the MPS (only the element with all link indices equal to 1 is non-zero).
+ *
+ * Used to build product states. The tensor is real if all amplitudes are real.
+ * @param psi        State to modify (it must have link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites      Site set of psi.
+ * @param site       Site to set.
+ * @param amplitudes One amplitude per basis state of the site (dim(sites(site)) values).
+ */
+void
+set_site_tensor( MPS* psi, const SiteSet& sites, int site, const vector<Cplx>& amplitudes );
+
 #endif

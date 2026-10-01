@@ -31,7 +31,7 @@ MPS
 make_super_bosonic_state(MPS state_to_insert, const SiteSet sites, const SiteSet sites_state_to_insert, const int L, const int N, const int n0, const int k)
 {
 	MPS psi_t0 = randomMPS(sites);
-	set_fock_excitation( &psi_t0, sites, N , n0, k+1);
+	set_fock_excitation( &psi_t0, sites, n0, k+1);
 	insert_state(&psi_t0, state_to_insert, sites, sites_state_to_insert, k+2, L, N);
 	return psi_t0;
 }
@@ -43,7 +43,7 @@ MPS
 make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double s, const double c, double dt, double T)
 {
 	int L = length(*psi_coherent);
-	set_coherent_state_on_site( psi_coherent, sites_coherent, L , 1, alpha );
+	set_coherent_state_on_site( psi_coherent, sites_coherent, 1, alpha );
 	evolve_adiabatic_linear_ramp( psi_coherent, sites_coherent, s, c, dt, T);
 
 	return *psi_coherent;
@@ -58,7 +58,7 @@ MPS
 make_super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeezed, const double alpha, const double s, const double c, double dt, double T)
 {
 	int L = length(*psi_squeezed);
-	set_squeezed_state_on_site( psi_squeezed, sites_squeezed, L , 1, alpha );
+	set_squeezed_state_on_site( psi_squeezed, sites_squeezed, 1, alpha );
 	evolve_adiabatic_linear_ramp( psi_squeezed, sites_squeezed, s, c, dt, T);
 
 	return *psi_squeezed;

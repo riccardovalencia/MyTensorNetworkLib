@@ -9,7 +9,7 @@
  * - dynamics/     open-system and adiabatic dynamics, purified density matrices
  * - ground_state/ DMRG drivers
  * - analysis/     full counting statistics
- * - io/           data management: output files, loading stored states, command-line input
+ * - io/           data management: output files, loading stored states
  */
 #ifndef MYTN_ALL_H
 #define MYTN_ALL_H
@@ -42,6 +42,5 @@
 
 #include "io/output.h"
 #include "io/load.h"
-#include "io/input.h"
 
 #endif

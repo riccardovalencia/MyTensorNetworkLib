@@ -24,21 +24,6 @@ namespace fs = std::filesystem;
 //   input parameters (with defaults in the code): N, J, hx, hz, T, dt, maxDim, state
 //        state = up (all |+x>, default), down (all |-x>) or wall (domain wall)
 
-// Write the generating function of blocks of 1..G_re.size() sites, one line per theta.
-void
-write_generating_function(const string file, const vector<double>& theta,
-                          const vector<vector<double> >& G_re, const vector<vector<double> >& G_im)
-{
-    ofstream out(file);
-    out << setprecision(10) << "# theta . Re G_l . Im G_l  (l = 1, 2, ...)\n";
-    for(size_t k = 0 ; k < theta.size() ; k++)
-    {
-        out << theta[k];
-        for(size_t l = 0 ; l < G_re.size() ; l++) out << " " << G_re[l][k] << " " << G_im[l][k];
-        out << "\n";
-    }
-}
-
 int main(int argc, char* argv[])
 {
     if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
@@ -79,8 +64,7 @@ int main(int argc, char* argv[])
     vector<BondGate> gates;
     for(int b = 1 ; b <= N-1 ; b++)
     {
-        ITensor hterm;
-        build_single_step(&hterm, sites, N, J, hx, hz, b);
+        ITensor hterm = make_ising_bond_hamiltonian(sites, N, J, hx, hz, b);
         gates.push_back(BondGate(sites, b, b+1, BondGate::tReal, dt/2., hterm));
     }
     for(int b = N-1 ; b >= 1 ; b--) { BondGate g = gates[b-1]; gates.push_back(g); }
@@ -94,8 +78,7 @@ int main(int argc, char* argv[])
     ofstream out_entropy(root + "_entropy.txt");
     out_entropy << setprecision(10) << "# t . S_1 . ... . S_{N-1}\n";
 
-    vector<double> theta = {-M_PI};
-    for(int k = 0 ; k < numberPoints-1 ; k++) theta.push_back(theta.back() + theta_step(k, numberPoints));
+    vector<double> theta = make_theta_grid(numberPoints);
 
     // ---------------------------------
     // Time evolution
@@ -107,15 +90,15 @@ int main(int argc, char* argv[])
         if(n > 0) gateTEvol(gates, t_measure, dt, psi, args);
 
         out_entropy << t;
-        for(int b = 1 ; b < N ; b++) out_entropy << " " << entanglement_entropy(&psi, N, b);
+        for(int b = 1 ; b < N ; b++) out_entropy << " " << compute_entanglement_entropy(&psi, b, true);
         out_entropy << endl;
 
-        vector<vector<double> > G_re(maxLength), G_im(maxLength);
-        for(int l = 1 ; l <= maxLength ; l++)
-            generating_function_sim_size(G_re[l-1], G_im[l-1], l-1, N, numberPoints, &psi, sites);
-        write_generating_function(tinyformat::format("%s_gf_t%.2f.txt", root, t), theta, G_re, G_im);
+        vector<vector<complex<double> > > G;
 
-        cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << entanglement_entropy(&psi, N, N/2) << "\n";
+        for(int l = 1 ; l <= maxLength ; l++) G.push_back(compute_generating_function(&psi, sites, l, theta));
+        write_generating_function(tinyformat::format("%s_gf_t%.2f.txt", root, t), theta, G);
+
+        cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << compute_entanglement_entropy(&psi, N/2, true) << "\n";
     }
 
     return 0;

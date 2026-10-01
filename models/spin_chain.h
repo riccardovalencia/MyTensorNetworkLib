@@ -55,15 +55,15 @@ make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double
  * The single-site terms are split between neighbouring bonds (full weight on the edges), so
  * that summing the bond terms gives H.
  *
- * @param hterm Output: bond Hamiltonian on (b, b+1), to build an ITensor BondGate.
  * @param sites Spin-1/2 site set.
  * @param N     Number of sites.
  * @param J     Overall energy scale.
  * @param hx    Longitudinal field (along the Ising axis x).
  * @param hz    Transverse field.
  * @param b     Left site of the bond.
+ * @return Bond Hamiltonian on (b, b+1) (e.g. to build an ITensor BondGate).
  */
-void
-build_single_step( ITensor *hterm , const SpinHalf sites , const int N , const double J , const double hx , const double hz , const int b );
+ITensor
+make_ising_bond_hamiltonian( const SpinHalf sites , const int N , const double J , const double hx , const double hz , const int b );
 
 #endif

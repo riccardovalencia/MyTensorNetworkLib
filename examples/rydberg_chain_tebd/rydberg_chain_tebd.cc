@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
         if(k % steps_measure == 0)
         {
             double fidelity = pow(abs(innerC(psi_t0, psi)), 2);
-            double EE       = entanglement_entropy(&psi, N/2);
+            double EE       = compute_entanglement_entropy(&psi, N/2);
 
             save_file << t << " " << fidelity << " " << EE << " " << maxLinkDim(psi) << "\n";
 

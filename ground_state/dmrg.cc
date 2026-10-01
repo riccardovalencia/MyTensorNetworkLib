@@ -424,7 +424,7 @@ set_excited_state_guess( MPS *ground_state_variance, const SiteSet sites, const 
  	std::uniform_real_distribution<double> distribution(0, size-1);
 
 	// start from the vacuum, keeping the link indices of *ground_state_variance
-	set_vacuum_state( ground_state_variance, sites, size );
+	set_vacuum_state( ground_state_variance, sites );
 
 	// current_occupation[j] - 1 bosons on site j+1
 	vector<int> current_occupation(size, 1);

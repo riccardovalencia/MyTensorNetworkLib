@@ -37,10 +37,6 @@ make_rydberg_gates_nn(const SiteSet sites , const vector<double> Deltaj, const v
 vector<TebdGate>
 make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
 
-/** @deprecated Older implementation of make_rydberg_gates_nnn; use make_rydberg_gates_nnn. */
-vector<TebdGate>
-make_rydberg_gates_nnn_deprecated(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
-
 /**
  * @brief Three-site gates of the PXP model, H = omega sum_j P_{j-1} X_j P_{j+1}, P = (1+Z)/2.
  * @param sites Spin-1/2 site set.

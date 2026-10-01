@@ -639,3 +639,32 @@ compute_reduced_density_matrix(MPS *psi, int i, int j)
     return rho;
 
 }
+
+
+// ----------------------------------------------------------
+// product-state tensor on one site, keeping the link indices of the MPS
+
+void
+set_site_tensor( MPS* psi, const SiteSet& sites, int site, const vector<Cplx>& amplitudes )
+{
+    int N = length(*psi);
+    Index s = sites(site);
+
+    IndexSet is = {s};
+    if(site > 1) is = IndexSet(is, leftLinkIndex(*psi, site));
+    if(site < N) is = IndexSet(is, rightLinkIndex(*psi, site));
+    ITensor wf = ITensor(is);
+
+    bool real = true;
+    for(Cplx a : amplitudes) if(a.imag() != 0.) real = false;
+
+    for(int d = 1 ; d <= dim(s) ; d++)
+    {
+        // all link indices take value 1
+        vector<IndexVal> iv = {s(d)};
+        for(Index l : is) if(l != s) iv.push_back(l(1));
+        if(real) wf.set(iv, amplitudes[d-1].real());
+        else     wf.set(iv, amplitudes[d-1]);
+    }
+    (*psi).set(site, wf);
+}

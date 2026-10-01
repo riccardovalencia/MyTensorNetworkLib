@@ -24,9 +24,10 @@ using namespace itensor;
 
 //single time step for time evolution in bosonic quantum east model chain with losses
  
-void
-build_single_step_jumps( ITensor *hterm , const SiteSet sites , const int size , const double J , const double c , const double gamma, const int j )
+ITensor
+make_bosonic_east_model_bond_hamiltonian_dephasing( const SiteSet sites , const int size , const double J , const double c , const double gamma, const int j )
 {
+    ITensor hterm;
 
 	double U = 1 - 2*c;		
 	ITensor Nj  = op(sites, "N" , j);					
@@ -36,33 +37,34 @@ build_single_step_jumps( ITensor *hterm , const SiteSet sites , const int size ,
 	ITensor Xj_plus_1  = op(sites, "A" , j+1) + op(sites, "Adag" , j+1);
 	ITensor Idj_plus_1 = op(sites, "Id" , j+1);
 
-	*hterm = - 0.5 * Nj * ( J * Xj_plus_1 - U * Nj_plus_1) ;
+	hterm = - 0.5 * Nj * ( J * Xj_plus_1 - U * Nj_plus_1) ;
 
-	if( j==size-1) *hterm += 0.50 * Nj * Idj_plus_1 + 0.5  * Idj * Nj_plus_1;
-	else 		   *hterm += 0.50 * Nj * Idj_plus_1 ;
+	if( j==size-1) hterm += 0.50 * Nj * Idj_plus_1 + 0.5  * Idj * Nj_plus_1;
+	else 		   hterm += 0.50 * Nj * Idj_plus_1 ;
 
 	// density noise
 	
 	ITensor Nj_square = op(sites, "N" , j) * prime(op(sites, "N" , j),"Site");
 	Nj_square.mapPrime(2,1);
 
-	*hterm += -0.5 * gamma * Cplx_i * Nj_square * Idj_plus_1;
+	hterm += -0.5 * gamma * Cplx_i * Nj_square * Idj_plus_1;
 
 	Nj_square = op(sites, "N" , j+1) * prime(op(sites, "N" , j+1),"Site");
 	Nj_square.mapPrime(2,1);
 
-	if(j==size - 1) *hterm += -0.5 * gamma * Cplx_i * Idj * Nj_square; 
-	
-	}
+	if(j==size - 1) hterm += -0.5 * gamma * Cplx_i * Idj * Nj_square;
+    return hterm;
+}
 
 
 // single time step for the time evoluton of the open bosonic quantum east model - the jump operators are in the vector<ITensor> Lj and Ljd
 
 //single time step for time evolution in bosonic quantum east model chain with losses
  
-void
-build_single_step_jumps_v2( ITensor *hterm , const SiteSet sites , const int size , const double J , const double c , const int j , vector<ITensor> &Lj, vector<ITensor> &Ljd)
+ITensor
+make_bosonic_east_model_bond_hamiltonian_jumps( const SiteSet sites , const int size , const double J , const double c , const int j , vector<ITensor> &Lj, vector<ITensor> &Ljd)
 {
+    ITensor hterm;
 
 	double U = 1 - 2*c;		
 	ITensor Nj  = op(sites, "N" , j);					
@@ -74,32 +76,32 @@ build_single_step_jumps_v2( ITensor *hterm , const SiteSet sites , const int siz
 
 	// TESTING H = 0
 
-	*hterm = - 0.5 * Nj * ( J * Xj_plus_1 - U * Nj_plus_1) ;
-	*hterm += 0.50 * Nj * Idj_plus_1 ;
-	if( j==size-1) *hterm += 0.5  * Idj * Nj_plus_1;
+	hterm = - 0.5 * Nj * ( J * Xj_plus_1 - U * Nj_plus_1) ;
+	hterm += 0.50 * Nj * Idj_plus_1 ;
+	if( j==size-1) hterm += 0.5  * Idj * Nj_plus_1;
 
 	ITensor LdL_j = prime(Ljd[j-1],"Site") * Lj[j-1];
 	LdL_j.mapPrime(2,1);
 
 
-	*hterm += -0.5 * Cplx_i * LdL_j * Idj_plus_1;
+	hterm += -0.5 * Cplx_i * LdL_j * Idj_plus_1;
 
 	if( j == size-1 )
 	{
 		LdL_j =  prime(Ljd[j],"Site") * Lj[j];
 		LdL_j.mapPrime(2,1);
-		*hterm += -0.5 * Cplx_i * Idj * LdL_j;
+		hterm += -0.5 * Cplx_i * Idj * LdL_j;
 	}
-
-
-	}
+    return hterm;
+}
 
 
 //single time step for time evolution in bosonic quantum east model chain
 
-void
-build_single_step( ITensor *hterm , const SiteSet sites , const int size , const double J , const double c , const int j )
+ITensor
+make_bosonic_east_model_bond_hamiltonian( const SiteSet sites , const int size , const double J , const double c , const int j )
 	{
+    ITensor hterm;
 
 	double U = 1 - 2*c;		
 	ITensor Nj  = op(sites, "N" , j);					
@@ -109,22 +111,22 @@ build_single_step( ITensor *hterm , const SiteSet sites , const int size , const
 	ITensor Sxj_plus_1 = op(sites, "A" , j+1) + op(sites, "Adag" , j+1);
 	ITensor Idj_plus_1 = op(sites, "Id" , j+1);
 
-	*hterm = - 0.5 * Nj * ( J * Sxj_plus_1 - U * Nj_plus_1) ;
+	hterm = - 0.5 * Nj * ( J * Sxj_plus_1 - U * Nj_plus_1) ;
 
-	if( j==size-1) *hterm += 0.50 * Nj * Idj_plus_1 + 0.5  * Idj * Nj_plus_1;
-	else 		   *hterm += 0.50 * Nj * Idj_plus_1 ;
-
-
-	}
+	if( j==size-1) hterm += 0.50 * Nj * Idj_plus_1 + 0.5  * Idj * Nj_plus_1;
+	else 		   hterm += 0.50 * Nj * Idj_plus_1 ;
+    return hterm;
+}
 
 
 //----------------------------------------------------------------------
 
 //single time step for time evolution in bosonic quantum east model chain, with symmetry on n0
 
-void
-build_single_step_n0( ITensor *hterm , const SiteSet sites , const int size , const int n0, const double J , const double c , const int j )
+ITensor
+make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int size , const int n0, const double J , const double c , const int j )
 	{
+    ITensor hterm;
 
 	double U = 1 - 2*c;		
 	ITensor Nj  = op(sites, "N" , j);					
@@ -137,35 +139,36 @@ build_single_step_n0( ITensor *hterm , const SiteSet sites , const int size , co
 
 	if( j== 1) 
 	{	
-		*hterm =  - 0.5 * n0 * ( J * Sxj * Idj_plus_1 - U * Nj * Idj_plus_1) ;
-		*hterm += - 0.5 * Nj * ( J * Sxj_plus_1 - U * Nj_plus_1) ;
+		hterm =  - 0.5 * n0 * ( J * Sxj * Idj_plus_1 - U * Nj * Idj_plus_1) ;
+		hterm += - 0.5 * Nj * ( J * Sxj_plus_1 - U * Nj_plus_1) ;
 	}
-	else *hterm = - 0.5 * Nj * ( J * Sxj_plus_1 - U * Nj_plus_1) ;
+	else hterm = - 0.5 * Nj * ( J * Sxj_plus_1 - U * Nj_plus_1) ;
 
-	if( j==1 )     *hterm += 0.5  * Nj * Idj_plus_1 + 0.25 * Idj * Nj_plus_1;
-	if( j==size-1) *hterm += 0.25 * Nj * Idj_plus_1 + 0.5  * Idj * Nj_plus_1;
-	else 		   *hterm += 0.25 * Nj * Idj_plus_1 + 0.25 * Idj * Nj_plus_1;
-
-	}
+	if( j==1 )     hterm += 0.5  * Nj * Idj_plus_1 + 0.25 * Idj * Nj_plus_1;
+	if( j==size-1) hterm += 0.25 * Nj * Idj_plus_1 + 0.5  * Idj * Nj_plus_1;
+	else 		   hterm += 0.25 * Nj * Idj_plus_1 + 0.25 * Idj * Nj_plus_1;
+    return hterm;
+}
 
 
 // Build a full TEBD time step under the bosonic quantum east hamiltonian with only next-neighbour density-density interaction
 // i.e. H = - 0.5 \sum_i n_i (exp(-s)\sigma_i+1^x - U n_i+1 - 1) where we do not fix any symmetry sector. 
 // deprecated the usage of open function since 21.03.22 -> use 
-void
-build_tebd_dt_step(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , const string dynamics ,const double gamma)
+vector<BondGate>
+make_bosonic_east_model_gates(const SiteSet sites, const int size, const double dt, const double J, const double c , const string dynamics ,const double gamma)
 {
+    vector<BondGate> gates;
 
 	for(int j = 1; j <= size-1; j++)
 		{
 		ITensor hterm;
 		if(dynamics == "closed")
 			{
-			build_single_step( &hterm , sites , size , J , c , j );
+			hterm = make_bosonic_east_model_bond_hamiltonian( sites , size , J , c , j );
 			}
 		if(dynamics == "open")
 			{
-			build_single_step_jumps( &hterm , sites , size , J , c , gamma, j );
+			hterm = make_bosonic_east_model_bond_hamiltonian_dephasing( sites , size , J , c , gamma, j );
 			}
 		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm); 
 		gates.push_back(g);
@@ -176,25 +179,27 @@ build_tebd_dt_step(vector<BondGate> &gates, const SiteSet sites, const int size,
 		ITensor hterm;
 		if(dynamics == "closed")
 			{
-				build_single_step( &hterm , sites , size , J , c , j );
+				hterm = make_bosonic_east_model_bond_hamiltonian( sites , size , J , c , j );
 			}
 		if(dynamics == "open")
 			{
-			build_single_step_jumps( &hterm , sites , size , J , c , gamma, j );
+			hterm = make_bosonic_east_model_bond_hamiltonian_dephasing( sites , size , J , c , gamma, j );
 			}
 		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm); 
 		gates.push_back(g);
 		}
+    return gates;
 }
 
 
-void
-build_tebd_dt_step_open(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd )
+vector<BondGate>
+make_bosonic_east_model_gates_open(const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd )
 {
+    vector<BondGate> gates;
 	for(int j = 1; j <= size-1; j++)
 		{
 		ITensor hterm;
-		build_single_step_jumps_v2( &hterm , sites , size , J , c , j , Lj, Ljd);
+		hterm = make_bosonic_east_model_bond_hamiltonian_jumps( sites , size , J , c , j , Lj, Ljd);
 		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm); 
 		gates.push_back(g);
 		}
@@ -202,10 +207,11 @@ build_tebd_dt_step_open(vector<BondGate> &gates, const SiteSet sites, const int 
 	for(int j = size-1; j >= 1; j-=1)
 		{
 		ITensor hterm;
-		build_single_step_jumps_v2( &hterm , sites , size , J , c , j ,Lj, Ljd);
+		hterm = make_bosonic_east_model_bond_hamiltonian_jumps( sites , size , J , c , j ,Lj, Ljd);
 		BondGate g = BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm); 
 		gates.push_back(g);
 		}
+    return gates;
 }
 
 

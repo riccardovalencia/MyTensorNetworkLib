@@ -3,8 +3,8 @@
  * @brief Bosonic degrees of freedom (ITensor Boson sites, truncated Fock space):
  *        product and Gaussian states, local observables.
  *
- * Unless stated otherwise, the functions writing a state need an existing MPS *psi with link
- * indices (e.g. MPS psi = randomMPS(sites)) and overwrite its tensors.
+ * The set_* functions need an existing MPS *psi with link indices (e.g. MPS psi = randomMPS(sites))
+ * and overwrite its tensors (see set_site_tensor in mps/mps_tools.h).
  * Here sigma^x_j = a_j + a^dag_j.
  */
 #ifndef MYTN_DOF_BOSON_H
@@ -21,79 +21,50 @@ using namespace itensor;
 ///@{
 
 /**
- * @brief Fock state with n0 bosons on site excitation_position and vacuum elsewhere.
- * @param psi                 State to overwrite.
- * @param sites               Boson site set.
- * @param size                Number of sites.
- * @param n0                  Occupation of the excited site.
- * @param excitation_position Site with n0 bosons.
+ * @brief Set one site to the Fock state |n>, leaving the other sites unchanged.
+ * @param psi   State to modify (with link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites Boson site set.
+ * @param site  Site to set.
+ * @param n     Occupation (n < dim of the site).
  */
 void
-set_fock_excitation( MPS* psi, const SiteSet sites, const int size , const int n0 , const int excitation_position);
+set_site_occupation( MPS* psi, const SiteSet sites, int site, int n );
 
-/**
- * @brief Set site excitation_position to the Fock state |n0>, leaving the other sites unchanged.
- * @param psi, sites, size, n0, excitation_position As in set_fock_excitation.
- */
+/** @brief Vacuum |00...0>. */
 void
-set_fock_excitation_pinned( MPS* psi, const SiteSet sites, const int size , const int n0 , const int excitation_position);
+set_vacuum_state( MPS* psi, const SiteSet sites );
 
-/** @brief Vacuum |00...0>, keeping the link indices of *psi. */
+/** @brief One boson per site, |11...1>. */
 void
-set_vacuum_state( MPS* psi, const SiteSet sites, const int size );
+set_unit_filling_state( MPS* psi, const SiteSet sites );
 
-/** @brief One boson per site, |11...1>, keeping the link indices of *psi. */
+/** @brief Fock state with n0 bosons on `site` and vacuum elsewhere. */
 void
-set_unit_filling_state( MPS* psi, const SiteSet sites, const int size );
+set_fock_excitation( MPS* psi, const SiteSet sites, int n0, int site );
 
-/**
- * @brief Kink |1...1 0...0> with one boson on each of the first number_ones sites.
- * @param psi         State to overwrite.
- * @param sites       Boson site set.
- * @param number_ones Number of occupied sites.
- */
+/** @brief Kink |1...1 0...0> with one boson on each of the first number_ones sites. */
 void
-set_kink_state(MPS *psi, const SiteSet sites, const int number_ones);
-
-/**
- * @brief Set site position to the Fock state |n>, leaving the other sites unchanged.
- * @param psi      State to modify.
- * @param sites    Boson site set.
- * @param position Site to set.
- * @param n        Occupation (n < dim of the site).
- */
-void
-set_site_occupation(MPS *psi, const SiteSet sites, const int position, const int n);
+set_kink_state( MPS* psi, const SiteSet sites, int number_ones );
 ///@}
 
 /** @name Coherent, squeezed and cat states */
 ///@{
 
-/**
- * @brief Coherent state |alpha> (a|alpha> = alpha|alpha>) on one site, vacuum elsewhere.
- * @param psi   State to overwrite.
- * @param sites Boson site set.
- * @param size  Number of sites.
- * @param site  Site hosting the coherent state.
- * @param alpha Amplitude.
- */
+/** @brief Coherent state |alpha> (a|alpha> = alpha|alpha>) on one site, vacuum elsewhere. */
 void
-set_coherent_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const complex<double> alpha);
+set_coherent_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha );
 
 /** @brief Product of coherent states |alpha> on every site. */
 void
-set_coherent_state_all_sites( MPS* psi, const SiteSet sites, const int size , const complex<double> alpha );
+set_coherent_state_all_sites( MPS* psi, const SiteSet sites, Cplx alpha );
 
-/**
- * @brief Squeezed vacuum with squeezing parameter r on one site, vacuum elsewhere.
- * @param r Squeezing parameter (only even Fock states are populated).
- */
+/** @brief Squeezed vacuum with squeezing parameter r on one site, vacuum elsewhere (only even Fock states). */
 void
-set_squeezed_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const double r );
+set_squeezed_state_on_site( MPS* psi, const SiteSet sites, int site, double r );
 
 /** @brief Even cat state (|alpha> + |-alpha>), normalized, on one site; vacuum elsewhere. */
 void
-set_cat_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const complex<double> alpha );
+set_cat_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha );
 
 /** @return n! as a double. */
 double

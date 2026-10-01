@@ -24,20 +24,6 @@ namespace fs = std::filesystem;
 // Usage: ./ising_thermal input.txt
 //   input parameters (with defaults in the code): N, J, hx, hz, dbeta
 
-void
-write_generating_function(const string file, const vector<double>& theta,
-                          const vector<vector<double> >& G_re, const vector<vector<double> >& G_im)
-{
-    ofstream out(file);
-    out << setprecision(10) << "# theta . Re G_l . Im G_l  (l = 1, 2, ...)\n";
-    for(size_t k = 0 ; k < theta.size() ; k++)
-    {
-        out << theta[k];
-        for(size_t l = 0 ; l < G_re.size() ; l++) out << " " << G_re[l][k] << " " << G_im[l][k];
-        out << "\n";
-    }
-}
-
 int main(int argc, char* argv[])
 {
     if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
@@ -109,13 +95,12 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Generating function of the block magnetization
 
-    vector<double> theta = {-M_PI};
-    for(int k = 0 ; k < numberPoints-1 ; k++) theta.push_back(theta.back() + theta_step(k, numberPoints));
+    vector<double> theta = make_theta_grid(numberPoints);
 
-    vector<vector<double> > G_re(maxLength), G_im(maxLength);
-    for(int l = 1 ; l <= maxLength ; l++)
-        generating_function_sim_size(G_re[l-1], G_im[l-1], l-1, N, numberPoints, &rho, sites);
-    write_generating_function(root + "_gf.txt", theta, G_re, G_im);
+    vector<vector<complex<double> > > G;
+
+    for(int l = 1 ; l <= maxLength ; l++) G.push_back(compute_generating_function(&rho, sites, l, theta));
+    write_generating_function(root + "_gf.txt", theta, G);
 
     return 0;
 }

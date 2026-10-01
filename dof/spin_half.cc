@@ -3,6 +3,7 @@
  * @brief Implementation of spin_half.h (the functions are documented in the header).
  */
 #include "spin_half.h"
+#include "../mps/mps_tools.h"
 #include <itensor/all.h>
 #include <cmath>
 #include <complex>
@@ -68,26 +69,7 @@ make_product_state(const SiteSet sites , const string config , const string basi
             b = sign*Cplx_i/sqrt(2.);
         }
 
-        IndexSet is = {sj};
-        if(j > 1) is = IndexSet(is, leftLinkIndex(psi,j));
-        if(j < N) is = IndexSet(is, rightLinkIndex(psi,j));
-        ITensor wf = ITensor(is);
-
-        // all link indices take value 1
-        vector<IndexVal> up = {sj(1)}, dn = {sj(2)};
-        for(Index l : is) if(l != sj) { up.push_back(l(1)); dn.push_back(l(1)); }
-
-        if(basis == "y")
-        {
-            wf.set(up, a);
-            wf.set(dn, b);
-        }
-        else
-        {
-            wf.set(up, a.real());
-            wf.set(dn, b.real());
-        }
-        psi.set(j, wf);
+        set_site_tensor(&psi, sites, j, {a, b});
     }
 
     psi.position(1);
