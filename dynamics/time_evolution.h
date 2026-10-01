@@ -33,12 +33,21 @@ using namespace itensor;
 MPS
 tebd_step(MPS psi, const vector<TebdGate>& gates, const vector<DissipativeGate>& dissipative_gates, const Args args);
 
-/** @brief One time step of a closed system: the coherent gates in order. */
+/**
+ * @brief One time step of a closed system: the coherent gates in order.
+ * @param psi   State.
+ * @param gates Gates of one step (e.g. a symmetric sweep with dt/2, make_symmetric_sweep).
+ * @param args  SVD parameters; "Cutoff" and "MaxDim" are required.
+ * @return The evolved state (not normalized).
+ */
 MPS
 tebd_step(MPS psi, const vector<TebdGate>& gates, const Args args);
 
 /**
  * @brief Number of time steps dt between two measurements separated by t_measure.
+ * @param t_measure Time between two measurements.
+ * @param dt        Time step.
+ * @return t_measure / dt (measure when step % result == 0).
  * @throws ITError if t_measure is not a positive multiple of dt (the measurement times would
  *         not be multiples of t_measure).
  */

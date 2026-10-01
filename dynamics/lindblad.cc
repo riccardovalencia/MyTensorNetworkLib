@@ -1,6 +1,6 @@
 /**
  * @file lindblad.cc
- * @brief Implementation of lindblad.h (the functions are documented in the header).
+ * @brief Implementation of lindblad.h (interfaces documented in the header, logic commented here).
  */
 #include "lindblad.h"
 #include "../mps/gates.h"
@@ -52,6 +52,7 @@ make_dissipator(const ITensor& L, const vector<Index>& site_inds, const double g
 }
 
 
+// one single-site dissipator per listed site
 vector<DissipativeGate>
 make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_sites, vector<double> gammaj , const double dt)
 {
@@ -62,6 +63,7 @@ make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<in
 }
 
 
+// the overload above with the list of all the sites
 vector<DissipativeGate>
 make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt)
 {
@@ -106,6 +108,8 @@ make_cross_dissipator(const SiteSet& sites, OperatorPair T)
 }
 
 
+// on-site pairs (i = j) give an ordinary dissipator, neighbouring pairs the cross terms; each gate
+// takes dt/2 and the list is made symmetric
 vector<DissipativeGate>
 make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrain, const double dt)
 {
@@ -123,6 +127,7 @@ make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrai
 }
 
 
+// make_dissipator on the two sites of every jump operator, dt/2 per gate, symmetric list
 vector<DissipativeGate>
 make_multisite_dissipative_gates(const SiteSet sites , vector<ITensor> Lij_list, vector<vector<int> > Lj_sites, vector<double> gammaj , const double dt)
 {
@@ -167,6 +172,7 @@ make_impurity_dissipator(const SiteSet& sites, const vector<ITensor>& Lj, const 
 }
 
 
+// a single first-order gate on the central bond
 vector<DissipativeGate>
 make_impurity_dissipative_gates(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt)
 {
@@ -188,6 +194,9 @@ make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor>
 
 
 // ----------------------------------------------------------
+// Every gate is copied twice, first for the ket then for the bra: its positions are mapped with
+// i -> N + i (ket) or N + 1 - i (bra), its site indices replaced by the doubled ones with deltas,
+// and the bra copy is conjugated.
 
 vector<TebdGate>
 make_purified_gates(const vector<TebdGate> gates_single, const SiteSet sites_single,  const SiteSet sites_doubled)
@@ -230,7 +239,8 @@ make_purified_gates(const vector<TebdGate> gates_single, const SiteSet sites_sin
 
 
 // ----------------------------------------------------------
-// rho -> rho + gate * rho on the sites (j, j+1), j = first ket site of the gate
+// rho -> rho + gate * rho on the sites (j, j+1), j = first ket site of the gate: contract the two
+// site tensors, add the gate times them, split back with a truncated SVD
 
 MPS
 apply_dissipative_gate(MPS psi, DissipativeGate gate, const Args args)

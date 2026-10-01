@@ -1,6 +1,6 @@
 /**
  * @file purified_state.cc
- * @brief Implementation of purified_state.h (the functions are documented in the header).
+ * @brief Implementation of purified_state.h (interfaces documented in the header, logic commented here).
  */
 #include "purified_state.h"
 #include "../dof/spin_half.h"
@@ -95,6 +95,7 @@ measure_on_sites(MPS* psi, bool compute_normalization, int q, const function<ITe
 }
 
 
+// folded contraction with a delta on every pair
 double
 compute_trace_purified(MPS* psi)
 {
@@ -102,6 +103,7 @@ compute_trace_purified(MPS* psi)
 }
 
 
+// measure_on_sites with the Pauli matrix of each pair
 vector<complex<double> >
 measure_magnetization_purified(MPS *psi , string direction, bool compute_normalization, int q)
 {
@@ -109,6 +111,7 @@ measure_magnetization_purified(MPS *psi , string direction, bool compute_normali
 }
 
 
+// measure_on_sites with O moved onto each pair
 vector<complex<double> >
 measure_local_operator_purified(MPS *psi , const ITensor O, bool compute_normalization, int q)
 {
@@ -116,6 +119,7 @@ measure_local_operator_purified(MPS *psi , const ITensor O, bool compute_normali
 }
 
 
+// folded contraction with O on the pairs of q1 and q2 (and the two one-point functions if connected)
 complex<double>
 measure_correlation_purified(MPS *psi , const ITensor O, bool compute_normalization, int q1, int q2, bool connected)
 {

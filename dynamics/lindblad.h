@@ -20,13 +20,20 @@ using namespace itensor;
  * @param sites    Site set of the vectorized density matrix.
  * @param Lj       Jump operators (Lj[j-1] acts on site j).
  * @param lj_sites Sites where dissipation acts.
- * @param gammaj   Rates.
- * @param dt       Time step.
+ * @param gammaj   Rates (gammaj[j-1] on site j).
+ * @param dt       Time step (first order: apply the gates once per step).
+ * @return One gate per site of lj_sites.
  */
 vector<DissipativeGate>
 make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_sites, vector<double> gammaj , const double dt);
 
-/** @brief Local dissipators on every site: Lj[j-1] with rate gammaj[j-1] acts on site j. */
+/**
+ * @brief Local dissipators on every site: Lj[j-1] with rate gammaj[j-1] acts on site j.
+ * @param sites  Site set of the vectorized density matrix.
+ * @param Lj     Jump operators, one per site (indices s_j, s_j').
+ * @param gammaj Rates, one per site.
+ * @param dt     Time step.
+ */
 vector<DissipativeGate>
 make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt);
 
@@ -36,6 +43,9 @@ make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<do
  *        gamma D[T] for i = j. Only i = j and |i - j| = 1 are implemented (ITError otherwise).
  *
  * The gates are built with dt/2 and returned as a symmetric sequence (make_symmetric_sweep).
+ * @param sites  Site set of the vectorized density matrix.
+ * @param TTrain Operator pairs with their rates.
+ * @param dt     Time step.
  */
 vector<DissipativeGate>
 make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrain, const double dt);
@@ -44,22 +54,32 @@ make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrai
  * @brief Dissipators gamma_k D[L_k] with two-site jump operators L_k (ITError for other sizes).
  *
  * The gates are built with dt/2 and returned as a symmetric sequence (make_symmetric_sweep).
- * @param Lij_list Jump operators.
+ * @param sites    Site set of the vectorized density matrix.
+ * @param Lij_list Jump operators (indices s, s' of both sites).
  * @param Lj_sites Sites of each jump operator (two neighbouring sites).
  * @param gammaj   Rates.
+ * @param dt       Time step.
  * @warning Not tested.
  */
 vector<DissipativeGate>
 make_multisite_dissipative_gates(const SiteSet sites , vector<ITensor> Lij_list, vector<vector<int> > Lj_sites, vector<double> gammaj , const double dt);
 
 /**
- * @brief Dissipator gamma D[L] for each L in Lj, acting on the impurity of the unfolded purified
- *        state (central bond, see models/impurity.h), to first order in dt.
+ * @brief Dissipator gamma D[L] acting on the impurity of the unfolded purified state (central
+ *        bond (N, N+1), see models/impurity.h), to first order in dt.
+ * @param sites Site set of the purified state (2N sites).
+ * @param Lj    The jump operator on the bra site N (Lj[0]) and on the ket site N+1 (Lj[1]).
+ * @param gamma Rate.
+ * @param dt    Time step.
+ * @return A single gate on the central bond.
  */
 vector<DissipativeGate>
 make_impurity_dissipative_gates(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
 
-/** @brief As make_impurity_dissipative_gates, with a higher-order (Pade) approximation of the exponential. */
+/**
+ * @brief As make_impurity_dissipative_gates (same arguments), with the exponential exp(dt D)
+ *        computed beyond first order (ITensor BondGate). Apply it as a TebdGate.
+ */
 vector<TebdGate>
 make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
 

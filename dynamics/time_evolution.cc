@@ -1,6 +1,6 @@
 /**
  * @file time_evolution.cc
- * @brief Implementation of time_evolution.h (the functions are documented in the header).
+ * @brief Implementation of time_evolution.h (interfaces documented in the header, logic commented here).
  */
 #include "time_evolution.h"
 #include "lindblad.h"
@@ -11,6 +11,8 @@ using namespace std;
 using namespace itensor;
 
 
+// U(dt/2) D(dt) U(dt/2): the coherent gates (built with dt/2), the first-order dissipative step
+// psi + dt L psi, the coherent gates again; without dissipative gates, the coherent gates only
 MPS
 tebd_step(MPS psi, const vector<TebdGate>& gates, const vector<DissipativeGate>& dissipative_gates, const Args args)
 {
@@ -22,6 +24,7 @@ tebd_step(MPS psi, const vector<TebdGate>& gates, const vector<DissipativeGate>&
 }
 
 
+// closed system: the coherent gates only
 MPS
 tebd_step(MPS psi, const vector<TebdGate>& gates, const Args args)
 {
@@ -29,6 +32,7 @@ tebd_step(MPS psi, const vector<TebdGate>& gates, const Args args)
 }
 
 
+// round t_measure / dt to the nearest integer and check that it reproduces t_measure
 int
 compute_steps_per_measure(const double t_measure, const double dt)
 {

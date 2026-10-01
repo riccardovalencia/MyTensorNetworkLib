@@ -17,7 +17,10 @@
 using namespace std;
 using namespace itensor;
 
-/** @return Tr(rho) of the purified state psi. */
+/**
+ * @param psi Purified state (2N sites).
+ * @return Tr(rho).
+ */
 double
 compute_trace_purified(MPS* psi);
 
@@ -35,14 +38,20 @@ measure_magnetization_purified(MPS* psi , string direction, bool compute_normali
 
 /**
  * @brief Tr(rho O_q) for a local operator O.
- * @param O Operator with the indices of physical site 1 (it is moved to site q).
- * @param q Physical site; -1 (default) for all sites.
+ * @param psi                   Purified state.
+ * @param O                     Operator with the indices (s, s') of any physical site (it is moved to site q).
+ * @param compute_normalization Divide by Tr(rho).
+ * @param q                     Physical site; -1 (default) for all sites.
+ * @return One value per physical site (q = -1) or the single value on site q.
  */
 vector<complex<double> >
 measure_local_operator_purified(MPS *psi , const ITensor O, bool compute_normalization, int q = -1);
 
 /**
  * @brief Tr(rho O_q1 O_q2), or its connected part.
+ * @param psi                   Purified state.
+ * @param O                     Operator (as in measure_local_operator_purified), the same on both sites.
+ * @param compute_normalization Divide by Tr(rho).
  * @param q1, q2    Different physical sites.
  * @param connected Subtract Tr(rho O_q1) Tr(rho O_q2).
  * @throws ITError if q1 == q2 or a site is outside 1..N.
