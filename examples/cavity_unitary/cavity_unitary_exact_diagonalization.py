@@ -20,7 +20,7 @@ N, max_occ = p.get('N', 3), p.get('max_occ', 6)
 omega0, h, g = p.get('omega0', 1.), p.get('h', 0.5), p.get('g', 1.5)
 theta = p.get('theta', 0.5) * np.pi
 T, dt, coupling = p.get('T', 50.), p.get('dt', 0.005), p.get('coupling', 'dicke')
-t_measure = 10 * dt     # the TN program measures every 10 steps
+t_measure = p.get('t_measure', 0.05)
 
 # operators: site 0 = boson, sites 1..N = spins (|up_z> = basis state 0)
 dims = [max_occ + 1] + [2] * N

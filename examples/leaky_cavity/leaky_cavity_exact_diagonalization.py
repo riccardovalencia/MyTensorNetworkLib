@@ -4,7 +4,7 @@
     coupling = (a + a^dag) sum_j X_j ("dicke") or sum_j (sigma^+_j a + sigma^-_j a^dag) ("tavis"),
     d rho/dt = -i[H, rho] + kappa D[a] rho,
 with g = g_ratio * g_c, g_c = sqrt((|h| - V)(omega0^2 + kappa^2/4)/(2 omega0)), the boson truncated
-at max_occ, initial state |0> (x) (cos(0.45 pi)|up_z> + sin(0.45 pi)|down_z>)^N.
+at max_occ, initial state |0> (x) (cos(theta/2)|up_z> + sin(theta/2)|down_z>)^N.
 The Lindblad equation is integrated for the full density matrix: only small N and max_occ.
 
 Usage: python3 leaky_cavity_exact_diagonalization.py input_leaky_cavity.txt
@@ -21,9 +21,9 @@ from exact_diagonalization_tools import read_input, save_and_compare, lindblad_e
 p = read_input(sys.argv[1])
 N, max_occ = p.get('N', 3), p.get('max_occ', 2)
 h, g_ratio, V, kappa = p.get('h', 1.), p.get('g', 1.6), p.get('V', 0.), p.get('kappa', 1.)
-T, maxDim, coupling = p.get('T', 15.), p.get('maxDim', 1024), p.get('coupling', 'dicke')
-omega0, theta = 1., 0.9 * np.pi
-t_measure = 0.1
+T, max_dim, coupling = p.get('T', 15.), p.get('max_dim', 1024), p.get('coupling', 'dicke')
+omega0, theta = 1., p.get('theta', 0.9) * np.pi
+t_measure = 0.1     # ED output interval (the rows matching the TN times are compared)
 
 g = g_ratio * np.sqrt(0.5 * (abs(h) - V) * (omega0**2 + kappa**2 / 4) / omega0)
 
@@ -57,5 +57,5 @@ rhos = lindblad_evolution(rho0, H, [np.sqrt(kappa) * op(a, 0)], times)
 obs = [op(X, 1), op(Z, 1), op(a.H @ a, 0)]
 data = [[t] + [np.real(np.trace(O @ rho)) / np.real(np.trace(rho)) for O in obs] for t, rho in zip(times, rhos)]
 
-root = 'data/leaky_cavity_%s_N%d_maxocc%d_h%.2f_gratio%.2f_V%.2f_kappa%.2f_D%d' % (coupling, N, max_occ, h, g_ratio, V, kappa, maxDim)
+root = 'data/leaky_cavity_%s_N%d_maxocc%d_h%.2f_gratio%.2f_V%.2f_kappa%.2f_D%d' % (coupling, N, max_occ, h, g_ratio, V, kappa, max_dim)
 save_and_compare(root + '_exact_diagonalization_obs.txt', data, 't X_1 Z_1 n_photon', root + '_obs.txt', [2, 3, 4])

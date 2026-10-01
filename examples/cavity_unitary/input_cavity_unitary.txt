@@ -9,6 +9,7 @@ theta = 0.5
 T = 20
 dt = 0.005
 cut_off = 1E-8
-maxDim = 50
+max_dim = 50
 coupling = dicke
+t_measure = 0.05
 }

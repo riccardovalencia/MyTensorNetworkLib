@@ -19,12 +19,12 @@ from exact_diagonalization_tools import read_input, save_and_compare
 p = read_input(sys.argv[1])
 N, M = p.get('N', 12), p.get('M', 2)
 V2, Omega = p.get('V2', 2.), p.get('Omega', 0.1)
-T, dt, maxDim = p.get('T', 10.), p.get('dt', 0.05), p.get('maxDim', 64)
+T, dt, max_dim = p.get('T', 10.), p.get('dt', 0.05), p.get('max_dim', 64)
 sigmax, seed = p.get('sigmax', 0.), p.get('seed', 1)
 V1 = 1.
-t_measure = 10 * dt     # the TN program measures every 10 steps
+t_measure = p.get('t_measure', 0.5)
 
-root = 'data/rydberg_N%d_M%d_V2_%.2f_Om_%.3f_D%d' % (N, M, V2, Omega, maxDim)
+root = 'data/rydberg_N%d_M%d_V2_%.2f_Om_%.3f_D%d' % (N, M, V2, Omega, max_dim)
 if sigmax > 0:
     root += '_sigmax%.5f_seed%d' % (sigmax, seed)
     Vj = np.loadtxt(root + '_Vj.txt')    # disorder realization of the TN run

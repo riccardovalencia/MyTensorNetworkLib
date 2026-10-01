@@ -8,5 +8,10 @@ gamma = 0.5
 Tness = 2
 T = 2
 dt = 0.05
-maxDim = 64
+max_dim = 64
+cut_off = 1E-14
+t_measure = 0.2
+t_corr = 0.05
+dmrg_sweeps = 20
+hz = 0.0
 }

@@ -20,7 +20,7 @@ namespace fs = std::filesystem;
 //   s_N ... s_1 b | b s_1 ... s_N.
 // Each time step applies the local gates and the photon-matter gates (the boson travels through
 // the spins with swap gates), the photon losses on the central bond, and again the coherent gates.
-// The initial state is the vacuum times all spins in the coherent state theta = 0.9 pi, phi = 0.
+// The initial state is the vacuum times all spins in the coherent state (theta, phi = 0).
 //
 // Usage: ./leaky_cavity input.txt   (see input.txt; missing entries take the defaults below)
 // Output (data/): <root>_obs.txt (t, Tr rho, <X_1>, <Z_1>, <a^dag a>, maxD),
@@ -41,23 +41,25 @@ int main(int argc, char* argv[])
     double T        = input.getReal("T", 15.);
     double dt       = input.getReal("dt", 0.01);
     double cut_off  = input.getReal("cut_off", 1E-14);
-    int    maxDim   = input.getInt("maxDim", 1024);
+    int    max_dim   = input.getInt("max_dim", 1024);
     string coupling = input.getString("coupling", "dicke");
+    double theta    = input.getReal("theta", 0.9) * M_PI;   // initial spin state, units of pi
+    double t_measure = input.getReal("t_measure", 0.01);    // time between measurements
 
     double omega0 = 1.;   // energy unit
     double gc = sqrt(0.5 * (abs(h) - V) * (omega0*omega0 + kappa*kappa/4.) / omega0);
     double g  = g_ratio * gc;
     bool dissipative = kappa > 1E-10;
-    Args args = {"Cutoff=", cut_off, "MaxDim=", maxDim};
+    Args args = {"Cutoff=", cut_off, "MaxDim=", max_dim};
 
-    int steps_measure = (dt < 0.01) ? int(0.01/dt) : 1;
+    int steps_measure = max(1, int(t_measure/dt + 0.5));
     int total_steps   = int(T / dt);
 
     // ---------------------------------
     // Initial state |0> (x) |theta,phi>^N, purified on the doubled chain
 
     SiteSet sites_single = make_spin_boson_sites(N+1, max_occ);
-    MPS psi = make_spin_boson_state(sites_single, 0, 0.9 * M_PI, 0.);
+    MPS psi = make_spin_boson_state(sites_single, 0, theta, 0.);
 
     SiteSet sites = make_purified_spin_boson_sites(N+1, max_occ);
     MPS rho = randomMPS(sites);
@@ -105,7 +107,7 @@ int main(int argc, char* argv[])
 
     fs::create_directories("data");
     string root = tinyformat::format("data/leaky_cavity_%s_N%d_maxocc%d_h%.2f_gratio%.2f_V%.2f_kappa%.2f_D%d",
-                                     coupling, N, max_occ, h, g_ratio, V, kappa, maxDim);
+                                     coupling, N, max_occ, h, g_ratio, V, kappa, max_dim);
     ofstream out(root + "_obs.txt"), out_x(root + "_xj.txt"), out_z(root + "_zj.txt");
     out   << setprecision(8) << "# t . Tr(rho) . <X_1> . <Z_1> . <a^dag a> . maxD\n";
     out_x << setprecision(8) << "# t . <X_1> . ... . <X_N>\n";

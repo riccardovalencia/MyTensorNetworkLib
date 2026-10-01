@@ -36,10 +36,11 @@ int main(int argc, char* argv[])
     double T        = input.getReal("T", 50.);
     double dt       = input.getReal("dt", 0.005);
     double cut_off  = input.getReal("cut_off", 1E-8);
-    int    maxDim   = input.getInt("maxDim", 50);
+    int    max_dim   = input.getInt("max_dim", 50);
     string coupling = input.getString("coupling", "dicke");
+    double t_measure = input.getReal("t_measure", 0.05);  // time between measurements
 
-    int steps_measure = 10;
+    int steps_measure = max(1, int(t_measure/dt + 0.5));
     int total_steps   = int(T / dt);
 
     SiteSet sites = make_spin_boson_sites(N+1, max_occ);
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
     // local gates, then the photon-matter gates: the boson travels through the chain with swaps
     vector<TebdGate> gates = make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "short-range", coupling);
     for(TebdGate gate : make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "long-range", coupling)) gates.push_back(gate);
-    Args args = {"Cutoff=", cut_off, "MaxDim=", maxDim};
+    Args args = {"Cutoff=", cut_off, "MaxDim=", max_dim};
 
     fs::create_directories("data");
     string root = tinyformat::format("data/cavity_unitary_%s_N%d_maxocc%d_omega%.2f_h%.2f_g%.2f", coupling, N, max_occ, omega0, h, g);

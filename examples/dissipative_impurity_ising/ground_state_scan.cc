@@ -31,13 +31,15 @@ int main(int argc, char* argv[])
     double hx_min = input.getReal("hx_min", 0.5);
     double hx_max = input.getReal("hx_max", 1.5);
     double dhx    = input.getReal("dhx", 0.05);
+    double hz     = input.getReal("hz", 0.);             // symmetry-breaking longitudinal field
+    int    dmrg_sweeps = input.getInt("dmrg_sweeps", 20);
 
     double Jzz = -1.;
     int j_meas = N/2;
 
     SiteSet sites = SpinHalf(N, {"ConserveQNs=", false});
 
-    auto sweeps = Sweeps(20);
+    auto sweeps = Sweeps(dmrg_sweeps);
     sweeps.maxdim() = 10,10,10,20,20,40,40,100,200,200;
     sweeps.cutoff() = 1E-14;
     sweeps.noise()  = 0;
@@ -50,7 +52,11 @@ int main(int argc, char* argv[])
     for(double hx = hx_min ; hx <= hx_max + 1E-9 ; hx += dhx)
     {
         auto ampo = AutoMPO(sites);
-        for(int j = 1 ; j <= N ; j++)  ampo += 2 * hx, "Sx", j;
+        for(int j = 1 ; j <= N ; j++)
+        {
+            ampo += 2 * hx, "Sx", j;
+            ampo += 2 * hz, "Sz", j;
+        }
         for(int j = 1 ; j < N ; j++)
         {
             ampo += 4 * Jzz, "Sz", j, "Sz", j+1;

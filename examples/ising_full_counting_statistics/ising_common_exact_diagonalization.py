@@ -52,11 +52,11 @@ def generating_function(probabilities, N, l, theta):
     return np.array([np.sum(p * np.exp(1j * t * sx)) for t in theta])
 
 
-def generating_function_table(rho_or_psi, N, theta):
-    """Rows theta, Re G_1, Im G_1, ..., Re G_{N/2}, Im G_{N/2} (format of the TN files)."""
+def generating_function_table(rho_or_psi, N, theta, max_block_size):
+    """Rows theta, Re G_1, Im G_1, ..., Re G_L, Im G_L with L = max_block_size (format of the TN files)."""
     probabilities = x_basis_probabilities(rho_or_psi, N)
     columns = [theta]
-    for l in range(1, N // 2 + 1):
+    for l in range(1, max_block_size + 1):
         G = generating_function(probabilities, N, l, theta)
         columns += [G.real, G.imag]
     return np.column_stack(columns)

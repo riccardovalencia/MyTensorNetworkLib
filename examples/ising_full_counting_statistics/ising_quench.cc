@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 // with the generating function G_l(theta) = <exp(i theta S^x_A)> for a block of l sites.
 //
 // Usage: ./ising_quench input.txt
-//   input parameters (with defaults in the code): N, J, hx, hz, T, dt, maxDim, state
+//   input parameters (with defaults in the code): N, J, hx, hz, T, dt, max_dim, state
 //        state = up (all |+x>, default), down (all |-x>) or wall (domain wall)
 
 int main(int argc, char* argv[])
@@ -36,14 +36,15 @@ int main(int argc, char* argv[])
     double hz     = input.getReal("hz", 1.);
     double T      = input.getReal("T", 5.);
     double dt     = input.getReal("dt", 0.01);
-    int    maxDim = input.getInt("maxDim", 128);
+    int    max_dim = input.getInt("max_dim", 128);
     string state  = input.getString("state", "up");
+    double t_measure      = input.getReal("t_measure", 0.5);        // time between measurements
+    int    number_points  = input.getInt("number_points", 100);    // values of theta in [-pi, pi)
+    int    max_block_size = input.getInt("max_block_size", N/2);   // largest block
+    double cut_off        = input.getReal("cut_off", 1E-16);       // SVD truncation
 
-    double t_measure    = 0.5;    // time between measurements
-    int    numberPoints = 100;    // values of theta in [-pi, pi)
-    int    maxLength    = N/2;    // largest block
 
-    Args args = {"Cutoff=", 1E-16, "MaxDim=", maxDim, "Verbose=", false};
+    Args args = {"Cutoff=", cut_off, "MaxDim=", max_dim};
 
     // ---------------------------------
     // Initial product state along x
@@ -67,12 +68,12 @@ int main(int argc, char* argv[])
     // Output
 
     fs::create_directories("data");
-    string root = tinyformat::format("data/ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_D%d_%s", N, J, hx, hz, maxDim, state);
+    string root = tinyformat::format("data/ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_D%d_%s", N, J, hx, hz, max_dim, state);
 
     ofstream out_entropy(root + "_entropy.txt");
     out_entropy << setprecision(10) << "# t . S_1 . ... . S_{N-1}\n";
 
-    vector<double> theta = make_theta_grid(numberPoints);
+    vector<double> theta = make_theta_grid(number_points);
 
     // ---------------------------------
     // Time evolution
@@ -95,7 +96,7 @@ int main(int argc, char* argv[])
 
         vector<vector<complex<double> > > G;
 
-        for(int l = 1 ; l <= maxLength ; l++) G.push_back(compute_generating_function(&psi, sites, l, theta));
+        for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(&psi, sites, l, theta));
         write_generating_function(tinyformat::format("%s_gf_t%.2f.txt", root, t), theta, G);
 
         cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << compute_entanglement_entropy(&psi, N/2, true) << "\n";

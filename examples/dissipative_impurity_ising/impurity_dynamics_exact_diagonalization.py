@@ -21,11 +21,11 @@ from exact_diagonalization_tools import read_input, save_and_compare
 p = read_input(sys.argv[1])
 N, hx, gamma = p.get('N', 10), p.get('hx', 0.5), p.get('gamma', 0.5)
 Jxx, Jzzz = p.get('Jxx', 0.2), p.get('Jzzz', 0.)
-Tness, T, dt, maxDim = p.get('Tness', 5.), p.get('T', 5.), p.get('dt', 0.05), p.get('maxDim', 128)
+Tness, T, dt, max_dim = p.get('Tness', 5.), p.get('T', 5.), p.get('dt', 0.05), p.get('max_dim', 128)
 if Jxx != 0 or Jzzz != 0:
     sys.exit('The free-fermion solution requires Jxx = Jzzz = 0 (integrable case).')
 J = 1.
-t_measure, t_corr = 0.2, 0.05   # measurement intervals of the TN program
+t_measure, t_corr = p.get('t_measure', 0.2), p.get('t_corr', 0.05)   # as in the TN program
 
 
 def bdg_hamiltonian(N, J, h):
@@ -87,6 +87,6 @@ xj = [[t] + list(np.imag(np.diag(C[:N, N:]))) for t, C in zip(times, covariances
 times_corr = np.arange(t_corr, T + 1e-9, t_corr)
 z1z1 = [[t, C[0, 0].real, C[0, 0].imag, abs(C[0, 0])] for t, C in zip(times_corr, integrate(autocorrelation_rhs, covariances[-1], times_corr))]
 
-root = 'data/impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_gamma%.3f_dt%.4f_D%d' % (N, Jxx, Jzzz, hx, gamma, dt, maxDim)
+root = 'data/impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_gamma%.3f_dt%.4f_D%d' % (N, Jxx, Jzzz, hx, gamma, dt, max_dim)
 save_and_compare(root + '_exact_diagonalization_xj.txt', xj, 't ' + ' '.join(f'X_{j}' for j in range(1, N + 1)), root + '_xj.txt')
 save_and_compare(root + '_exact_diagonalization_z1z1.txt', z1z1, 't Re Im abs', root + '_Tness%.1f_z1z1.txt' % Tness)

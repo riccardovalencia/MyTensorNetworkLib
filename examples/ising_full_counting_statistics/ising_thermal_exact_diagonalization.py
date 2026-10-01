@@ -16,7 +16,7 @@ from ising_common_exact_diagonalization import ising_hamiltonian, generating_fun
 
 p = read_input(sys.argv[1])
 N, J, hx, hz = p.get('N', 16), p.get('J', 1.), p.get('hx', 0.1), p.get('hz', 1.)
-number_points = 100     # as in the TN program
+number_points, max_block_size = p.get('number_points', 100), p.get('max_block_size', N // 2)
 
 E, V = np.linalg.eigh(ising_hamiltonian(N, J, hx, hz))
 energy_target = -J * ((N - 1.) / N + hx)
@@ -33,5 +33,5 @@ rho = V @ np.diag(w / w.sum()) @ V.conj().T
 print(f'beta = {beta:.6f}')
 
 root = 'data/ising_thermal_N%d_J%.2f_hx%.2f_hz%.2f' % (N, J, hx, hz)
-save_and_compare(root + '_exact_diagonalization_gf.txt', generating_function_table(rho, N, theta_grid(number_points)),
-                 'theta ' + ' '.join(f'ReG_{l} ImG_{l}' for l in range(1, N // 2 + 1)), root + '_gf.txt')
+save_and_compare(root + '_exact_diagonalization_gf.txt', generating_function_table(rho, N, theta_grid(number_points), max_block_size),
+                 'theta ' + ' '.join(f'ReG_{l} ImG_{l}' for l in range(1, max_block_size + 1)), root + '_gf.txt')

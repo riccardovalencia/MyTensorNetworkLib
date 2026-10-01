@@ -12,8 +12,9 @@ from ising_common_exact_diagonalization import ising_hamiltonian, generating_fun
 
 p = read_input(sys.argv[1])
 N, J, hx, hz = p.get('N', 16), p.get('J', 1.), p.get('hx', 0.1), p.get('hz', 1.)
-T, maxDim, state = p.get('T', 5.), p.get('maxDim', 128), p.get('state', 'up')
-t_measure, number_points = 0.5, 100     # as in the TN program
+T, max_dim, state = p.get('T', 5.), p.get('max_dim', 128), p.get('state', 'up')
+t_measure, number_points = p.get('t_measure', 0.5), p.get('number_points', 100)
+max_block_size = p.get('max_block_size', N // 2)
 
 # product state along x: '0' -> |+x>, '1' -> |-x>
 config = {'up': '0' * N, 'down': '1' * N, 'wall': '0' * (N // 2) + '1' * (N - N // 2)}[state]
@@ -24,7 +25,7 @@ for c in config:
 
 E, V = np.linalg.eigh(ising_hamiltonian(N, J, hx, hz))
 theta = theta_grid(number_points)
-root = 'data/ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_D%d_%s' % (N, J, hx, hz, maxDim, state)
+root = 'data/ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_D%d_%s' % (N, J, hx, hz, max_dim, state)
 
 
 def entanglement_entropy(psi, b):
@@ -38,7 +39,7 @@ entropy = []
 for t in np.arange(0, T + 1e-9, t_measure):
     psi = V @ (np.exp(-1j * E * t) * (V.conj().T @ psi0))
     entropy.append([t] + [entanglement_entropy(psi, b) for b in range(1, N)])
-    save_and_compare('%s_exact_diagonalization_gf_t%.2f.txt' % (root, t), generating_function_table(psi, N, theta),
-                     'theta ' + ' '.join(f'ReG_{l} ImG_{l}' for l in range(1, N // 2 + 1)), '%s_gf_t%.2f.txt' % (root, t))
+    save_and_compare('%s_exact_diagonalization_gf_t%.2f.txt' % (root, t), generating_function_table(psi, N, theta, max_block_size),
+                     'theta ' + ' '.join(f'ReG_{l} ImG_{l}' for l in range(1, max_block_size + 1)), '%s_gf_t%.2f.txt' % (root, t))
 
 save_and_compare(root + '_exact_diagonalization_entropy.txt', entropy, 't ' + ' '.join(f'S_{b}' for b in range(1, N)), root + '_entropy.txt')

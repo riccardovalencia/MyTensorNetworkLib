@@ -31,7 +31,7 @@ namespace fs = std::filesystem;
 //                 <root>_Tness<Tness>_z1z1.txt (t, Re, Im, |.| of <Z_1(t) Z_1(0)>)
 //
 // Usage: ./impurity_dynamics input.txt
-//   input parameters (with defaults in the code): N, hx, Jxx, Jzzz, gamma, Tness, T, dt, maxDim
+//   input parameters (with defaults in the code): N, hx, Jxx, Jzzz, gamma, Tness, T, dt, max_dim
 
 int main(int argc, char* argv[])
 {
@@ -47,15 +47,17 @@ int main(int argc, char* argv[])
     double Tness  = input.getReal("Tness", 5.);
     double T      = input.getReal("T", 5.);
     double dt     = input.getReal("dt", 0.05);
-    int    maxDim = input.getInt("maxDim", 128);
+    int    max_dim = input.getInt("max_dim", 128);
+    double cut_off     = input.getReal("cut_off", 1E-14);     // SVD truncation
+    double t_measure   = input.getReal("t_measure", 0.2);     // profile measurements during the relaxation
+    double t_corr      = input.getReal("t_corr", 0.05);       // autocorrelation measurements
+    int    dmrg_sweeps = input.getInt("dmrg_sweeps", 20);     // ground-state search
+    double hz          = input.getReal("hz", 0.);             // symmetry-breaking field, ground-state search only
 
     double Jzz       = -1.;
-    double cut_off   = 1E-14;
-    double t_measure = 0.2;     // profile measurements during the relaxation
-    double t_corr    = 0.05;    // autocorrelation measurements
     bool   dissipative = abs(gamma) > 1E-10;
 
-    Args args = {"Cutoff=", cut_off, "MaxDim=", maxDim, "Verbose=", false, "Normalize=", false};
+    Args args = {"Cutoff=", cut_off, "MaxDim=", max_dim, "Verbose=", false, "Normalize=", false};
 
     // ---------------------------------
     // Ground state of H
@@ -70,9 +72,10 @@ int main(int argc, char* argv[])
     }
     for(int j = 1 ; j < N-1 ; j++) ampo += 4 * Jzzz, "Sz", j, "Sz", j+2;
     for(int j = 1 ; j <= N ; j++)  ampo += 2 * hx, "Sx", j;
+    for(int j = 1 ; j <= N ; j++)  ampo += 2 * hz, "Sz", j;   // only for the ground-state search
     MPO H = toMPO(ampo);
 
-    auto sweeps = Sweeps(20);
+    auto sweeps = Sweeps(dmrg_sweeps);
     sweeps.maxdim() = 10,10,10,20,20,40,40,100,200,200;
     sweeps.cutoff() = 1E-14;
     sweeps.noise()  = 0;
@@ -108,7 +111,7 @@ int main(int argc, char* argv[])
     // Output
 
     fs::create_directories("data");
-    string root = tinyformat::format("data/impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_gamma%.3f_dt%.4f_D%d", N, Jxx, Jzzz, hx, gamma, dt, maxDim);
+    string root = tinyformat::format("data/impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_gamma%.3f_dt%.4f_D%d", N, Jxx, Jzzz, hx, gamma, dt, max_dim);
 
     ofstream out(root + ".txt");
     out << setprecision(14) << "# t . maxD . Tr(rho)\n";

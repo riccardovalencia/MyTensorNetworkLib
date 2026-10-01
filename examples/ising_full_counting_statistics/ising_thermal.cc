@@ -35,10 +35,12 @@ int main(int argc, char* argv[])
     double hx    = input.getReal("hx", 0.1);
     double hz    = input.getReal("hz", 1.);
     double dbeta = input.getReal("dbeta", 0.001);
+    int    number_points  = input.getInt("number_points", 100);    // values of theta in [-pi, pi)
+    int    max_block_size = input.getInt("max_block_size", N/2);   // largest block
+    int    max_dim        = input.getInt("max_dim", 1000);         // MPO products
+    double cut_off        = input.getReal("cut_off", 1E-14);
 
-    int numberPoints = 100;
-    int maxLength    = N/2;
-    Args args_mult   = {"MaxDim", 1000, "Cutoff", 1E-14};
+    Args args_mult = {"MaxDim", max_dim, "Cutoff", cut_off};
 
     double energy_target = -J * ((N - 1.) / N + hx);   // energy density of |+x...+x>
 
@@ -95,11 +97,11 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Generating function of the block magnetization
 
-    vector<double> theta = make_theta_grid(numberPoints);
+    vector<double> theta = make_theta_grid(number_points);
 
     vector<vector<complex<double> > > G;
 
-    for(int l = 1 ; l <= maxLength ; l++) G.push_back(compute_generating_function(&rho, sites, l, theta));
+    for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(&rho, sites, l, theta));
     write_generating_function(root + "_gf.txt", theta, G);
 
     return 0;

@@ -28,7 +28,7 @@ namespace fs = std::filesystem;
 // sigmax = 0 gives the clean chain. seed selects the disorder realization.
 //
 // Usage: ./rydberg_chain_tebd input.txt
-//   input parameters (with defaults in the code): N, M, V2, Omega, T, dt, maxDim, sigmax, seed
+//   input parameters (with defaults in the code): N, M, V2, Omega, T, dt, max_dim, sigmax, seed
 // Output: data/<file_root>.txt     -> t, fidelity with initial state, half-chain entropy, max bond dimension
 //         data/<file_root>_nj.txt  -> t, Rydberg density n_j on each site
 //         data/<file_root>_Vj.txt  -> couplings V_j between sites j and j+1
@@ -46,16 +46,17 @@ int main(int argc, char* argv[])
     double Omega  = input.getReal("Omega", 0.1);
     double T      = input.getReal("T", 10.);
     double dt     = input.getReal("dt", 0.05);
-    int    maxDim = input.getInt("maxDim", 64);
+    int    max_dim = input.getInt("max_dim", 64);
     double sigmax = input.getReal("sigmax", 0.);     // disorder on atomic positions (units of d1)
     int    seed   = input.getInt("seed", 1);      // disorder realization
+    double t_measure = input.getReal("t_measure", 0.5);   // time between measurements
+    double cut_off   = input.getReal("cut_off", 1E-12);   // SVD truncation
 
     double V1        = 1.;
-    double cut_off   = 1E-12;
-    int steps_measure = 10;
+    int steps_measure = max(1, int(t_measure/dt + 0.5));
     int total_steps  = int(T / dt);
 
-    Args TEBD_args = {"Cutoff=", cut_off, "MaxDim=", maxDim};
+    Args tebd_args = {"Cutoff=", cut_off, "MaxDim=", max_dim};
 
     // ---------------------------------
     // Sites and initial state (1: Rydberg - 0: ground)
@@ -112,7 +113,7 @@ int main(int argc, char* argv[])
     // Output files
 
     fs::create_directories("data");
-    string file_root = tinyformat::format("data/rydberg_N%d_M%d_V2_%.2f_Om_%.3f_D%d", N, M, V2, Omega, maxDim);
+    string file_root = tinyformat::format("data/rydberg_N%d_M%d_V2_%.2f_Om_%.3f_D%d", N, M, V2, Omega, max_dim);
     if(sigmax > 0) file_root += tinyformat::format("_sigmax%.5f_seed%d", sigmax, seed);
 
     // couplings V_j (also used by rydberg_chain_tebd_exact_diagonalization.py)
@@ -155,7 +156,7 @@ int main(int argc, char* argv[])
 
         if(k == total_steps) break;
 
-        psi = tebd_step(psi, gates, TEBD_args);
+        psi = tebd_step(psi, gates, tebd_args);
 
         psi.position(1);
         psi.normalize();
