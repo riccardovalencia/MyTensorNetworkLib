@@ -22,18 +22,33 @@ using namespace itensor;
  * with chi = bond_dimension * scaling_bond_dimension^k, and returns the first version whose energy
  * variance is below 1e-8.
  *
- * @param symmetry_sector_dir Folder of the symmetry-sector data files (see compute_bosonic_east_model_energy_variance).
- * @return {state, sites, energy variance}.
+ * @param results_dir            Root folder of the results (prefix of the folder names).
+ * @param size                   Number of sites.
+ * @param lambda                 Fock-space cutoff.
+ * @param n0                     Occupation of the virtual site 0.
+ * @param symmetry_sector, s, c  bosonic east model parameters.
+ * @param bond_dimension         Smallest bond dimension of the stored states.
+ * @param scaling_bond_dimension Factor between the stored bond dimensions.
+ * @param symmetry_sector_dir    Folder of the symmetry-sector data files (see compute_bosonic_east_model_energy_variance).
+ * @return {state, sites, energy variance}; a one-site placeholder with variance 100 if no version is found.
  */
 tuple<MPS, Boson, double>
 load_ground_state_max_bond_dimension(string results_dir, int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension , double scaling_bond_dimension, const string symmetry_sector_dir);
 
-/** @brief As load_ground_state_max_bond_dimension, for the folder layout without the "_v<version>" suffix. */
+/**
+ * @brief As load_ground_state_max_bond_dimension (same arguments), for the folder layout without
+ *        the "_v<version>" suffix; the state is returned whatever its variance.
+ */
 tuple<MPS, Boson, double>
 load_ground_state_max_bond_dimension_no_version(string results_dir, int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension , double scaling_bond_dimension, const string symmetry_sector_dir);
 
 /**
  * @brief Load a state prepared by adiabatic dressing ("sites_size..." and "psi_file_size..." in results_dir).
+ * @param results_dir  Folder of the files.
+ * @param size         Number of sites.
+ * @param cut_off      Fock-space cutoff.
+ * @param s, c         bosonic east model parameters.
+ * @param alpha        Amplitude of the initial state (its real part is in the file name).
  * @param state_choice 0: super-coherent state, 3: cat state.
  * @param beta         Duration of the ramp (in the file name).
  * @return {state, sites}.

@@ -1,6 +1,6 @@
 /**
  * @file load.cc
- * @brief Implementation of load.h (the functions are documented in the header).
+ * @brief Implementation of load.h (interfaces documented in the header, logic commented here).
  */
 #include "load.h"
 #include "../models/bosonic_east_model.h"
@@ -80,6 +80,7 @@ load_ground_state_max_bond_dimension(string results_dir , int size , int lambda,
 }
 
 
+// the single unversioned folder
 tuple<MPS, Boson, double>
 load_ground_state_max_bond_dimension_no_version(string results_dir , int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension, double scaling_bond_dimension, const string symmetry_sector_dir)
 {
@@ -88,6 +89,7 @@ load_ground_state_max_bond_dimension_no_version(string results_dir , int size , 
 }
 
 
+// read the site set and the state from the files named after the parameters
 tuple<MPS, Boson>
 load_adiabatic_state(string results_dir , const int size , const int cut_off, const double s, const double c, const complex<double> alpha, const int state_choice, double beta )
 {   

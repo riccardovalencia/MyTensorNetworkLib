@@ -1,6 +1,6 @@
 /**
  * @file output.cc
- * @brief Implementation of output.h (the functions are documented in the header).
+ * @brief Implementation of output.h (interfaces documented in the header, logic commented here).
  */
 #include "output.h"
 #include <itensor/all.h>
@@ -43,6 +43,7 @@ write_dmrg_summary(int size , double s , double c , const vector<pair<string,dou
 }
 
 
+// summary without extra physical parameters
 void
 write_dmrg_input(int size , double s , double c ,double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
 {
@@ -50,6 +51,7 @@ write_dmrg_input(int size , double s , double c ,double simmetry_sector , int cu
 }
 
 
+// summary with epsilon and t
 void
 write_dmrg_input_hopping(int size , double s , double c , double epsilon , double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
 {
@@ -57,6 +59,7 @@ write_dmrg_input_hopping(int size , double s , double c , double epsilon , doubl
 }
 
 
+// one line per entry, prefixed with its 1-based site
 void
 write_site_values( const string file_name, const vector<double>& values, int precision )
 {
@@ -66,6 +69,7 @@ write_site_values( const string file_name, const vector<double>& values, int pre
 }
 
 
+// one line per row, prefixed with its 1-based site
 void
 write_site_table( const string file_name, const vector<vector<double> >& table, int precision )
 {
@@ -80,6 +84,7 @@ write_site_table( const string file_name, const vector<vector<double> >& table, 
 }
 
 
+// header, then one line per theta with real and imaginary parts of every block
 void
 write_generating_function( const string file_name, const vector<double>& theta, const vector<vector<complex<double> > >& G )
 {
