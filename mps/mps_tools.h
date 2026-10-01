@@ -23,7 +23,7 @@ using namespace itensor;
  * @param start    First site of *psi where psi_seed is inserted.
  * @param inverted Insert psi_seed in reversed site order.
  * @param dagger   Conjugate the tensors of psi_seed (bra half of a purified state).
- * @note For MPS with conserved quantum numbers use insert_QN_state.
+ * @note For MPS with conserved quantum numbers use insert_qn_state.
  */
 void
 insert_state(MPS* psi, MPS psi_seed, const int start, bool inverted, bool dagger);
@@ -33,7 +33,7 @@ insert_state(MPS* psi, MPS psi_seed, const int start, bool inverted, bool dagger
  *        (link indices with a flux direction).
  */
 void
-insert_QN_state(MPS* psi, MPS psi_seed, const int start, bool inverted, bool dagger);
+insert_qn_state(MPS* psi, MPS psi_seed, const int start, bool inverted, bool dagger);
 
 /**
  * @brief Insert a state defined on its own site set into a larger MPS.
@@ -69,13 +69,13 @@ swap_gate( MPS *psi, int j1, int j2, double cut_off, int maxDim);
  * @return MPO with unprimed (ket) and primed (bra) site indices; bond dimension chi^2.
  */
 MPO
-from_MPS_to_MPDO(MPS psi);
+from_mps_to_mpdo(MPS psi);
 
 /**
- * @brief Same as from_MPS_to_MPDO, fusing the ket and bra link indices into a single index.
+ * @brief Same as from_mps_to_mpdo, fusing the ket and bra link indices into a single index.
  */
 MPO
-from_MPS_to_MPDO_v2(MPS psi);
+from_mps_to_mpdo_v2(MPS psi);
 
 /**
  * @brief Reduced density matrix of psi on the sites i..j (inclusive).

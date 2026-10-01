@@ -44,7 +44,7 @@ adiabatic_transformation_linear_protocol( MPS *psi_start, const SiteSet sites, c
 		J = J_target * t / beta;
 		cerr << J << endl;
 		auto gates = vector<BondGate>();
-		build_TEBD_dt_step_H(gates, sites, L, dt, J, c);
+		build_tebd_dt_step(gates, sites, L, dt, J, c);
 		gateTEvol( gates , dt , dt , *psi_start , TEBD_args); 
 	}while( J_target > J );
 
@@ -73,7 +73,7 @@ adiabatic_transformation_tanh_protocol( MPS *psi_start, const SiteSet sites, con
 		J = J_target * tanh(t/beta);
 		cerr << J << endl;
 		auto gates = vector<BondGate>();
-		build_TEBD_dt_step_H(gates, sites, L, dt, J, c);
+		build_tebd_dt_step(gates, sites, L, dt, J, c);
 		gateTEvol( gates , dt , dt , *psi_start , TEBD_args); 
 	}while((J_target - J)/(J_target + J) > tolerance );
 

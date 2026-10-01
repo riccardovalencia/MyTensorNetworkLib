@@ -281,7 +281,7 @@ gates_pxp(const SiteSet sites , const double omega, const double dt)
 // Rydberg Hamiltonian - we keep up to nearest neighbor interactions
 
 vector<MyBondGate>
-gates_rydberg_up_to_VNN(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
+gates_rydberg_up_to_vnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
 
 	int N = length(sites);
@@ -353,7 +353,7 @@ gates_rydberg_up_to_VNN(const SiteSet sites , const vector<double> Deltaj, const
 // PLUS: it does not split the single-site terms separately. You earn ~30% in computation time
 
 vector<MyBondGate>
-gates_rydberg_up_to_VNNN(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
+gates_rydberg_up_to_vnnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
 
 	int N = length(sites);
@@ -604,10 +604,10 @@ gates_rydberg_up_to_VNNN(const SiteSet sites , const vector<double> Deltaj, cons
 // 2. We prepare the gates for H_j, and then we put them inside a time-evolving operator U_j (of time step dt/2) via SVDs. Namely: we construct the gates and then the resulting MPO
 // 3. Either we return the vector [U_1,U_2,U_3,U_3,U_2,U_1]. Or we multiply the MPOs in order to have a single one.
 
-// deprecated in favour of gates_rydberg_up_to_VNNN: in the new version we have single-site terms applied together with the 3-site one.
+// deprecated in favour of gates_rydberg_up_to_vnnn: in the new version we have single-site terms applied together with the 3-site one.
 
 vector<MyBondGate>
-gates_rydberg_up_to_VNNN_deprecated(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
+gates_rydberg_up_to_vnnn_deprecated(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
 
 	int N = length(sites);

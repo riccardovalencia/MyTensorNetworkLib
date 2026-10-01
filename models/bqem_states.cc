@@ -67,7 +67,7 @@ super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeezed, c
 
 
 MPO
-bQEM_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt, double T)
+bqem_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt, double T)
 {
 
 	int size = length(sites);
@@ -78,10 +78,10 @@ bQEM_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt
 	{
 		double J = J_target * step * dt / T;
 		cerr << J << endl;
-		// exp_H_mmGcbQEM_n0_notfixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt)
+		// exp_hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt)
 
-		MPO expH  = exp_H_mmGcbQEM_n0_notfixed( sites, size , 1, 0.0 , J,  c, dt);
-		MPO expHd = exp_H_mmGcbQEM_n0_notfixed( sites, size , 1, 0.0 , J,  c, -1*dt);
+		MPO expH  = exp_hamiltonian_bqem_n0_not_fixed( sites, size , 1, 0.0 , J,  c, dt);
+		MPO expHd = exp_hamiltonian_bqem_n0_not_fixed( sites, size , 1, 0.0 , J,  c, -1*dt);
 		
 		O = nmultMPO( O , prime(expH) ,{"MaxDim",1000,"Cutoff",1E-14}); 
 		O.mapPrime(2,1);
@@ -219,7 +219,7 @@ scalar_product_different_n0( MPS *psi1, MPS *psi2, const SiteSet sites1, const S
 
 
     cerr << "Computing variance of n0: " << max_n0 << " over Hamiltonian with n0=" << min_n0 << endl;
-    double variance_constraned_space = compute_variance_H_mmGcbQEM(&psi_constrained, sites_min_n0 , size , lambda, min_n0, symmetry_sector, s, c, symmetry_sector_dir);
+    double variance_constraned_space = compute_variance_hamiltonian_bqem(&psi_constrained, sites_min_n0 , size , lambda, min_n0, symmetry_sector, s, c, symmetry_sector_dir);
 
     if( overlap_absolute < 1E-10 ) overlap_absolute = 0.;
 
@@ -349,7 +349,7 @@ scalar_product_different_cutoff( MPS *psi1, MPS *psi2, const SiteSet sites1, con
     double overlap_absolute = overlap_amplitude.real() * overlap_amplitude.real() + overlap_amplitude.imag() * overlap_amplitude.imag();
 
 
-    double variance_expanded_space = compute_variance_H_mmGcbQEM(&psi_expanded, sites_maxcutoff , size , max_cut_off, n0, symmetry_sector, s, c, symmetry_sector_dir);
+    double variance_expanded_space = compute_variance_hamiltonian_bqem(&psi_expanded, sites_maxcutoff , size , max_cut_off, n0, symmetry_sector, s, c, symmetry_sector_dir);
 
 
     return {overlap_absolute,variance_expanded_space};

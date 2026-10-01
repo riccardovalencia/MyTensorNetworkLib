@@ -32,15 +32,15 @@ using namespace itensor;
  *            + (1 - symmetry)/2 n_size.
  */
 MPO
-H_mmGcbQEM( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+hamiltonian_bqem( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
-/** @brief H_mmGcbQEM plus a drive 0.05 sum_{j=2}^{size-1} sigma^x_j. */
+/** @brief hamiltonian_bqem plus a drive 0.05 sum_{j=2}^{size-1} sigma^x_j. */
 MPO
-H_mmGcbQEM_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+hamiltonian_bqem_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
-/** @brief -H_mmGcbQEM (to target the highest-energy state with DMRG). */
+/** @brief -hamiltonian_bqem (to target the highest-energy state with DMRG). */
 MPO
-H_mmGcbQEM_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+hamiltonian_bqem_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
 /**
  * @brief Bulk bQEM term plus on-site interaction and hopping (no site 0, no boundary term):
@@ -48,14 +48,14 @@ H_mmGcbQEM_minus( const SiteSet sites, int size , int n0, double symmetry , doub
  *            - t/2 sum_j (a^dag_j a_{j+1} + h.c.).
  */
 MPO
-H_mmGcbQEM_onsite_hopping( const SiteSet sites, int size , double s, double c , double epsilon, double t);
+hamiltonian_bqem_onsite_hopping( const SiteSet sites, int size , double s, double c , double epsilon, double t);
 
 /**
  * @brief On-site interaction only, H = epsilon/2 sum_j n_j^2.
  * @note n0, symmetry, s and c are not used.
  */
 MPO
-H_mmGcbQEM_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon);
+hamiltonian_bqem_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon);
 
 /**
  * @brief Diagonal part without nearest-neighbour terms:
@@ -63,15 +63,15 @@ H_mmGcbQEM_onsite( const SiteSet sites, int size , int n0, double symmetry , dou
  * @note s is not used.
  */
 MPO
-H_mmGcbQEM_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c );
+hamiltonian_bqem_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c );
 
 /**
- * @brief As H_mmGcbQEM, but site 1 is left untouched and plays the role of site 0
+ * @brief As hamiltonian_bqem, but site 1 is left untouched and plays the role of site 0
  *        (the chain starts at site 2). Used to find ground states in the sector fixed by n0
  *        starting from a state |n0>|psi>.
  */
 MPO
-H_mmGcbQEM_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+hamiltonian_bqem_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
 /**
  * @brief Bulk bQEM Hamiltonian without the virtual site 0 (n0 is not fixed),
@@ -79,18 +79,18 @@ H_mmGcbQEM_n0_untouched( const SiteSet sites, int size , int n0, double symmetry
  * @note n0 is not a conserved quantity of this Hamiltonian.
  */
 MPO
-H_mmGcbQEM_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c);
+hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c);
 
 /**
  * @brief MPO approximation of exp(-i dt H) (ITensor toExpH, first order in dt), with H as in
- *        H_mmGcbQEM_n0_not_fixed and hopping amplitude J. Used by bQEM_dressed_operator.
+ *        hamiltonian_bqem_n0_not_fixed and hopping amplitude J. Used by bqem_dressed_operator.
  * @note n0 is not used.
  */
 MPO
-exp_H_mmGcbQEM_n0_notfixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt);
+exp_hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt);
 
 /**
- * @brief Energy variance <H^2> - <H>^2 of H_mmGcbQEM on psi.
+ * @brief Energy variance <H^2> - <H>^2 of hamiltonian_bqem on psi.
  *
  * The symmetry eigenvalue of the sector is read from
  * "<symmetry_sector_dir>/symmetry_sector<symmetry_sector>_maxcutoff30_s<s>_c<c>.dat"
@@ -107,7 +107,7 @@ exp_H_mmGcbQEM_n0_notfixed( const SiteSet sites, int size , int n0, double symme
  * @throws ITError if the data file cannot be opened.
  */
 double
-compute_variance_H_mmGcbQEM(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir);
+compute_variance_hamiltonian_bqem(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir);
 ///@}
 
 /** @name TEBD */
@@ -148,11 +148,11 @@ build_single_step_jumps_v2( ITensor *hterm , const SiteSet sites , const int siz
  * @param gamma    Dephasing rate (only for "open").
  */
 void
-build_TEBD_dt_step_H(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c, const string dynamics = "closed" , const double gamma = 0.);
+build_tebd_dt_step(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c, const string dynamics = "closed" , const double gamma = 0.);
 
-/** @brief As build_TEBD_dt_step_H with arbitrary local jump operators (see build_single_step_jumps_v2). */
+/** @brief As build_tebd_dt_step with arbitrary local jump operators (see build_single_step_jumps_v2). */
 void
-build_TEBD_dt_step_H_open(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd );
+build_tebd_dt_step_open(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd );
 ///@}
 
 #endif

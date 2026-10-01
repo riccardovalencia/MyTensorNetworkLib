@@ -21,7 +21,7 @@ using namespace itensor;
 
 
 int
-perform_DMRG(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
+perform_dmrg(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
 {
 
 int size = physical_args.getInt("size");
@@ -144,7 +144,7 @@ return bond_dimension;
 
 
 int
-perform_DMRG_soft(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
+perform_dmrg_soft(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
 {
 
 int size = physical_args.getInt("size");
@@ -248,7 +248,7 @@ return bond_dimension;
 
 
 void
-perform_DMRG_meanfield(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
+perform_dmrg_meanfield(MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
 {
 
 int size = physical_args.getInt("size");
@@ -332,7 +332,7 @@ save_file_DMRG.close();
 
 
 double
-perform_DMRG_variance(double energy_target, MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
+perform_dmrg_variance(double energy_target, MPS * ground_state , const MPO H, const SiteSet sites, const int set_output_precision, Args const& physical_args, Args const& numerical_args)
 {
 
 int size = physical_args.getInt("size");

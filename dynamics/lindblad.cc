@@ -728,73 +728,57 @@ gates_dissipative_impurity_high_pade(const SiteSet sites , const vector<ITensor>
 vector<MyBondGate>
 doubling_space_gates(const vector<BondGate> gates_single, const SiteSet sites_single,  const SiteSet sites_doubled)
 {
-
+    // physical site i (1..N) -> ket site N + i, mirrored bra site N + 1 - i
+    int N = length(sites_single);
     vector<MyBondGate> gates_doubled;
-	int N =  length(sites_single);
-	cerr << N << "\n";
-	cerr << "Entering ket\n";
-	// ket dynamics
-    for( BondGate g : gates_single)
+
+    for(bool ket : {true, false})
     {
-		cerr << "Here.\n";
-        // physical space position
-        int i1 = g.i1();
-        int i2 = g.i2();
-		cerr << i1 << "\n";
-		cerr << i2 << "\n";
-        // position along the doubled space
-        int inew_1 = N + 1 + i1;
-        int inew_2 = N + 1 + i2;
-        
-        ITensor gate 	= g.gate();
-        Index si1 		= sites_single(i1);
-        Index si2 		= sites_single(i2);
-        Index sinew1 	= sites_doubled(inew_1);
-        Index sinew2 	= sites_doubled(inew_2); 
+        for( BondGate g : gates_single)
+        {
+            int i1 = g.i1();
+            int i2 = g.i2();
+            int inew_1 = ket ? N + i1 : N + 1 - i1;
+            int inew_2 = ket ? N + i2 : N + 1 - i2;
 
-        // changed sites
-        gate *= delta(si1,sinew1);
-        gate *= delta(si2,sinew2);
-        gate *= delta(prime(si1),prime(sinew1));
-        gate *= delta(prime(si2),prime(sinew2));
-        
-        MyBondGate gnew = MyBondGate(sites_doubled,{inew_1,inew_2},0,gate);
-        gnew.modify_gate(gate);
-        gates_doubled.push_back(gnew);
-		
+            // move the gate to the site indices of the doubled chain
+            ITensor gate = g.gate();
+            Index si1    = sites_single(i1);
+            Index si2    = sites_single(i2);
+            Index sinew1 = sites_doubled(inew_1);
+            Index sinew2 = sites_doubled(inew_2);
+            gate *= delta(si1,sinew1);
+            gate *= delta(si2,sinew2);
+            gate *= delta(prime(si1),prime(sinew1));
+            gate *= delta(prime(si2),prime(sinew2));
+
+            // the bra evolves with the conjugate gate
+            MyBondGate gnew = MyBondGate(sites_doubled,{inew_1,inew_2},0,gate);
+            gnew.modify_gate(ket ? gate : dag(gate));
+            gates_doubled.push_back(gnew);
+        }
     }
+    return gates_doubled;
+}
 
-	cerr << "Entering bra\n";
 
-    // bra dynamics
-    for( BondGate g : gates_single)
-    {
-        // physical space position
-        int i1 = g.i1();
-        int i2 = g.i2();
-		cerr << i1 << "\n";
+// ----------------------------------------------------------
+// rho -> rho + gate * rho on the sites (j, j+1), j = first ket site of the gate
 
-        // position along the doubled space
-        int inew_1 = N + 2 - i1;
-        int inew_2 = N + 2 - i2;
-        
-        ITensor gate 	= g.gate();
-        Index si1 		= sites_single(i1);
-        Index si2 		= sites_single(i2);
-        Index sinew1 	= sites_doubled(inew_1);
-		Index sinew2 	= sites_doubled(inew_2); 
+MPS
+apply_dissipative_gate(MPS psi, MyBondGateDiss gate, const Args args)
+{
+    double cut_off = args.getReal("Cutoff");
+    int maxDim     = args.getInt("MaxDim");
+    int j          = gate.jnket()[0];
 
-        // changed sites
-        gate *= delta(si1,sinew1);
-        gate *= delta(si2,sinew2);
-        gate *= delta(prime(si1),prime(sinew1));
-        gate *= delta(prime(si2),prime(sinew2));
+    ITensor AA   = psi(j) * psi(j+1);
+    ITensor dpsi = gate.gate() * AA;
+    dpsi.mapPrime(1,0);
+    AA = AA + dpsi;
 
-        MyBondGate gnew = MyBondGate(sites_doubled,{inew_1,inew_2},0,gate);
-        gnew.modify_gate(dag(gate));
-        gates_doubled.push_back(gnew);
-    }
-
-	return gates_doubled;
-
+    auto [U,S,V] = svd(AA,inds(psi(j)),{"Cutoff=",cut_off,"MaxDim=",maxDim});
+    psi.set(j,U);
+    psi.set(j+1,S*V);
+    return psi;
 }

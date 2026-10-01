@@ -32,13 +32,13 @@ print_matrix( string file_name , vector<vector<double> > &matrix , int set_outpu
 
 /** @brief Set sites_file = "sites_N<N>" and psi_file = "psi_N<N>_nstep". */
 void
-build_file_TEBD( stringstream *sites_file , stringstream *psi_file , const int N );
+build_file_tebd( stringstream *sites_file , stringstream *psi_file , const int N );
 
-/** @brief As build_file_TEBD, plus "N<N>_GF_real", "N<N>_GF_imag", "N<N>_Moments_real", "N<N>_Moments_imag". */
+/** @brief As build_file_tebd, plus "N<N>_GF_real", "N<N>_GF_imag", "N<N>_Moments_real", "N<N>_Moments_imag". */
 void
 build_file_full_counting( stringstream *sites_file , stringstream *psi_file , stringstream *save_real , stringstream *save_imag , stringstream *saveRealMoments , stringstream *saveImagMoments , const int N );
 
-/** @brief As build_file_TEBD, plus save_file = "N<N>_entropy.dat". */
+/** @brief As build_file_tebd, plus save_file = "N<N>_entropy.dat". */
 void
 build_file_entanglement_entropy( stringstream *sites_file , stringstream *psi_file , stringstream *save_file , const int N );
 
@@ -66,11 +66,11 @@ printing_generating_function( const stringstream *save_file , const int numberPo
 
 /** @brief Write the DMRG parameters of a bQEM run to "input.txt". */
 void
-print_input_DMRG(int size , double s , double c , double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
+print_input_dmrg(int size , double s , double c , double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
 
-/** @brief As print_input_DMRG, including on-site interaction epsilon and hopping t. */
+/** @brief As print_input_dmrg, including on-site interaction epsilon and hopping t. */
 void
-print_input_DMRG_hopping(int size , double s , double c , double epsilon, double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
+print_input_dmrg_hopping(int size , double s , double c , double epsilon, double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
 
 /**
  * @brief Write the occupations (site, <n_j>) to "occupation_number_size<size>_s<100s>_c<100c>_cutoff<..>_n0<..>_chi<bond_dimension>...".

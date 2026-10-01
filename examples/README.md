@@ -7,11 +7,11 @@ Set `LIBRARY_DIR` to your ITensor v3 folder (the one containing `options.mk`), e
 `Makefile` or on the command line:
 
 ```bash
-cd examples/rydberg_chain_TEBD
+cd examples/rydberg_chain_tebd
 make LIBRARY_DIR=/path/to/itensor
-./rydberg_chain_TEBD            # default parameters
-./rydberg_chain_TEBD 20 2 2.0 0.1 10 0.05 128   # N M V2 Omega T dt maxDim
-./rydberg_chain_TEBD 20 2 2.0 0.1 10 0.05 128 0.01 3   # ... + position disorder sigmax, seed
+./rydberg_chain_tebd            # default parameters
+./rydberg_chain_tebd 20 2 2.0 0.1 10 0.05 128   # N M V2 Omega T dt maxDim
+./rydberg_chain_tebd 20 2 2.0 0.1 10 0.05 128 0.01 3   # ... + position disorder sigmax, seed
 ```
 
 Examples reading parameters from an input file are run as `./<app> input.txt` (an `input.txt` with
@@ -19,9 +19,9 @@ small, quick parameters is provided; missing entries take the defaults written i
 
 ## List of examples
 
-- `rydberg_chain_TEBD`: closed dynamics of a 1D Rydberg chain (interactions up to next-nearest
+- `rydberg_chain_tebd`: closed dynamics of a 1D Rydberg chain (interactions up to next-nearest
   neighbours, anti-blockade detunings) starting from a kink state, using 3-site TEBD gates
-  (`gates_rydberg_up_to_VNNN`). Optional gaussian disorder on the atomic positions (`sigmax`, `seed`),
+  (`gates_rydberg_up_to_vnnn`). Optional gaussian disorder on the atomic positions (`sigmax`, `seed`),
   reproducing Fig. S1 of https://arxiv.org/abs/2309.12392. Writes fidelity, half-chain entanglement entropy, max bond dimension
   and Rydberg densities `n_j(t)` to `data/`.
 

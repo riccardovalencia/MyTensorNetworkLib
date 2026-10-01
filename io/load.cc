@@ -61,7 +61,7 @@ search_ground_state_max_bond_chi(string results_dir , int size , int lambda, int
 
         cerr << "Opened file : " << tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
 
-        double variance_H = compute_variance_H_mmGcbQEM(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
+        double variance_H = compute_variance_hamiltonian_bqem(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
 
         cerr << "variance : " << variance_H << endl;
 
@@ -115,7 +115,7 @@ search_ground_state_max_bond_chi_no_v(string results_dir , int size , int lambda
         readFromFile(tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(), n0 ,bond_dimension),psi);
         psi /= norm(psi);
         cerr << "Opened file : " << tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
-        double variance_H = compute_variance_H_mmGcbQEM(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
+        double variance_H = compute_variance_hamiltonian_bqem(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
         cerr << "variance : " << variance_H << endl;
 
         if(variance_H < tolerance_variance) return {psi , sites, variance_H};

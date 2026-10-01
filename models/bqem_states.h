@@ -55,7 +55,7 @@ super_bosonic_squeezed_state( MPS *psi_coherent, const SiteSet sites_coherent, c
  * @param T     Duration of the ramp.
  */
 MPO
-bQEM_dressed_operator(MPO O, const SiteSet sites, const double s, const double c, double dt, double T);
+bqem_dressed_operator(MPO O, const SiteSet sites, const double s, const double c, double dt, double T);
 
 /**
  * @brief Overlap between ground states in sectors with different n0, and energy variance of
@@ -63,8 +63,8 @@ bQEM_dressed_operator(MPO O, const SiteSet sites, const double s, const double c
  * @param psi1, psi2     States (sites1, sites2) with n0 = n0_1 and n0_2.
  * @param size           Number of sites.
  * @param lambda         Fock-space cutoff.
- * @param symmetry_sector, s, c bQEM parameters (see compute_variance_H_mmGcbQEM).
- * @param symmetry_sector_dir   Folder of the symmetry-sector data files (see compute_variance_H_mmGcbQEM).
+ * @param symmetry_sector, s, c bQEM parameters (see compute_variance_hamiltonian_bqem).
+ * @param symmetry_sector_dir   Folder of the symmetry-sector data files (see compute_variance_hamiltonian_bqem).
  * @return {|<psi1|psi2>|, variance of H on the state with smaller n0 embedded in the larger space}.
  */
 tuple<double, double>
@@ -73,7 +73,7 @@ scalar_product_different_n0( MPS *psi1, MPS *psi2, const SiteSet sites1, const S
 /**
  * @brief Overlap between states computed with different Fock-space cutoffs; the state with the
  *        smaller cutoff is embedded in the larger space.
- * @param symmetry_sector_dir Folder of the symmetry-sector data files (see compute_variance_H_mmGcbQEM).
+ * @param symmetry_sector_dir Folder of the symmetry-sector data files (see compute_variance_hamiltonian_bqem).
  * @return {|<psi1|psi2>|, variance of H on the embedded state}.
  */
 tuple<double, double>

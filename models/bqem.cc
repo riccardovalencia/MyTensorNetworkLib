@@ -153,7 +153,7 @@ build_single_step_n0( ITensor *hterm , const SiteSet sites , const int size , co
 // i.e. H = - 0.5 \sum_i n_i (exp(-s)\sigma_i+1^x - U n_i+1 - 1) where we do not fix any symmetry sector. 
 // deprecated the usage of open function since 21.03.22 -> use 
 void
-build_TEBD_dt_step_H(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , const string dynamics ,const double gamma)
+build_tebd_dt_step(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , const string dynamics ,const double gamma)
 {
 
 	for(int j = 1; j <= size-1; j++)
@@ -189,7 +189,7 @@ build_TEBD_dt_step_H(vector<BondGate> &gates, const SiteSet sites, const int siz
 
 
 void
-build_TEBD_dt_step_H_open(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd )
+build_tebd_dt_step_open(vector<BondGate> &gates, const SiteSet sites, const int size, const double dt, const double J, const double c , vector<ITensor> &Lj, vector<ITensor> &Ljd )
 {
 	for(int j = 1; j <= size-1; j++)
 		{
@@ -213,7 +213,7 @@ build_TEBD_dt_step_H_open(vector<BondGate> &gates, const SiteSet sites, const in
 // Hamiltonian H = - 0.5 n_0 ( exp(-s) \sigma_1^x -1) - 0.5 \sum_{j=1}^{L-1} n_j (exp(-s) \sigma_{j+1}^x - (1-2c) n_{j+1} -1) + 0.5 n_L * sector + 0.5 * n_L
 
 MPO
-H_mmGcbQEM( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+hamiltonian_bqem( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
 
 	double U = 1-2*c;
@@ -249,7 +249,7 @@ H_mmGcbQEM( const SiteSet sites, int size , int n0, double symmetry , double s, 
 // Hamiltonian H = - 0.5 n_0 ( exp(-s) \sigma_1^x -1) - 0.5 \sum_{j=1}^{L-1} n_j (exp(-s) \sigma_{j+1}^x - (1-2c) n_{j+1} -1) + 0.5 n_L * sector + 0.5 * n_L
 
 MPO
-H_mmGcbQEM_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+hamiltonian_bqem_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
 
 	double U = 1-2*c;
@@ -288,7 +288,7 @@ H_mmGcbQEM_with_drift( const SiteSet sites, int size , int n0, double symmetry ,
 
 
 MPO
-H_mmGcbQEM_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+hamiltonian_bqem_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
 
 
@@ -325,7 +325,7 @@ H_mmGcbQEM_minus( const SiteSet sites, int size , int n0, double symmetry , doub
 
 
 MPO
-H_mmGcbQEM_onsite_hopping( const SiteSet sites, int size , double s, double c, double epsilon, double t)
+hamiltonian_bqem_onsite_hopping( const SiteSet sites, int size , double s, double c, double epsilon, double t)
 {
 
 
@@ -358,7 +358,7 @@ H_mmGcbQEM_onsite_hopping( const SiteSet sites, int size , double s, double c, d
 
 
 MPO
-H_mmGcbQEM_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon)
+hamiltonian_bqem_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon)
 {
 	 
 	double U = 1-2*c;
@@ -381,7 +381,7 @@ H_mmGcbQEM_onsite( const SiteSet sites, int size , int n0, double symmetry , dou
 
 
 MPO
-H_mmGcbQEM_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c )
+hamiltonian_bqem_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c )
 {
 
 	auto ampo = AutoMPO(sites);
@@ -418,7 +418,7 @@ H_mmGcbQEM_onsite_nonext( const SiteSet sites, int size , int n0, double symmetr
 // n0 from a site of the form |n0>|psi>.
 
 MPO
-H_mmGcbQEM_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+hamiltonian_bqem_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
 
 
@@ -462,7 +462,7 @@ H_mmGcbQEM_n0_untouched( const SiteSet sites, int size , int n0, double symmetry
 // of the operators acting on the 0-th site). 
 
 MPO
-H_mmGcbQEM_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c)
+hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c)
 {
 
 
@@ -495,7 +495,7 @@ H_mmGcbQEM_n0_not_fixed( const SiteSet sites, int size , double symmetry , doubl
 // Exponential of the Hamiltonian. This is done in order to apply it to operators
 
 MPO
-exp_H_mmGcbQEM_n0_notfixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt)
+exp_hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt)
 {
 	 
 	double U  = 1 - 2 * c;
@@ -522,7 +522,7 @@ exp_H_mmGcbQEM_n0_notfixed( const SiteSet sites, int size , int n0, double symme
 
 
 double 
-compute_variance_H_mmGcbQEM(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir)
+compute_variance_hamiltonian_bqem(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir)
 {
 	double symmetry;
 	ifstream symmetry_sector_file;
@@ -530,7 +530,7 @@ compute_variance_H_mmGcbQEM(MPS *psi , const SiteSet sites, int size , int cut_o
 	cerr << name_symmetry_sector_file << endl;
 	symmetry_sector_file.open(name_symmetry_sector_file);
 	if(!symmetry_sector_file.is_open())
-		throw ITError("compute_variance_H_mmGcbQEM: cannot open " + name_symmetry_sector_file);
+		throw ITError("compute_variance_hamiltonian_bqem: cannot open " + name_symmetry_sector_file);
 
 	for (int i = 1; i < cut_off_fock_space; i++)
 	{
@@ -540,7 +540,7 @@ compute_variance_H_mmGcbQEM(MPS *psi , const SiteSet sites, int size , int cut_o
 
 	symmetry_sector_file >> symmetry;
 
-	MPO H = H_mmGcbQEM( sites, size , n0, symmetry , s, c) ; 
+	MPO H = hamiltonian_bqem( sites, size , n0, symmetry , s, c) ; 
 
 
 	double variance = inner((*psi),H,H,(*psi))  -   inner((*psi),H,(*psi)) *  inner((*psi),H,(*psi));

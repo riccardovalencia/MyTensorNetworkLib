@@ -415,7 +415,7 @@ compute_norm_purified_impurity(MPS (*psi))
 // Compute Tr(rho) where rho is unfolded as an MPS with quantum numbers QN
 
 double
-compute_norm_purified_impurity_QN(MPS (*psi))
+compute_norm_purified_impurity_qn(MPS (*psi))
 {
     IndexSet sites = siteInds((*psi));
     int N = length(sites)/2;

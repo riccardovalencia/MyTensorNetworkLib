@@ -3,6 +3,7 @@
  * @brief Implementation of time_evolution.h (the functions are documented in the header).
  */
 #include "time_evolution.h"
+#include "lindblad.h"
 #include "../dynamics/purified_state.h"
 #include "../mps/gates.h"
 #include "../mps/mps_tools.h"
@@ -23,7 +24,7 @@ using namespace itensor;
 
 
 MPS
-TEBD_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
+tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
 {
 	int total_steps = int(T/dt);
 	int MaxDim = TEBD_args.getInt("MaxDim");
@@ -36,27 +37,7 @@ TEBD_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateD
 
         if(dissipative)
         {
-            for (MyBondGateDiss gate : gates_D)
-            {
-                vector<int> jket = gate.jnket(); // sites where it acts on ket
-                ITensor g        = gate.gate();
-
-
-                int j = jket[0];
-
-                cerr <<  j << " "; 
-
-                ITensor AA = psi_t(j) * psi_t(j+1);
-                ITensor dpsi =  g * AA;
-                dpsi.mapPrime(1,0);
-
-                AA = AA + dpsi;
-
-                auto [U,S,V] = svd(AA,inds(psi_t(j)),{"Cutoff=",cut_off,"MaxDim=",MaxDim});
-                psi_t.set(j,U);
-                psi_t.set(j+1,S*V);
-
-            }
+            for (MyBondGateDiss gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
 
             gateTEvol( gates , dt , dt , psi_t , TEBD_args); 
         }
@@ -97,7 +78,7 @@ TEBD_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateD
 // to the N and N+1 site in the unfolded MPS)
 
 MPS
-TEBD_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
+tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
 {
 	int total_steps = int(T/dt);
 	int MaxDim     = TEBD_args.getInt("MaxDim");
@@ -152,25 +133,7 @@ TEBD_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 
         if(dissipative)
         {
-            for (MyBondGateDiss gate : gates_D)
-            {
-                vector<int> jket = gate.jnket(); // sites where it acts on ket
-                ITensor g        = gate.gate();
-
-
-                int j = jket[0];
-
-                ITensor AA = psi_t(j) * psi_t(j+1);
-                ITensor dpsi =  g * AA;
-                dpsi.mapPrime(1,0);
-
-                AA = AA + dpsi;
-
-                auto [U,S,V] = svd(AA,inds(psi_t(j)),{"Cutoff=",cut_off,"MaxDim=",MaxDim});
-                psi_t.set(j,U);
-                psi_t.set(j+1,S*V);
-
-            }
+            for (MyBondGateDiss gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
 
 
 			// long range interaction gates -> need to swap gates (see https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.2.043255)
@@ -250,7 +213,7 @@ TEBD_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 // The coherent part is applied via a first-order approximation of exp(-iH t) = 1 -i H t.
 
 MPS
-MPO_lindblad_time_evolve(MPS psi_t, MPO H , vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
+mpo_lindblad_time_evolve(MPS psi_t, MPO H , vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
 {
 	int total_steps = int(T/dt);
 	int MaxDim = TEBD_args.getInt("MaxDim");
@@ -271,25 +234,7 @@ MPO_lindblad_time_evolve(MPS psi_t, MPO H , vector<MyBondGateDiss> gates_D , Arg
 	
         if(dissipative)
         {
-            for (MyBondGateDiss gate : gates_D)
-            {
-                vector<int> jket = gate.jnket(); // sites where it acts on ket
-                ITensor g        = gate.gate();
-
-
-                int j = jket[0];
-
-                ITensor AA = psi_t(j) * psi_t(j+1);
-                ITensor dpsi =  g * AA;
-                dpsi.mapPrime(1,0);
-
-                AA = AA + dpsi;
-
-                auto [U,S,V] = svd(AA,inds(psi_t(j)),{"Cutoff=",cut_off,"MaxDim=",MaxDim});
-                psi_t.set(j,U);
-                psi_t.set(j+1,S*V);
-
-            }
+            for (MyBondGateDiss gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
 
 
 			dpsi = applyMPO(Ht,psi_t,{"Method=","DensityMatrix","MaxDim=",MaxDim,"Cutoff=",cut_off});

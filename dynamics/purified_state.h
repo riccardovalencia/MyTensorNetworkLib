@@ -22,7 +22,7 @@ compute_norm_purified_impurity(MPS* psi);
 
 /** @return Tr(rho) of the purified state psi, for MPS with quantum numbers. */
 double
-compute_norm_purified_impurity_QN(MPS* psi);
+compute_norm_purified_impurity_qn(MPS* psi);
 
 /**
  * @brief Tr(rho sigma^direction_q) (spin sites) or Tr(rho n_q) (boson sites).

@@ -20,7 +20,7 @@ using namespace itensor;
  * @param hdn   Fields on down electrons, used cyclically (default 0).
  */
 MPO
-H_tight_binding_electrons(const int N , const SiteSet sites, const vector<double> J, const vector<double> hup = {0.}, const vector<double> hdn = {0.});
+hamiltonian_tight_binding_electrons(const int N , const SiteSet sites, const vector<double> J, const vector<double> hup = {0.}, const vector<double> hdn = {0.});
 
 /**
  * @brief Single-particle matrix h of the homogeneous chain, H = sum_{ij} c^dag_i h_ij c_j,
@@ -30,11 +30,11 @@ H_tight_binding_electrons(const int N , const SiteSet sites, const vector<double
  * @return ITensor with indices (r, r').
  */
 ITensor
-H_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful = false);
+hamiltonian_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful = false);
 
-/** @brief As H_number_conserving_fermions, with hopping J[0] between sites 1 and 2 (impurity) and J[1] elsewhere. */
+/** @brief As hamiltonian_number_conserving_fermions, with hopping J[0] between sites 1 and 2 (impurity) and J[1] elsewhere. */
 ITensor
-H_number_conserving_fermions_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful = false);
+hamiltonian_number_conserving_fermions_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful = false);
 
 /**
  * @brief Second-order Trotter gates of free spinful fermions (Electron sites):

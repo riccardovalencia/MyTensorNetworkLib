@@ -22,7 +22,7 @@ using namespace itensor;
  * with chi = bond_dimension * scaling_bond_dimension^k, and returns the first version whose energy
  * variance is below 1e-8.
  *
- * @param symmetry_sector_dir Folder of the symmetry-sector data files (see compute_variance_H_mmGcbQEM).
+ * @param symmetry_sector_dir Folder of the symmetry-sector data files (see compute_variance_hamiltonian_bqem).
  * @return {state, sites, energy variance}.
  */
 tuple<MPS, Boson, double>

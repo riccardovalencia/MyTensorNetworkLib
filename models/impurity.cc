@@ -315,7 +315,7 @@ gates_coherent_part_spin_dissipative_impurity_model(const SiteSet sites , const 
 
 
 vector<MyBondGate>
-gates_coherent_part_spin_dissipative_NNN_interactions_impurity_model(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt)
+gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt)
 {
 
 	// N is always even and corresponds to the physical size

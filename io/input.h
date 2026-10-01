@@ -37,13 +37,13 @@ get_data_system( char* argv[] , int *size , double *s , double *c, int *n0 , dou
 
 /** @brief argv[7..11] = bond_dimension lower_bound_singular_values scaling_bond_dimension precision_dmrg max_bond_dimension. */
 void
-get_data_DMRG( char* argv[] , int *bond_dimension, double *lower_bound_singular_values, double *scaling_bond_dimension, double *precision_dmrg, int *max_bond_dimension);
+get_data_dmrg( char* argv[] , int *bond_dimension, double *lower_bound_singular_values, double *scaling_bond_dimension, double *precision_dmrg, int *max_bond_dimension);
 
 /**
  * @brief argv[6..10] = max_bond_dimension lower_bound_singular_values total_time delta_t number_steps_samplig.
  */
 void
-get_data_TEBD( char* argv[] , int *max_bond_dimension, double *lower_bound_singular_values, double *total_time, double *delta_t, int *number_steps_samplig);
+get_data_tebd( char* argv[] , int *max_bond_dimension, double *lower_bound_singular_values, double *total_time, double *delta_t, int *number_steps_samplig);
 ///@}
 
 #endif

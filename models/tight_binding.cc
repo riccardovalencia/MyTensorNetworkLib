@@ -20,7 +20,7 @@ using namespace itensor;
 
 
 MPO
-H_tight_binding_electrons(const int N , const SiteSet sites, const vector<double> J, const vector<double> hup, const vector<double> hdn)
+hamiltonian_tight_binding_electrons(const int N , const SiteSet sites, const vector<double> J, const vector<double> hup, const vector<double> hdn)
 {
     int size_J = J.size();
     int size_hup = hup.size();
@@ -52,7 +52,7 @@ H_tight_binding_electrons(const int N , const SiteSet sites, const vector<double
 
 
 ITensor
-H_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful)
+hamiltonian_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 {
     int L = N;
     vector<double> Jp = J;
@@ -80,7 +80,7 @@ H_number_conserving_fermions(const int N , const vector<double> J, const vector<
 
 
 ITensor
-H_number_conserving_fermions_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful)
+hamiltonian_number_conserving_fermions_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 {
     int L = N;
     vector<double> Jp = J;

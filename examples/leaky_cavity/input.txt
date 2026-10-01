@@ -9,4 +9,5 @@ V=0.5
 T=10
 dt=0.01
 maxDim=256
+coupling=dicke
 }

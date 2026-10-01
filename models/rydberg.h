@@ -25,21 +25,21 @@ using namespace itensor;
  * @param dt     Time step.
  */
 vector<MyBondGate>
-gates_rydberg_up_to_VNN(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
+gates_rydberg_up_to_vnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
 
 /**
- * @brief As gates_rydberg_up_to_VNN, plus next-nearest-neighbour interactions (three-site gates).
+ * @brief As gates_rydberg_up_to_vnn, plus next-nearest-neighbour interactions (three-site gates).
  *
  * The next-nearest-neighbour coupling is derived from the nearest-neighbour ones assuming
  * V(r) = 1/r^6 on a line: V_{j,j+2} = 1/(r_j + r_{j+1})^6 with r_j = V_j^(-1/6).
  * Benchmarked against exact diagonalization (arXiv:2309.12392).
  */
 vector<MyBondGate>
-gates_rydberg_up_to_VNNN(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
+gates_rydberg_up_to_vnnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
 
-/** @deprecated Older implementation of gates_rydberg_up_to_VNNN; use gates_rydberg_up_to_VNNN. */
+/** @deprecated Older implementation of gates_rydberg_up_to_vnnn; use gates_rydberg_up_to_vnnn. */
 vector<MyBondGate>
-gates_rydberg_up_to_VNNN_deprecated(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
+gates_rydberg_up_to_vnnn_deprecated(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
 
 /**
  * @brief Three-site gates of the PXP model, H = omega sum_j P_{j-1} X_j P_{j+1}, P = (1+Z)/2.

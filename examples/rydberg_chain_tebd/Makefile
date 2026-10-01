@@ -2,7 +2,7 @@
 # Override from the command line if needed: make LIBRARY_DIR=/path/to/itensor
 LIBRARY_DIR ?= /home/riccardo/itensor
 
-APP=rydberg_chain_TEBD
+APP=rydberg_chain_tebd
 
 # MyTensorNetworkLib root: the static library lib/libmytn.a is (re)built there if needed
 MYTN_DIR=../..

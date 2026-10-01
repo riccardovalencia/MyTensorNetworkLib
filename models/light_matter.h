@@ -10,6 +10,7 @@
 #define MYTN_MODELS_LIGHT_MATTER_H
 
 #include <itensor/all.h>
+#include "../mps/gates.h"
 
 using namespace std;
 using namespace itensor;
@@ -43,5 +44,38 @@ gates_tavis_cummings(const SiteSet sites , const double omega0 , const double h 
  */
 vector<BondGate>
 gates_photon_matter(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon, string type_of_coupling = "tavis", const double V = 0, string interaction_axis = "z");
+
+/** @name Purified (bra-ket) states
+ *  Gates mapped onto the doubled chain with doubling_space_gates (dynamics/lindblad.h): the two
+ *  bosons sit on the central bond, the spins of the ket to their right and those of the bra
+ *  (mirrored) to their left.
+ */
+///@{
+
+/**
+ * @brief Apply a gate acting on two neighbouring sites of the purified chain, given in any order.
+ *
+ * Moves the orthogonality center to the left site, applies the gate and splits back with a
+ * truncated SVD.
+ * @param psi  Purified state (taken by value).
+ * @param gate Gate on two neighbouring sites.
+ * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
+ */
+MPS
+apply_local_gate_purified(MPS psi, MyBondGate gate, const Args args);
+
+/**
+ * @brief Apply a photon-matter gate and move the boson one site outward with a swap.
+ *
+ * The gate couples the boson, adjacent to the spin it acts on, and that spin. Applying the
+ * "long-range" gates of gates_photon_matter in order lets the boson travel through the ket (or the
+ * bra) and interact with every spin.
+ * @param psi  Purified state (taken by value).
+ * @param gate Photon-matter gate mapped onto the doubled chain; jn = {boson site, spin site}.
+ * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
+ */
+MPS
+apply_photon_matter_gate_purified(MPS psi, MyBondGate gate, const Args args);
+///@}
 
 #endif

@@ -18,9 +18,9 @@ DT=0.01
 MAXDIM=256
 
 MAIN_DIR=./
-BIN=$(pwd)/tn_rydberg_in_leaky_cavity  # absolute path: the script cd-s into SAVEDIR
+BIN=$(pwd)/leaky_cavity  # absolute path: the script cd-s into SAVEDIR
 
-SAVEDIR=${MAIN_DIR}/rydberg_in_leaky_cavity_N${N}_maxocc${MAX_OCC}
+SAVEDIR=${MAIN_DIR}/leaky_cavity_N${N}_maxocc${MAX_OCC}
 if [ ! -d $SAVEDIR ]; then                                                                                  # verifica che la directory da creare non esista già
     if ! mkdir $SAVEDIR ; then                                                                              # verifica che la creazione della directory non sia fallita
     exit -1

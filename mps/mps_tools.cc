@@ -190,7 +190,7 @@ insert_state(MPS* psi, MPS psi_seed, const int start, bool inverted,bool dagger)
 // -> psi(j) ->
 
 void
-insert_QN_state(MPS* psi, MPS psi_seed, const int start, bool inverted,bool dagger)
+insert_qn_state(MPS* psi, MPS psi_seed, const int start, bool inverted,bool dagger)
 {
 
     IndexSet phys_idx = siteInds(*psi);
@@ -447,7 +447,7 @@ swap_gate( MPS *psi, int j1, int j2, double cut_off, int maxDim)
 // Given a pure state psi, presented as an MPS, it return its density matrix representation |psi> <psi| as an MPO
 
 MPO 
-from_MPS_to_MPDO(MPS psi )
+from_mps_to_mpdo(MPS psi )
 {
     // ket and bra (bra is primed)
     MPS ket = psi;
@@ -521,7 +521,7 @@ from_MPS_to_MPDO(MPS psi )
 // Similar to above, but it uses a variation for fusing the link indices in a single one
 
 MPO 
-from_MPS_to_MPDO_v2(MPS psi )
+from_mps_to_mpdo_v2(MPS psi )
 {
     // ket and bra (bra is primed)
     MPS ket = psi;

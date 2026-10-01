@@ -24,7 +24,7 @@ using namespace itensor;
 //----------------------------------------------------------------------
 //print input DMRG in Bosonic Quantum East Model
 void
-print_input_DMRG(int size , double s , double c ,double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
+print_input_dmrg(int size , double s , double c ,double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
 	{
 	string input_file = "input.txt";
 	cout << "FileName = " << input_file << endl;
@@ -60,7 +60,7 @@ print_input_DMRG(int size , double s , double c ,double simmetry_sector , int cu
 //----------------------------------------------------------------------
 //print input DMRG in Bosonic Quantum East Model with hopping
 void
-print_input_DMRG_hopping(int size , double s , double c , double epsilon , double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
+print_input_dmrg_hopping(int size , double s , double c , double epsilon , double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
 	{
 	string input_file = "input.txt";
 	cout << "FileName = " << input_file << endl;
@@ -302,7 +302,7 @@ print_projector_fockspace_excited_states( vector<vector<double> > &projector_all
 //----------------------------------------------------------------------
 //files to save the information about sites and the state
 void 
-build_file_TEBD( stringstream *sites_file ,  stringstream *psi_file , const int N )
+build_file_tebd( stringstream *sites_file ,  stringstream *psi_file , const int N )
 	{
 	*sites_file << "sites_N" << N ;
 	*psi_file << "psi_N" << N << "_nstep";

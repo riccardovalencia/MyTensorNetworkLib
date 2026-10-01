@@ -55,11 +55,30 @@ vector<BondGate>
 gates_dissipative_impurity_high_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
 
 /**
+ * @brief Apply a dissipative gate to the vectorized density matrix, rho -> rho + gate * rho, on the
+ *        two sites (j, j+1) with j = gate.jnket()[0], and split them back with a truncated SVD.
+ *
+ * The orthogonality center is not moved and the state is not normalized.
+ * @code
+ * for(MyBondGateDiss g : gates_D) psi = apply_dissipative_gate(psi, g, {"Cutoff=",1E-14,"MaxDim=",256});
+ * @endcode
+ * @param psi  Purified state (taken by value).
+ * @param gate Dissipative gate (e.g. from gates_dissipative_impurity).
+ * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
+ * @return The updated MPS.
+ */
+MPS
+apply_dissipative_gate(MPS psi, MyBondGateDiss gate, const Args args);
+
+/**
  * @brief Copy gates built on the physical chain onto the unfolded bra-ket chain: each gate acts on
  *        the ket and, complex conjugated, on the mirrored bra.
+ *
+ * Physical site i (1..N) is mapped to the ket site N + i and to the bra site N + 1 - i. The ket gates
+ * come first, in the order of gates_single, followed by the bra gates.
  * @param gates_single  Gates on the physical site set.
- * @param sites_single  Physical site set (N sites).
- * @param sites_doubled Doubled site set (2N sites).
+ * @param sites_single  Physical site set (N sites), e.g. custom_spin_boson(N, max_occ).
+ * @param sites_doubled Doubled site set (2N sites), e.g. custom_spin_boson_doubling(N, max_occ).
  */
 vector<MyBondGate>
 doubling_space_gates(const vector<BondGate> gates_single, const SiteSet sites_single, const SiteSet sites_doubled);

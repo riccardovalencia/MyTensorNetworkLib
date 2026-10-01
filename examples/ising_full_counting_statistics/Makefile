@@ -3,7 +3,7 @@
 LIBRARY_DIR ?= /home/riccardo/itensor
 
 # Programs of this example (one .cc file each)
-APPS = TEBD_TLIC FULL_COUNTING_STATISTICS ENTROPY_HALF ENTROPY_ALL TLIC_compute_thermal
+APPS = ising_quench ising_thermal
 
 # MyTensorNetworkLib root: the static library lib/libmytn.a is (re)built there if needed
 MYTN_DIR=../..

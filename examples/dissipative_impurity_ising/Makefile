@@ -3,9 +3,7 @@
 LIBRARY_DIR ?= /home/riccardo/itensor
 
 # Programs of this example (one .cc file each)
-APPS = tn_ising_model_impurity tn_ising_model_impurity_NNN_interactions \
-       tn_ising_model_impurity_measure tn_ising_model_impurity_measure_NNN \
-       tn_ising_model_pure DMRG_Ising_up_NNN
+APPS = impurity_dynamics ground_state_scan
 
 # MyTensorNetworkLib root: the static library lib/libmytn.a is (re)built there if needed
 MYTN_DIR=../..

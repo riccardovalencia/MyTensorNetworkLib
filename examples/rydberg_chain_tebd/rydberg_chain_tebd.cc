@@ -27,7 +27,7 @@ namespace fs = std::filesystem;
 // (transverse trap 5 times weaker). The actual interactions V_j are computed from the displaced positions.
 // sigmax = 0 gives the clean chain. seed selects the disorder realization.
 //
-// Usage: ./rydberg_chain_TEBD [N] [M] [V2] [Omega] [T] [dt] [maxDim] [sigmax] [seed]
+// Usage: ./rydberg_chain_tebd [N] [M] [V2] [Omega] [T] [dt] [maxDim] [sigmax] [seed]
 // Output: data/<file_root>.txt     -> t, fidelity with initial state, half-chain entropy, max bond dimension
 //         data/<file_root>_nj.txt  -> t, Rydberg density n_j on each site
 
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
         Deltaj.push_back(j % 2 == 0 ? -V1 : -V2);  // anti-blockade
     }
 
-    vector<MyBondGate> gates = gates_rydberg_up_to_VNNN(sites, Deltaj, Omegaj, Vj, dt);
+    vector<MyBondGate> gates = gates_rydberg_up_to_vnnn(sites, Deltaj, Omegaj, Vj, dt);
 
     // ---------------------------------
     // Output files

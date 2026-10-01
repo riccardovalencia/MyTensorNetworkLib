@@ -46,8 +46,6 @@ generating_function_sim_size( vector<double> &singleGreal , vector<double> &sing
 	if( size % 2 == 0)	start = ( N/2 - size / 2 );					//if size is even we go to the left of the center
 	else start = ( N/2 - (size + 1) / 2 ) ;
 	(*psi).position( start );	
-	cout << "(Simmetric) Measuring size = " << size + 1 << "\t"
-		 << "start = " << start << endl;
 
 	double theta = -M_PI ;
 
@@ -132,7 +130,7 @@ measure_generating_function( MPS* psi , const SpinHalf sites , int N , int n , i
 //----------------------------------------------------------------------
 //return the MPO of the total magnetization of a spin-1/2 system of a subsystem of size "size"
 MPO
-build_totalSx( const SpinHalf sites , const int start ,  const int size )
+build_total_sx( const SpinHalf sites , const int start ,  const int size )
 	{
 	
 	AutoMPO ampo(sites);
@@ -171,7 +169,7 @@ measuring_moments( MPS *psi , const SpinHalf sites , const int N , const int n ,
 			else start = ( N/2 - (size + 1) / 2 ) ;
 		
 			(*psi).position( start );
-			MPO totalSx = build_totalSx( sites , start , size );
+			MPO totalSx = build_total_sx( sites , start , size );
 	
 			// powers of the MPO: in ITensor v3, A*B = nmultMPO(A,prime(B)) with primes 2 -> 1
 			Args args_mult = {"MaxDim",500,"Cutoff",1E-16};
@@ -255,8 +253,6 @@ generating_function_sim_size( vector<double> &singleGreal , vector<double> &sing
 	
 	if( size % 2 == 0)	start = ( N/2 - size / 2 );					//if size is even we go to the left of the center
 	else start = ( N/2 - (size + 1) / 2 ) ;
-	cerr << "(Simmetric) Measuring size = " << size + 1 << "\t"
-		 << "start = " << start << endl;
 
 	double theta = -M_PI ;
     

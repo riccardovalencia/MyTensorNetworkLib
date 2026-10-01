@@ -36,7 +36,7 @@ get_data_system(  char* argv[] , int *size , double *s , double *c , int *n0 , d
 //----------------------------------------------------------------------
 // input about numerical quantities for DMRG in the bosonic quantum east model chain
 void
-get_data_DMRG(  char* argv[]  , int *bond_dimension, double *lower_bound_singular_values, double *scaling_bond_dimension, double *precision_dmrg, int *max_bond_dimension)
+get_data_dmrg(  char* argv[]  , int *bond_dimension, double *lower_bound_singular_values, double *scaling_bond_dimension, double *precision_dmrg, int *max_bond_dimension)
 {
 	*bond_dimension = atoi( argv[7] );
 	*lower_bound_singular_values = atof( argv[8] );
@@ -49,7 +49,7 @@ get_data_DMRG(  char* argv[]  , int *bond_dimension, double *lower_bound_singula
 //----------------------------------------------------------------------
 // input about numerical quantities for TEBD in the bosonic quantum east model chain
 void
-get_data_TEBD(  char* argv[] , int *max_bond_dimension, double *lower_bound_singular_values, double *total_time, double *delta_t, int *number_steps_samplig)
+get_data_tebd(  char* argv[] , int *max_bond_dimension, double *lower_bound_singular_values, double *total_time, double *delta_t, int *number_steps_samplig)
 {
 	*max_bond_dimension = atoi( argv[6] );
 	*lower_bound_singular_values = atof( argv[7] );
