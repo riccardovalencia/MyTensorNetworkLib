@@ -1,6 +1,6 @@
 /**
  * @file full_counting_statistics.cc
- * @brief Implementation of full_counting_statistics.h (the functions are documented in the header).
+ * @brief Implementation of full_counting_statistics.h (interfaces documented in the header, logic commented here).
  */
 #include "full_counting_statistics.h"
 #include <itensor/all.h>
@@ -12,6 +12,7 @@ using namespace std;
 using namespace itensor;
 
 
+// accumulate the steps from -pi: the coarse step in the outer quarters, the fine one in the middle
 vector<double>
 make_theta_grid( int number_points )
 {
@@ -25,6 +26,7 @@ make_theta_grid( int number_points )
 }
 
 
+// N/2 minus half the block length (rounded up for even block sizes)
 int
 block_start( int N, int block_size )
 {
@@ -107,6 +109,7 @@ compute_generating_function( MPO* rho, const SpinHalf sites, int block_size, con
 }
 
 
+// AutoMPO with S^x on every site of the block
 MPO
 make_block_sx_mpo( const SpinHalf sites, int start, int block_size )
 {
@@ -116,6 +119,8 @@ make_block_sx_mpo( const SpinHalf sites, int start, int block_size )
 }
 
 
+// moments <(S^x_A)^k>, k = 1..4, from powers of the MPO of S^x_A, then the standard
+// moment-to-cumulant relations
 vector<complex<double> >
 compute_cumulants( MPS* psi, const SpinHalf sites, int block_size )
 {
