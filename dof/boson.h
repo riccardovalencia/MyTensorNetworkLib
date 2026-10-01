@@ -30,19 +30,38 @@ using namespace itensor;
 void
 set_site_occupation( MPS* psi, const SiteSet sites, int site, int n );
 
-/** @brief Vacuum |00...0>. */
+/**
+ * @brief Vacuum |00...0>.
+ * @param psi   State to overwrite (with link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites Boson site set of psi.
+ */
 void
 set_vacuum_state( MPS* psi, const SiteSet sites );
 
-/** @brief One boson per site, |11...1>. */
+/**
+ * @brief One boson per site, |11...1>.
+ * @param psi   State to overwrite (with link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites Boson site set of psi.
+ */
 void
 set_unit_filling_state( MPS* psi, const SiteSet sites );
 
-/** @brief Fock state with n0 bosons on `site` and vacuum elsewhere. */
+/**
+ * @brief Fock state with n0 bosons on `site` and vacuum elsewhere.
+ * @param psi   State to overwrite (with link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites Boson site set of psi.
+ * @param n0    Number of bosons (n0 < dim of the site).
+ * @param site  Occupied site.
+ */
 void
 set_fock_excitation( MPS* psi, const SiteSet sites, int n0, int site );
 
-/** @brief Kink |1...1 0...0> with one boson on each of the first number_ones sites. */
+/**
+ * @brief Kink |1...1 0...0> with one boson on each of the first number_ones sites.
+ * @param psi   State to overwrite (with link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites Boson site set of psi.
+ * @param number_ones Number of occupied sites, from site 1.
+ */
 void
 set_kink_state( MPS* psi, const SiteSet sites, int number_ones );
 ///@}
@@ -50,31 +69,62 @@ set_kink_state( MPS* psi, const SiteSet sites, int number_ones );
 /** @name Coherent, squeezed and cat states */
 ///@{
 
-/** @brief Coherent state |alpha> (a|alpha> = alpha|alpha>) on one site, vacuum elsewhere. */
+/**
+ * @brief Coherent state |alpha> (a|alpha> = alpha|alpha>) on one site, vacuum elsewhere.
+ * @param psi   State to overwrite (with link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites Boson site set of psi.
+ * @param site  Site of the coherent state.
+ * @param alpha Amplitude (|alpha|^2 bosons on average; truncated at the Fock-space cutoff).
+ */
 void
 set_coherent_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha );
 
-/** @brief Product of coherent states |alpha> on every site. */
+/**
+ * @brief Product of coherent states |alpha> on every site.
+ * @param psi   State to overwrite (with link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites Boson site set of psi.
+ * @param alpha Amplitude, the same on every site.
+ */
 void
 set_coherent_state_all_sites( MPS* psi, const SiteSet sites, Cplx alpha );
 
-/** @brief Squeezed vacuum with squeezing parameter r on one site, vacuum elsewhere (only even Fock states). */
+/**
+ * @brief Squeezed vacuum with squeezing parameter r on one site, vacuum elsewhere (only even Fock states).
+ * @param psi   State to overwrite (with link indices, e.g. MPS(sites) or randomMPS(sites)).
+ * @param sites Boson site set of psi.
+ * @param site  Site of the squeezed state.
+ * @param r     Squeezing parameter.
+ */
 void
 set_squeezed_state_on_site( MPS* psi, const SiteSet sites, int site, double r );
 
-/** @brief Even cat state (|alpha> + |-alpha>), normalized, on one site; vacuum elsewhere. */
+/**
+ * @brief Even cat state (|alpha> + |-alpha>), normalized, on one site; vacuum elsewhere.
+ * @param psi   State to overwrite (replaced by a new MPS, with bond dimension 2).
+ * @param sites Boson site set.
+ * @param site  Site of the cat state.
+ * @param alpha Amplitude of the two coherent states.
+ */
 void
 set_cat_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha );
 
-/** @return n! as a double. */
+/** @param n Non-negative integer. @return n! as a double. */
 double
 factorial(int n);
 
-/** @return Fock amplitude <k|alpha> = exp(-|alpha|^2/2) alpha^k / sqrt(k!) of a coherent state. */
+/**
+ * @param alpha Coherent-state amplitude.
+ * @param k     Fock state.
+ * @return <k|alpha> = exp(-|alpha|^2/2) alpha^k / sqrt(k!).
+ */
 complex<double>
 coherent_state_amplitude( const complex<double> alpha, const int k);
 
-/** @return Fock amplitude <k|r> of the squeezed vacuum with squeezing parameter r (k even). */
+/**
+ * @param r Squeezing parameter.
+ * @param k Fock state (even; odd states have zero amplitude).
+ * @return <k|r> = (-tanh r)^(k/2) sqrt(k!) / (2^(k/2) (k/2)! sqrt(cosh r)) for the squeezed vacuum.
+ */
 double
 squeezed_state_amplitude( const double r, const int k);
 ///@}
@@ -82,19 +132,24 @@ squeezed_state_amplitude( const double r, const int k);
 /** @name Local observables */
 ///@{
 
-/** @return <(sigma^x_j)^2>, sigma^x = a + a^dag. The orthogonality center is moved to j. */
+/**
+ * @brief Local observables of sigma^x_j = a_j + a^dag_j: this one is <(sigma^x_j)^2>.
+ * @param state State (normalized); its orthogonality center is moved to j.
+ * @param sites Boson site set.
+ * @param j     Site.
+ */
 double
 measure_sigma_x_squared( MPS *state , const SiteSet sites , const int j );
 
-/** @return <sigma^x_j>. */
+/** @brief <sigma^x_j> (arguments as measure_sigma_x_squared). */
 double
 measure_sigma_x( MPS *state , const SiteSet sites , const int j );
 
-/** @return <sigma^x_j n_j>. */
+/** @brief <sigma^x_j n_j> (arguments as measure_sigma_x_squared). */
 double
 measure_sigma_x_n( MPS *state , const SiteSet sites , const int j );
 
-/** @return <n_j sigma^x_j>. */
+/** @brief <n_j sigma^x_j> (arguments as measure_sigma_x_squared). */
 double
 measure_n_sigma_x( MPS *state , const SiteSet sites , const int j );
 
@@ -108,7 +163,13 @@ measure_n_sigma_x( MPS *state , const SiteSet sites , const int j );
 void
 measure_occupation_number( MPS *ground_state , const SiteSet sites , const int size , vector<double> &occupation_number);
 
-/** @brief Append <n_j^2> for j = 1..size to square_occupation_number. */
+/**
+ * @brief Append <n_j^2> for j = 1..size to square_occupation_number.
+ * @param ground_state State; its orthogonality center is moved.
+ * @param sites        Boson site set.
+ * @param size         Number of sites.
+ * @param square_occupation_number Output vector (values are appended).
+ */
 void
 measure_occupation_number_squared( MPS *ground_state , const SiteSet sites , const int size , vector<double> &square_occupation_number );
 
@@ -132,8 +193,11 @@ void
 measure_fock_probabilities( MPS *ground_state , const SiteSet sites , const int size , const int cut_off_fock_space , vector<vector<double> > &projector_all_sites );
 
 /**
- * @return The largest probability of the Fock state |cut_off - 1> over all sites
- *         (to check the Fock-space truncation), from the output of measure_fock_probabilities.
+ * @brief Largest probability of the Fock state |cut_off - 1> over all sites, to check the
+ *        Fock-space truncation.
+ * @param projector_all_sites Output of measure_fock_probabilities.
+ * @param size                Number of sites.
+ * @param cut_off             Column (1-indexed) of projector_all_sites to check.
  */
 double
 compute_max_cutoff_probability(vector<vector<double> > &projector_all_sites, const int size, const int cut_off);
@@ -151,26 +215,35 @@ void
 measure_number_covariance( MPS *psi , const SiteSet sites , vector<vector<double> > &covariance_matrix_NN_system, vector<vector<double> > &covariance_matrix_NN_gaussian, vector<vector<double> > &relative_error);
 
 /**
- * @return Variance of x = a + a^dag, computed from the MPOs of a and a^dag of one mode.
+ * @brief Variance <x^2> - <x>^2 of the quadrature x = a + a^dag of one mode.
+ * @param psi  State (normalized).
+ * @param A    MPO of the annihilation operator a of the mode (e.g. a dressed operator).
+ * @param Adag MPO of a^dag.
  */
 double
 measure_variance_x(MPS *psi, MPO *A, MPO *Adag );
 
-/**
- * @return Variance of p = -i(a - a^dag), computed from the MPOs of a and a^dag of one mode.
- */
+/** @brief Variance of the quadrature p = -i(a - a^dag) (arguments as measure_variance_x). */
 double
 measure_variance_p(MPS *psi, MPO *A, MPO *Adag );
 
 /**
- * @return Minimal quadrature variance on site j, 1 + 2<n_j> - 2|<(a^dag_j)^2>| (1 for the vacuum,
- *         < 1 for squeezed states), or -1 if j is out of range.
+ * @brief Minimal quadrature variance on site j, 1 + 2<n_j> - 2|<(a^dag_j)^2>| (1 for the vacuum,
+ *        < 1 for squeezed states; exact if <a_j> = 0).
+ * @param psi   State (normalized); its orthogonality center is moved to j.
+ * @param sites Boson site set.
+ * @param j     Site.
+ * @return The variance, or -1 if j is out of range.
  */
 double
 measure_squeezing(MPS *psi, const SiteSet sites, const int j);
 
 /**
- * @return Same as measure_squeezing with dressed operators given as MPOs: A (annihilation) and N (number).
+ * @brief measure_squeezing for a dressed mode given by MPOs: 1 + 2<N> - 2|<A^2>|.
+ * @param psi   State (normalized).
+ * @param sites Site set (unused, kept for symmetry with measure_squeezing).
+ * @param A     MPO of the annihilation operator of the mode.
+ * @param N     MPO of its number operator.
  */
 double
 measure_dressed_squeezing(MPS *psi, const SiteSet sites, MPO A, MPO N);

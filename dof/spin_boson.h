@@ -50,6 +50,10 @@ make_spin_boson_state(const SiteSet sites , const int n_photon , double theta, d
 /**
  * @brief Same as above with site-dependent angles: theta[j-1], phi[j-1] for the spin on site j
  *        (the entries of boson sites are not used).
+ * @param sites    Site set from make_spin_boson_sites (or any set of boson and spin-1/2 sites).
+ * @param n_photon Fock state of the boson(s).
+ * @param theta    Polar angle of every site (N values).
+ * @param phi      Azimuthal angle of every site (N values).
  * @throws ITError for sites that are neither bosons nor spins 1/2.
  */
 MPS

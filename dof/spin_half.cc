@@ -1,6 +1,6 @@
 /**
  * @file spin_half.cc
- * @brief Implementation of spin_half.h (the functions are documented in the header).
+ * @brief Implementation of spin_half.h (interfaces documented in the header, logic commented here).
  */
 #include "spin_half.h"
 #include "../mps/mps_tools.h"
@@ -26,6 +26,7 @@ using namespace itensor;
 //   basis "x": '0' -> |+x> = (|up_z> + |down_z>)/sqrt(2), '1' -> |-x> = (|up_z> - |down_z>)/sqrt(2)
 //   basis "y": '0' -> |+y> = (|up_z> + i|down_z>)/sqrt(2), '1' -> |-y> = (|up_z> - i|down_z>)/sqrt(2)
 // Examples: "0000" (all up), "1111" (all down), "0011" (domain wall), "0101" (Neel).
+// Each site tensor is set with set_site_tensor on an MPS with link indices of dimension 1.
 
 MPS
 make_product_state(const SiteSet sites , const string config , const string basis)
@@ -78,7 +79,8 @@ make_product_state(const SiteSet sites , const string config , const string basi
 
 
 // ----------------------------------------------------------
-// Pauli matrix with input index `in` and output index `out` (spin-1/2: 1 = up_z, 2 = down_z)
+// Pauli matrix with input index `in` and output index `out` (spin-1/2: 1 = up_z, 2 = down_z),
+// set element by element
 
 ITensor
 make_pauli_operator(const Index& in, const Index& out, const string& direction)
@@ -104,7 +106,7 @@ make_pauli_operator(const Index& in, const Index& out, const string& direction)
 }
 
 
-// number operator on a boson site, Pauli matrix on a spin-1/2 site
+// dispatch on the tags of s: Pauli matrix on a spin-1/2 site, diag(0, 1, ..., dim-1) on a boson
 
 ITensor
 make_magnetization_operator(const Index& s, const string& direction)
@@ -126,6 +128,7 @@ make_density_operator(const SiteSet& sites, const int j)
 }
 
 
+// <make_magnetization_operator> site by site
 vector<double>
 measure_magnetization(MPS* psi, const SiteSet sites , string direction)
 {
@@ -136,7 +139,7 @@ measure_magnetization(MPS* psi, const SiteSet sites , string direction)
 }
 
 
-// number of kinks |down_z up_z> on neighbouring sites
+// sum over the bonds of the two-point function of n_j = |down><down| and |up><up|_{j+1}
 
 double 
 measure_kink_number( MPS* psi, const SiteSet sites)
@@ -151,6 +154,8 @@ measure_kink_number( MPS* psi, const SiteSet sites)
 }
 
 
+// <n_start n_j> by two-point functions (a local expectation value for j = start, n^2 = n); the
+// connected part subtracts the densities (1 - <Z_j>)/2
 vector<double>
 measure_density_correlations(MPS* psi, const SiteSet sites, const int start, const bool connected)
 {
@@ -173,6 +178,7 @@ measure_density_correlations(MPS* psi, const SiteSet sites, const int start, con
 }
 
 
+// <X_j> = <2 S^x_j> and <Z_j> = <2 S^z_j>, printed site by site
 void 
 print_magnetization( const SpinHalf sites , MPS psi , const int N)
 {

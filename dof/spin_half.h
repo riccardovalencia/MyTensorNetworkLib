@@ -16,6 +16,10 @@ using namespace itensor;
 /**
  * @brief Pauli matrix sigma^direction between the indices in (input) and out (output) of a spin-1/2,
  *        with basis state 1 = |up_z>, 2 = |down_z>; e.g. make_pauli_operator(s, prime(s), "x").
+ * @param in        Input (ket) index; dag-ed, so the operator also works with quantum numbers
+ *                  (then only "z" has a well-defined flux).
+ * @param out       Output index (usually prime(in)).
+ * @param direction "x", "y" or "z".
  * @throws ITError for a direction other than "x", "y", "z".
  */
 ITensor
@@ -24,6 +28,8 @@ make_pauli_operator(const Index& in, const Index& out, const string& direction);
 /**
  * @brief Operator measured by measure_magnetization on the site with index s: the Pauli matrix
  *        sigma^direction on a spin-1/2, the number operator on a boson (any direction), zero otherwise.
+ * @param s         Site index (the operator has indices s, s').
+ * @param direction "x", "y" or "z" (ignored for bosons).
  */
 ITensor
 make_magnetization_operator(const Index& s, const string& direction);
@@ -66,6 +72,7 @@ measure_magnetization(MPS* psi, const SiteSet sites , string direction);
  * @brief Number of kinks, sum_j <n_j (1 - n_{j+1})> (pairs |down_z>_j |up_z>_{j+1}).
  * @param psi   State; its orthogonality center is moved.
  * @param sites Spin-1/2 site set (N > 1).
+ * @return The expected number of kinks.
  */
 double
 measure_kink_number( MPS* psi, const SiteSet sites);

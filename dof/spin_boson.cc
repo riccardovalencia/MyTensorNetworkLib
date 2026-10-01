@@ -1,6 +1,6 @@
 /**
  * @file spin_boson.cc
- * @brief Implementation of spin_boson.h (the functions are documented in the header).
+ * @brief Implementation of spin_boson.h (interfaces documented in the header, logic commented here).
  */
 #include "spin_boson.h"
 #include "../mps/mps_tools.h"
@@ -14,8 +14,8 @@ using namespace itensor;
 
 
 // ----------------------------------------------------------
-// Custom SiteSet for handling a system of N sites, where the first site is a (truncated)
-// boson with max occupation max_occ, while the other (N-1) are spin-1/2
+// One index per site: dimension max_occ + 1 with tags "Site,Boson" on site 1, dimension 2 with
+// tags "Site,S=1/2" on sites 2..N (tag n=j as in the ITensor site sets).
 
 SiteSet
 make_spin_boson_sites(const int N , const int max_occ)
@@ -40,18 +40,11 @@ make_spin_boson_sites(const int N , const int max_occ)
 
 
 // ----------------------------------------------------------
-// return Siteset with a boson and N-1 spin-1/2 
-
-// It is defined in the doubling space (ket-bra) and follows the ordering: 
-// bra (first half of the chain) - ket (second half of the chain)
-// The bra is inverted in space with respect to the ket. 
-
-// Example for N = 4
-//  |    |    |   |   |    |    |    |
-// s3 - s2 - s1 - b - b - s1 - s2 - s2
+// As make_spin_boson_sites on 2N sites, with the bra (mirrored) on 1..N and the ket on N+1..2N,
+// so that the two bosons are on the central bond, where the dissipation acts. For N = 4:
+//  |    |    |    |   |    |    |    |
+// s3 - s2 - s1 - b - b - s1 - s2 - s3
 // | ---- bra ---- |  | ---- ket ---- |
-
-// Useful if you have dissipative channels acting solely on the bosonic DOF.
 
 SiteSet
 make_purified_spin_boson_sites(const int N , const int max_occ)
@@ -93,7 +86,7 @@ make_purified_spin_boson_sites(const int N , const int max_occ)
 // ----------------------------------------------------------
 // Product state: Fock state |n_photon> on boson sites, spin-coherent state
 // |theta_j,phi_j> = cos(theta_j/2)|up_z> + e^{i phi_j} sin(theta_j/2)|down_z> on spin site j.
-// The tensors are real when phi_j = 0.
+// The tensors are real when phi_j = 0. Each site is set with set_site_tensor.
 
 MPS
 make_spin_boson_state(const SiteSet sites , const int n_photon , const vector<double> theta, const vector<double> phi)
@@ -120,6 +113,7 @@ make_spin_boson_state(const SiteSet sites , const int n_photon , const vector<do
 }
 
 
+// the same angles on every site
 MPS
 make_spin_boson_state(const SiteSet sites , const int n_photon , double theta, double phi)
 {

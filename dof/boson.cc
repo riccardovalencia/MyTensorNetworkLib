@@ -1,6 +1,6 @@
 /**
  * @file boson.cc
- * @brief Implementation of boson.h (the functions are documented in the header).
+ * @brief Implementation of boson.h (interfaces documented in the header, logic commented here).
  */
 #include "boson.h"
 #include "../mps/mps_tools.h"
@@ -21,8 +21,9 @@ using namespace itensor;
 
 
 // ----------------------------------------------------------
-// amplitudes of single-site states in the Fock basis |0>, ..., |dim-1>
+// amplitudes of single-site states in the Fock basis |0>, ..., |dim-1> (dim = local dimension)
 
+// |n>: 1 at position n, 0 elsewhere
 static vector<Cplx>
 fock_amplitudes( int dim, int n )
 {
@@ -31,6 +32,7 @@ fock_amplitudes( int dim, int n )
     return a;
 }
 
+// |alpha> truncated at dim - 1 bosons (not renormalized)
 static vector<Cplx>
 coherent_amplitudes( int dim, Cplx alpha )
 {
@@ -39,6 +41,7 @@ coherent_amplitudes( int dim, Cplx alpha )
     return a;
 }
 
+// squeezed vacuum: even Fock states only
 static vector<Cplx>
 squeezed_amplitudes( int dim, double r )
 {
@@ -49,7 +52,7 @@ squeezed_amplitudes( int dim, double r )
 
 
 // ----------------------------------------------------------
-// product states
+// product states: each site tensor is overwritten with set_site_tensor (link values 1)
 
 void
 set_site_occupation( MPS* psi, const SiteSet sites, int site, int n )
@@ -69,6 +72,7 @@ set_unit_filling_state( MPS* psi, const SiteSet sites )
     for(int j = 1 ; j <= length(*psi) ; j++) set_site_occupation(psi, sites, j, 1);
 }
 
+// vacuum everywhere, then n0 bosons on the chosen site
 void
 set_fock_excitation( MPS* psi, const SiteSet sites, int n0, int site )
 {
@@ -84,7 +88,7 @@ set_kink_state( MPS* psi, const SiteSet sites, int number_ones )
 
 
 // ----------------------------------------------------------
-// coherent, squeezed and cat states
+// coherent, squeezed and cat states: vacuum everywhere, then the state on the chosen site(s)
 
 void
 set_coherent_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha )
@@ -109,7 +113,7 @@ set_squeezed_state_on_site( MPS* psi, const SiteSet sites, int site, double r )
 void
 set_cat_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha )
 {
-    // (|alpha> + |-alpha>) normalized
+    // two product states |..alpha..> and |..-alpha..>, summed as MPS and normalized
     MPS plus  = randomMPS(sites);
     MPS minus = randomMPS(sites);
     set_coherent_state_on_site(&plus,  sites, site,  alpha);
@@ -120,7 +124,7 @@ set_cat_state_on_site( MPS* psi, const SiteSet sites, int site, Cplx alpha )
 }
 
 
-// factorial n!
+// product 1 * 2 * ... * n in double precision (exact up to n = 22)
 
 double
 factorial(int n)
@@ -131,7 +135,7 @@ factorial(int n)
 }
 
 
-// weight coherent state
+// exp(-|alpha|^2/2) alpha^k / sqrt(k!)
 
 complex<double> 
 coherent_state_amplitude( const complex<double> alpha, const int k)
@@ -141,7 +145,7 @@ coherent_state_amplitude( const complex<double> alpha, const int k)
 }
 
 
-// weight squeezed state
+// (-tanh r)^(k/2) sqrt(k!) / (2^(k/2) (k/2)! sqrt(cosh r)), with integer division k/2
 
 double 
 squeezed_state_amplitude( const double r, const int k)
@@ -156,7 +160,8 @@ squeezed_state_amplitude( const double r, const int k)
 
 
 //----------------------------------------------------------------------
-// local observables (sigma^x = a + a^dag)
+// local observables (sigma^x = a + a^dag): products of single-site operators are built with
+// multSiteOps and measured with measure_local_operator
 
 static ITensor
 make_sigma_x(const SiteSet& sites, const int j)
@@ -194,6 +199,7 @@ measure_n_sigma_x( MPS *state , const SiteSet sites , const int j )
 }
 
 
+// <N_j> site by site
 void 
 measure_occupation_number( MPS *ground_state , const SiteSet sites , const int size ,  vector<double> &occupation_number )
 {
@@ -202,6 +208,7 @@ measure_occupation_number( MPS *ground_state , const SiteSet sites , const int s
 }
 
 
+// remove n_k from the list, compare it with the largest remaining occupation
 double
 compute_imbalance( vector<double> &occupation_number, int k)
 {
@@ -212,6 +219,7 @@ compute_imbalance( vector<double> &occupation_number, int k)
 }
 
 
+// maximum over the sites of the entry cut_off - 1 of each row
 double compute_max_cutoff_probability(vector<vector<double> > &projector_all_sites,const int size,const int cut_off)
 {
 	double maximum = -1;
@@ -220,6 +228,7 @@ double compute_max_cutoff_probability(vector<vector<double> > &projector_all_sit
 }
 
 
+// <N_j N_j> site by site
 void 
 measure_occupation_number_squared( MPS *ground_state , const SiteSet sites , const int size ,  vector<double> &square_occupation_number )
 {
@@ -231,6 +240,7 @@ measure_occupation_number_squared( MPS *ground_state , const SiteSet sites , con
 }
 
 
+// <|n><n|_j> with the projector built element by element, for every site and n = 0..cut_off
 void
 measure_fock_probabilities( MPS *ground_state , const SiteSet sites , const int size , const int cut_off_fock_space ,  vector<vector<double> > &projector_all_sites )
 {
@@ -258,6 +268,8 @@ measure_pair(MPS *psi, const SiteSet& sites, const ITensor& O_i, const ITensor& 
 }
 
 
+// For every pair (i, j): <n_i n_j> - <n_i><n_j> from the state, and its Wick factorization
+// <a^dag_i a^dag_j><a_i a_j> + <a^dag_i a_j><a_i a^dag_j> - 2 |<a_i>|^2 |<a_j>|^2.
 void
 measure_number_covariance( MPS *psi , const SiteSet sites , vector<vector<double> > &covariance_matrix_NN_system, vector<vector<double> > &covariance_matrix_NN_gaussian, vector<vector<double> > &relative_error)
 {
@@ -302,6 +314,7 @@ measure_number_covariance( MPS *psi , const SiteSet sites , vector<vector<double
 }
 
 
+// <x^2> - <x>^2 = 1 + 2<a^dag a> + 2 Re<a a> - 4 (Re<a>)^2, expectation values of the MPOs
 double
 measure_variance_x(MPS *psi, MPO *A, MPO *Adag )
 {
@@ -316,6 +329,7 @@ measure_variance_x(MPS *psi, MPO *A, MPO *Adag )
 }
 
 
+// <p^2> - <p>^2 = 1 + 2<a^dag a> - 2 Re<a a> - 4 (Im<a>)^2
 double
 measure_variance_p(MPS *psi, MPO *A, MPO *Adag )
 {
@@ -331,6 +345,7 @@ measure_variance_p(MPS *psi, MPO *A, MPO *Adag )
 }
 
 
+// minimum over the angle of the quadrature variance, from <n_j> and <(a^dag_j)^2>
 double
 measure_squeezing(MPS *psi, const SiteSet sites, const int j)
 {
@@ -342,6 +357,7 @@ measure_squeezing(MPS *psi, const SiteSet sites, const int j)
 }
 
 
+// as measure_squeezing, with <N> and <A A> computed from the MPOs
 double
 measure_dressed_squeezing(MPS *psi, const SiteSet sites, MPO A, MPO N)
 {

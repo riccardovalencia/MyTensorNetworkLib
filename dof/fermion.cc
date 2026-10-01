@@ -1,6 +1,6 @@
 /**
  * @file fermion.cc
- * @brief Implementation of fermion.h (the functions are documented in the header).
+ * @brief Implementation of fermion.h (interfaces documented in the header, logic commented here).
  */
 #include "fermion.h"
 #include <itensor/all.h>
@@ -19,6 +19,7 @@ using namespace std;
 using namespace itensor;
 
 
+// sites 1..min(Nup,Ndn) doubly occupied, then single up (or down) electrons, then empty sites
 InitState
 make_electron_init_state(const SiteSet sites, const int Nupfill, const int Ndnfill)
 {
@@ -40,6 +41,7 @@ make_electron_init_state(const SiteSet sites, const int Nupfill, const int Ndnfi
 }
 
 
+// bond-dimension-1 MPS of the InitState
 MPS
 make_electron_product_state(const SiteSet sites, const int Nupfill, const int Ndnfill)
 {

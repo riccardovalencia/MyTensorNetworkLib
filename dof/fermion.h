@@ -21,7 +21,12 @@ using namespace itensor;
 InitState
 make_electron_init_state(const SiteSet sites, const int Nupfill, const int Ndnfill);
 
-/** @brief MPS of make_electron_init_state. */
+/**
+ * @brief MPS of make_electron_init_state (same arguments).
+ * @param sites   Electron site set.
+ * @param Nupfill Number of up electrons (<= N).
+ * @param Ndnfill Number of down electrons (<= N).
+ */
 MPS
 make_electron_product_state(const SiteSet sites, const int Nupfill, const int Ndnfill);
 
