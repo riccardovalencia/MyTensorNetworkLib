@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
     string file_root = tinyformat::format("data/rydberg_N%d_M%d_V2_%.2f_Om_%.3f_D%d", N, M, V2, Omega, maxDim);
     if(sigmax > 0) file_root += tinyformat::format("_sigmax%.5f_seed%d", sigmax, seed);
 
-    // couplings V_j (also used by rydberg_chain_exact_diagonalization.py)
+    // couplings V_j (also used by rydberg_chain_tebd_exact_diagonalization.py)
     ofstream save_file_V(file_root + "_Vj.txt");
     save_file_V << setprecision(16);
     for(double v : Vj) save_file_V << v << "\n";

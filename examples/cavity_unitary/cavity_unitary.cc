@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     fs::create_directories("data");
     string root = tinyformat::format("data/cavity_unitary_%s_N%d_maxocc%d_omega%.2f_h%.2f_g%.2f", coupling, N, max_occ, omega0, h, g);
     ofstream out(root + ".txt");
-    out << "# t . fidelity . <S^x>/N . <S^z>/N . <a^dag a>/N . maxD\n" << setprecision(4);
+    out << "# t . fidelity . <S^x>/N . <S^z>/N . <a^dag a>/N . maxD\n" << setprecision(8);
 
     for(int k = 0 ; k < total_steps ; k++)
     {
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
             swap_gate(&psi, j-1, j, cut_off, maxDim);
         }
 
-        if(k % steps_measure != 0) continue;
+        if((k+1) % steps_measure != 0) continue;
 
         double fidelity = pow(abs(innerC(psi_t0, psi)), 2);
         vector<double> mx = measure_magnetization(&psi, sites, "x");   // mx[0] = <a^dag a>

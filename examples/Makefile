@@ -2,6 +2,8 @@
 #   make LIBRARY_DIR=/path/to/itensor          (release, default target)
 #   make debug LIBRARY_DIR=/path/to/itensor    (programs <name>-g with debug symbols)
 #   make run                                   (run every program on its sample input)
+#   make compare                               (run the programs, then their exact-diagonalization
+#                                               scripts <name>_exact_diagonalization.py, if present)
 #
 # Every examples/<folder>/<name>.cc is compiled into the program examples/<folder>/<name> and
 # linked against MyTensorNetworkLib, which is (re)built in ../lib when needed. New examples are
@@ -56,11 +58,20 @@ run: build
 		(cd $$d && ./$$n input_$$n.txt > /dev/null 2>&1) || { echo "FAILED: $$p"; exit 1; }; \
 	done
 
+# run the exact-diagonalization script of each program (after `make run`) and print the comparison
+compare: run
+	@for p in $(PROGRAMS); do \
+		d=$$(dirname $$p); n=$$(basename $$p); \
+		[ -f $$d/$${n}_exact_diagonalization.py ] || continue; \
+		echo "== $$d/$${n}_exact_diagonalization.py input_$$n.txt"; \
+		(cd $$d && python3 $${n}_exact_diagonalization.py input_$$n.txt 2>/dev/null | grep -v "^ED results") || { echo "FAILED: $$p"; exit 1; }; \
+	done
+
 clean:
 	rm -f */*.o */*.d $(PROGRAMS) $(GPROGRAMS)
 
 FORCE:
 
-.PHONY: build debug run clean FORCE
+.PHONY: build debug run compare clean FORCE
 
 -include $(wildcard */*.d)

@@ -21,6 +21,26 @@ cd rydberg_chain_tebd
 ./rydberg_chain_tebd input_rydberg_chain_tebd.txt
 ```
 
+## Exact diagonalization checks
+
+The Python scripts `<name>_exact_diagonalization.py` are meant to quickly compare the tensor-network
+(TN) results of the program `<name>` with exact diagonalization (ED) on small systems. Each script reads
+the same input file as the TN program, solves the same model exactly and, if the TN output is present
+in `data/`, prints the maximum difference of each observable (expected: of the order of the Trotter /
+truncation errors of the TN run):
+
+```bash
+cd rydberg_chain_tebd
+./rydberg_chain_tebd input_rydberg_chain_tebd.txt
+python3 rydberg_chain_tebd_exact_diagonalization.py input_rydberg_chain_tebd.txt
+```
+
+`make compare` does this for all the examples. The scripts need numpy, scipy and (most of them) quimb,
+and share the helpers in [exact_diagonalization_tools.py](exact_diagonalization_tools.py).
+Their cost grows exponentially with the system size: keep N small (about 12 spins, or fewer for the
+open systems). `impurity_dynamics_exact_diagonalization.py` uses the free-fermion solution and
+therefore requires `Jxx = Jzzz = 0`, but works for large N.
+
 ## Input files
 
 All programs read their parameters from a file in the ITensor `InputGroup` format; missing entries

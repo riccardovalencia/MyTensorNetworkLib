@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
             coherent_step();
         }
 
-        if(k % steps_measure != 0) continue;
+        if((k+1) % steps_measure != 0) continue;
 
         double norm = compute_norm_purified_impurity(&rho);
         out << t << " " << norm << " " << expectation(X, 2)/norm << " " << expectation(Z, 2)/norm

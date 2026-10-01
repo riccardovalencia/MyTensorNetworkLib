@@ -2,7 +2,7 @@ input
 {
 N = 8
 hx = 0.5
-Jxx = 0.2
+Jxx = 0.0
 Jzzz = 0.0
 gamma = 0.5
 Tness = 2

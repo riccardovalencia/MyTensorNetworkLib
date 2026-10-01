@@ -5,14 +5,15 @@
 starting from the kink |1...1 0...0> with M excitations.
 With position disorder (sigmax > 0) the couplings V_j are read from the TN output <root>_Vj.txt.
 
-Usage: python3 rydberg_chain_exact_diagonalization.py input_rydberg_chain_tebd.txt
+Usage: python3 rydberg_chain_tebd_exact_diagonalization.py input_rydberg_chain_tebd.txt
 Output: data/<root>_exact_diagonalization.txt (t, fidelity, half-chain entropy, n_1, ..., n_N),
         compared with the TN files <root>.txt and <root>_nj.txt.
 """
+import os
 import sys
 import numpy as np
 import quimb as qu
-sys.path.insert(0, '..')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from exact_diagonalization_tools import read_input, save_and_compare
 
 p = read_input(sys.argv[1])
