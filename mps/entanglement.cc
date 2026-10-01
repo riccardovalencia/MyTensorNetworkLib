@@ -1,6 +1,6 @@
 /**
  * @file entanglement.cc
- * @brief Implementation of entanglement.h (the functions are documented in the header).
+ * @brief Implementation of entanglement.h (interfaces documented in the header, logic commented here).
  */
 #include "entanglement.h"
 #include <itensor/all.h>
@@ -10,6 +10,8 @@ using namespace std;
 using namespace itensor;
 
 
+// Orthogonality center on site, SVD of the two-site tensor of the bond (site, site+1): the
+// eigenvalues of the spectrum are the squared Schmidt values p_k.
 double
 compute_entanglement_entropy( MPS* psi, int site, bool natural_log )
 {

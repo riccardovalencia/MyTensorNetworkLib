@@ -77,6 +77,8 @@ compute_reduced_density_matrix(MPS * psi, int i, int j);
  *
  * E.g. make_identity_operator(s, prime(s)) is the identity on a site; products of identities on
  * different indices build identities on several sites.
+ * @param in  Input index (dag-ed, so that the operator also works with quantum numbers).
+ * @param out Output index, with dim(out) = dim(in).
  */
 ITensor
 make_identity_operator( const Index& in, const Index& out );
@@ -86,6 +88,7 @@ make_identity_operator( const Index& in, const Index& out );
  * @param psi  State; its orthogonality center is moved to site.
  * @param O    Operator with indices (s, s') of the site; use multSiteOps(A, B) for a product A B.
  * @param site Site.
+ * @return <psi| O |psi>.
  */
 Cplx
 measure_local_operator( MPS* psi, const ITensor& O, const int site );
@@ -97,6 +100,7 @@ measure_local_operator( MPS* psi, const ITensor& O, const int site );
  * @param op_i  Operator on site i (indices s_i, s_i').
  * @param op_j  Operator on site j.
  * @param i,j   Sites (any order).
+ * @return <psi| op_i op_j |psi>.
  */
 complex<double>
 measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor op_j, int i, int j);
@@ -120,6 +124,7 @@ set_site_tensor( MPS* psi, const SiteSet& sites, int site, const vector<Cplx>& a
  *        site are kept, the others are dropped (or filled with zeros).
  * @param psi          State to copy.
  * @param target_sites Site set with the same number of sites as psi.
+ * @return The projected state (not normalized if basis states with weight were dropped).
  */
 MPS
 make_resized_state( MPS psi, const SiteSet& target_sites );

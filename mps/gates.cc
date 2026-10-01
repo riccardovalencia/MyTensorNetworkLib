@@ -1,6 +1,6 @@
 /**
  * @file gates.cc
- * @brief Implementation of gates.h (the functions are documented in the header).
+ * @brief Implementation of gates.h (interfaces documented in the header, logic commented here).
  */
 #include "gates.h"
 #include "mps_tools.h"
@@ -21,6 +21,10 @@ using namespace std;
 using namespace itensor;
 
 
+// ----------------------------------------------------------
+// gate containers: the constructors store the data, the accessors return it
+
+// gate = exp(-i dt h), exponentiating the hermitian h on its pairs of indices (s, s')
 TebdGate::TebdGate(vector<int> sites, const double dt, const ITensor h)
 {
     sites_      = sites;
@@ -28,6 +32,7 @@ TebdGate::TebdGate(vector<int> sites, const double dt, const ITensor h)
     swap_after_ = false;
 }
 
+// gate stored as given (e.g. a swap gate, or a gate exponentiated elsewhere)
 TebdGate::TebdGate(vector<int> sites, const ITensor gate, bool swap_after)
 {
     sites_      = sites;
@@ -56,15 +61,13 @@ void TebdGate::set_gate(ITensor new_gate)
 }
 
 
+// first-order term dt h of exp(dt h): tebd_step applies psi + dt h psi
 DissipativeGate::DissipativeGate(vector<int> jket, vector<int> jbra, double dt, ITensor h)
 {
 	ket_sites_ = jket;
 	bra_sites_ = jbra;
 
-	// linear approximation - tested and works well for our purposes
 	gate_ = h * dt;
-
-
 }
 
 
@@ -127,9 +130,12 @@ double OperatorPair::rate()
 
 
 // ----------------------------------------------------------
-// Apply a gate on the jn sites of an MPS psi 
-// It is possible to apply up to 3-sites gates.
+// gate application
 
+// Contract the gate with the tensors of its (sorted, consecutive) sites, with the orthogonality
+// center on the first one, then split the result back into one tensor per site: one truncated SVD
+// for two sites, two successive SVDs (left site first) for three. The singular values are
+// absorbed to the right, so the orthogonality center ends on the last site.
 MPS
 apply_gate(MPS psi, const ITensor gate, vector<int> sites, const Args args)
 {
@@ -170,6 +176,7 @@ apply_gate(MPS psi, const ITensor gate, vector<int> sites, const Args args)
 }
 
 
+// apply the stored gate, then exchange its first two sites if the gate asks for it
 MPS
 apply_gate(MPS psi, TebdGate gate, const Args args)
 {
@@ -184,6 +191,7 @@ apply_gate(MPS psi, TebdGate gate, const Args args)
 }
 
 
+// gates applied one after the other, in the order of the list
 MPS
 apply_gates(MPS psi, vector<TebdGate> gates, const Args args)
 {
@@ -192,6 +200,8 @@ apply_gates(MPS psi, vector<TebdGate> gates, const Args args)
 }
 
 
+// The gate starting at site g (1 <= g <= N - gate_size + 1) contains the term if
+// g <= first and g + gate_size - 1 >= first + term_size - 1: count the g in both ranges.
 int
 count_gates_containing(int first, int term_size, int gate_size, int N)
 {

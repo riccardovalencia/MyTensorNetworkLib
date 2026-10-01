@@ -108,6 +108,8 @@ public:
 /**
  * @brief Symmetric (second-order Trotter) sequence: the gates followed by the same gates in reverse
  *        order. Build the gates with half the time step.
+ * @param gates Gates of one sweep (TebdGate or DissipativeGate), each with dt/2.
+ * @return The 2 * gates.size() gates of one step dt.
  * @code
  * vector<TebdGate> half_step;
  * for(int j = 1 ; j < N ; j++) half_step.push_back(TebdGate({j,j+1}, dt/2., h[j]));
@@ -130,6 +132,11 @@ make_symmetric_sweep(vector<Gate> gates)
  * When the terms of a Hamiltonian are distributed over overlapping gates, each gate takes the
  * fraction 1/count of the term. E.g. for two-site gates, an on-site term (term_size = 1) is shared
  * by 2 gates in the bulk and belongs to a single gate on the edges.
+ * @param first     First site of the term.
+ * @param term_size Number of sites of the term.
+ * @param gate_size Number of sites of each gate.
+ * @param N         Number of sites of the chain.
+ * @return The number of gates containing all the sites of the term.
  */
 int
 count_gates_containing(int first, int term_size, int gate_size, int N);
@@ -151,13 +158,20 @@ apply_gate(MPS psi, const ITensor gate, vector<int> sites, const Args args);
 
 /**
  * @brief Apply a TebdGate (followed by a swap of its first two sites if gate.swap_after()).
+ * @param psi  State to evolve (taken by value).
+ * @param gate Gate and the sites it acts on.
  * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
+ * @return The evolved MPS (not normalized).
  */
 MPS
 apply_gate(MPS psi, TebdGate gate, const Args args);
 
 /**
  * @brief Apply a list of gates in order.
+ * @param psi   State to evolve (taken by value).
+ * @param gates Gates, applied from first to last.
+ * @param args  SVD parameters; "Cutoff" and "MaxDim" are required.
+ * @return The evolved MPS (not normalized).
  * @code
  * psi = apply_gates(psi, make_rydberg_gates_nnn(sites, Delta, Omega, V, dt), {"Cutoff=",1E-12,"MaxDim=",64});
  * @endcode

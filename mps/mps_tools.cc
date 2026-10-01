@@ -1,6 +1,6 @@
 /**
  * @file mps_tools.cc
- * @brief Implementation of mps_tools.h (the functions are documented in the header).
+ * @brief Implementation of mps_tools.h (interfaces documented in the header, logic commented here).
  */
 #include "mps_tools.h"
 #include <itensor/all.h>
@@ -19,6 +19,8 @@ using namespace std;
 using namespace itensor;
 
 
+// Orthogonality center on i (after ordering i < j), then contract bra and ket from i to j with
+// op_i and op_j inserted: the open link indices at the two ends are shared by bra and ket.
 complex<double>
 measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor op_j, int i, int j)
 {
@@ -59,12 +61,11 @@ measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor
 	C *= prime((*psi)(j),lj)*op_j;
 	C *= prime(psidag(j),"Site");
 
-	complex<double> result = eltC(C); //or eltC(C) if expecting complex	
-	return result;
+	return eltC(C);
 }
 
 
-// dense identity from index `in` to index `out`
+// dense identity: element (q, q) = 1 for every basis state q
 
 ITensor
 make_identity_operator( const Index& in, const Index& out )
@@ -75,7 +76,7 @@ make_identity_operator( const Index& in, const Index& out )
 }
 
 
-// <psi| O |psi> for a single-site operator; the orthogonality center is moved to the site
+// with the orthogonality center on the site, <psi|O|psi> only involves the tensor of that site
 
 Cplx
 measure_local_operator( MPS* psi, const ITensor& O, const int site )
@@ -87,8 +88,10 @@ measure_local_operator( MPS* psi, const ITensor& O, const int site )
 }
 
 
-// Insert a state within another state, such that you have a state |state_to_insert> that you want to put in another state |psi_t0> from site start to start+L
-
+// Optionally reverse (and conjugate) psi_seed, retag its link indices (unique per insertion), then
+// copy its tensors on start, start+1, ...: the first and last tensors get the external link of *psi
+// as an extra index, filled only at value 1 (the seed is a product with the rest of *psi across it).
+// The site indices of *psi are restored at the end.
 void
 insert_state(MPS* psi, MPS psi_seed, const int start, bool inverted,bool dagger)
 {
@@ -205,8 +208,9 @@ insert_state(MPS* psi, MPS psi_seed, const int start, bool inverted,bool dagger)
 
 
 // ----------------------------------------------------------
-// Insert a state within another state, such that you have a state |state_to_insert> that you want to put in another state |psi_t0> from site start to start+L
-
+// Copy the tensors of state_to_insert element by element onto the site indices of *psi_t0 (sites
+// start..start+L-1): the link indices at the edges of the block are those of *psi_t0, the inner
+// ones those of state_to_insert; sites beyond N are dropped.
 void
 insert_state(MPS* psi_t0, MPS state_to_insert, const SiteSet sites, const SiteSet sites_state_to_insert, const int start, const int L, const int N)
 {
@@ -282,10 +286,9 @@ insert_state(MPS* psi_t0, MPS state_to_insert, const SiteSet sites, const SiteSe
 }
 
 
-// move index from position j1 to position j2
-// implementing virtual swap (not applying a gate)
-// see http://itensor.org/support/2330/non-consecutive-swap-gates
-
+// Move the site at j1 to j2 by exchanging neighbours j, j+1 for j = j1..j2-1: contract the two
+// tensors and split them again with an SVD that puts the site index of j+1 on the left tensor
+// (virtual swap, no gate; see http://itensor.org/support/2330/non-consecutive-swap-gates).
 void
 swap_sites( MPS *psi, int j1, int j2, double cut_off, int maxDim)
 {
@@ -330,8 +333,9 @@ swap_sites( MPS *psi, int j1, int j2, double cut_off, int maxDim)
 
 
 // ----------------------------------------------------------
-// Given a pure state psi, presented as an MPS, it return its density matrix representation |psi> <psi| as an MPO
-
+// Outer product |psi><psi| site by site, as in ITensor's nmultMPO: the pair of links (ket, bra)
+// of each bond is fused into a single MPO link with a density-matrix decomposition (truncation
+// 1E-16, at most 500 states), sweeping from left to right.
 MPO 
 make_density_matrix_mpo(MPS psi )
 {
@@ -403,7 +407,8 @@ make_density_matrix_mpo(MPS psi )
 
 
 // ----------------------------------------------------------
-// compute the reduced density matrix bewteen sites i and j
+// Orthogonality center on i, then contract ket and primed bra on sites i..j; the open link
+// indices at the two ends are shared by bra and ket, so the result is Tr_{rest} |psi><psi|.
 ITensor
 compute_reduced_density_matrix(MPS *psi, int i, int j)
 {
@@ -453,7 +458,8 @@ compute_reduced_density_matrix(MPS *psi, int i, int j)
 
 
 // ----------------------------------------------------------
-// product-state tensor on one site, keeping the link indices of the MPS
+// new tensor on the site with the same indices (site, left and right links), non-zero only for
+// link values 1: element d is amplitudes[d-1]
 
 void
 set_site_tensor( MPS* psi, const SiteSet& sites, int site, const vector<Cplx>& amplitudes )
@@ -482,8 +488,7 @@ set_site_tensor( MPS* psi, const SiteSet& sites, int site, const vector<Cplx>& a
 
 
 // ----------------------------------------------------------
-// project every site of psi onto the corresponding site of target_sites, keeping the first
-// min(dim(source), dim(target)) basis states
+// contract every site with the rectangular identity P(s, t) between its index and the target index
 
 MPS
 make_resized_state( MPS psi, const SiteSet& target_sites )
