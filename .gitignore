@@ -1,2 +1,8 @@
 # Compiled object files
 *.o
+
+# Example binaries and output
+examples/*/data/
+examples/rydberg_chain_TEBD/rydberg_chain_TEBD
+examples/*/*-g
+examples/*/.debug_objs/
