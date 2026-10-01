@@ -1,6 +1,6 @@
 /**
  * @file spin_chain.cc
- * @brief Implementation of spin_chain.h (the functions are documented in the header).
+ * @brief Implementation of spin_chain.h (interfaces documented in the header, logic commented here).
  */
 #include "spin_chain.h"
 #include "../mps/gates.h"
@@ -35,6 +35,7 @@ add_spin_coupling(AutoMPO& ampo, const vector<double> J, const int j, const int 
 }
 
 
+// AutoMPO with fields on every site, J on the bonds (j, j+1) and J2 on (j, j+2)
 MPO
 make_spin_chain_mpo(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h)
 {
@@ -97,6 +98,7 @@ make_open_chain_bond_hamiltonian(const SiteSet& sites, const vector<double>& J, 
 }
 
 
+// one gate exp(-i dt/2 h_j) per bond, then the reversed sweep
 vector<TebdGate>
 make_spin_chain_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
 {
@@ -130,6 +132,7 @@ make_spin_chain_effective_gates(const SiteSet sites , const vector<double> J, co
 }
 
 
+// one single-site gate exp(-i dt/2 w.sigma) per site, then the reversed sweep
 vector<TebdGate>
 make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double dt)
 {

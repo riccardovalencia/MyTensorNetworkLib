@@ -1,6 +1,6 @@
 /**
  * @file tight_binding.cc
- * @brief Implementation of tight_binding.h (the functions are documented in the header).
+ * @brief Implementation of tight_binding.h (interfaces documented in the header, logic commented here).
  */
 #include "tight_binding.h"
 #include <itensor/all.h>
@@ -10,6 +10,8 @@ using namespace std;
 using namespace itensor;
 
 
+// AutoMPO: hopping of both spins on every bond and the fields on every site, with the coefficient
+// vectors read cyclically (index modulo their length)
 MPO
 make_tight_binding_mpo(const int N , const SiteSet sites, const vector<double> J, const vector<double> hup, const vector<double> hdn)
 {
@@ -66,6 +68,7 @@ make_hopping_matrix(const int N, const double h, const double J_first, const dou
 }
 
 
+// homogeneous tridiagonal matrix
 ITensor
 make_single_particle_hamiltonian(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 {
@@ -73,6 +76,7 @@ make_single_particle_hamiltonian(const int N , const vector<double> J, const vec
 }
 
 
+// tridiagonal matrix with a different first hopping
 ITensor
 make_single_particle_hamiltonian_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 {
@@ -80,7 +84,9 @@ make_single_particle_hamiltonian_impurity(const int N , const vector<double> J, 
 }
 
 
-// see https://itensor.org/docs.cgi?page=tutorials/fermions for the Jordan-Wigner strings F
+// Fields divided by the gate counts, plus the hopping written with the operators A, Adag and the
+// Jordan-Wigner string F (https://itensor.org/docs.cgi?page=tutorials/fermions); for a mirrored
+// chain the order of the two sites in the strings is reversed.
 
 ITensor
 make_free_fermion_bond_hamiltonian(const SiteSet sites, const int j, const double J, const vector<double> hup, const vector<double> hdn, const int count_left, const int count_right, const bool mirrored)
@@ -104,6 +110,8 @@ make_free_fermion_bond_hamiltonian(const SiteSet sites, const int j, const doubl
 }
 
 
+// one bond term per bond (fields shared between the neighbouring bonds), exponentiated with
+// ITensor BondGate, then the reversed sweep
 vector<TebdGate>
 make_free_fermion_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
 {

@@ -1,6 +1,6 @@
 /**
  * @file impurity.cc
- * @brief Implementation of impurity.h (the functions are documented in the header).
+ * @brief Implementation of impurity.h (interfaces documented in the header, logic commented here).
  */
 #include "impurity.h"
 #include "spin_chain.h"
@@ -41,6 +41,8 @@ transpose_for_bra(const ITensor& H)
 }
 
 
+// Mirror the couplings and fields onto the doubled chain (bra reversed, no bond between the halves),
+// then one free-fermion gate per bond of each half; the bra gates use -H^T.
 vector<TebdGate>
 make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
 {
@@ -70,6 +72,7 @@ make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const ve
 }
 
 
+// one spin-chain bond term per bond of each half (fields shared within the half), -H^T on the bra
 vector<TebdGate>
 make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
 {
@@ -124,6 +127,8 @@ make_three_site_spin_hamiltonian(const SiteSet& sites, const int j, const int p,
 }
 
 
+// three-site terms in three layers of non-overlapping gates in each half (bra with -H^T),
+// bra gates first, then the ket gates, then the reversed sequence
 vector<TebdGate>
 make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt)
 {

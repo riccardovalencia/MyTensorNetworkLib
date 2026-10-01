@@ -60,16 +60,22 @@ make_spin_chain_gates(const SiteSet sites , const vector<double> J, const vector
 /**
  * @brief Gates of make_spin_chain_gates plus the anti-hermitian term -i/2 sum_k gamma_k L_k^dag L_k
  *        (effective non-hermitian Hamiltonian of quantum trajectories).
+ * @param sites    Spin-1/2 site set.
+ * @param J        Couplings {Jxx, Jyy, Jzz}.
+ * @param h        Fields {hx, hy, hz}.
  * @param Lj       Local jump operators.
  * @param Lj_sites Site of each jump operator.
  * @param gamma    Rate of each jump operator.
+ * @param dt       Time step.
  */
 vector<TebdGate>
 make_spin_chain_effective_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const vector<int> Lj_sites, const vector<double> gamma, const double dt);
 
 /**
  * @brief Single-site gates of H = sum_j (w_x X_j + w_y Y_j + w_z Z_j).
+ * @param sites  Spin-1/2 site set.
  * @param omegaj Field {w_x, w_y, w_z}, the same on every site.
+ * @param dt     Time step.
  */
 vector<TebdGate>
 make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double dt);

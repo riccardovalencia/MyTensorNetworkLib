@@ -33,6 +33,11 @@ make_rydberg_gates_nn(const SiteSet sites , const vector<double> Deltaj, const v
  * The next-nearest-neighbour coupling is derived from the nearest-neighbour ones assuming
  * V(r) = 1/r^6 on a line: V_{j,j+2} = 1/(r_j + r_{j+1})^6 with r_j = V_j^(-1/6).
  * Benchmarked against exact diagonalization (arXiv:2309.12392).
+ * @param sites  Spin-1/2 site set of N sites.
+ * @param Deltaj Detunings (N values).
+ * @param Omegaj Rabi frequencies (N values).
+ * @param Vj     Nearest-neighbour interactions (N-1 values).
+ * @param dt     Time step.
  */
 vector<TebdGate>
 make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt);
@@ -46,7 +51,12 @@ make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const 
 vector<TebdGate>
 make_pxp_gates(const SiteSet sites , const double omega, const double dt);
 
-/** @brief MPO of the PXP Hamiltonian H = omega sum_j P_{j-1} X_j P_{j+1}. */
+/**
+ * @brief MPO of the PXP Hamiltonian H = omega sum_j P_{j-1} X_j P_{j+1} (open chain, terms with
+ *        j = 2..N-1 only).
+ * @param s     Spin-1/2 site set (N >= 6).
+ * @param omega Rabi frequency.
+ */
 MPO
 make_pxp_mpo(const SiteSet s, const double omega);
 

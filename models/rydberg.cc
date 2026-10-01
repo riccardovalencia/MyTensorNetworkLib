@@ -1,6 +1,6 @@
 /**
  * @file rydberg.cc
- * @brief Implementation of rydberg.h (the functions are documented in the header).
+ * @brief Implementation of rydberg.h (interfaces documented in the header, logic commented here).
  */
 #include "rydberg.h"
 #include "../mps/gates.h"
@@ -21,6 +21,9 @@ using namespace std;
 using namespace itensor;
 
 
+// MPO written by hand (bond dimension 4): the link value records how much of a term P X P has been
+// placed, 1 = nothing (identity), 2 = P, 3 = P X, 4 = complete (identity afterwards). The first and
+// last sites and their neighbours use the allowed subsets of these transitions; omega sits on site 1.
 MPO
 make_pxp_mpo(const SiteSet s, const double omega)
 {
@@ -237,9 +240,8 @@ make_three_site_layers(const int N, const double dt, const function<ITensor(int)
 }
 
 
-// Gates of the PXP Hamiltonian
-// H = omega \sum_j P_j X_{j+1} P_{j+2}
-// where P_j = (1+Z_j)/2
+// Gates of the PXP Hamiltonian H = omega sum_j P_j X_{j+1} P_{j+2}, P_j = (1+Z_j)/2: one
+// three-site term per triple, in the three layers of make_three_site_layers
 
 vector<TebdGate>
 make_pxp_gates(const SiteSet sites , const double omega, const double dt)
@@ -255,7 +257,8 @@ make_pxp_gates(const SiteSet sites , const double omega, const double dt)
 }
 
 
-// Rydberg Hamiltonian - we keep up to nearest neighbor interactions
+// Rydberg Hamiltonian with nearest-neighbour interactions: one two-site gate per bond with
+// V n_j n_{j+1} and the on-site terms (Omega S^x, Delta n) divided among the bonds sharing them
 
 vector<TebdGate>
 make_rydberg_gates_nn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
@@ -338,7 +341,7 @@ make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const 
 }
 
 
-// given spatial configurations, it returs the potentials 1/rj^alpha
+// V_j = 1/|r_j - r_{j+1}|^alpha from the Euclidean distance of consecutive atoms
  
 vector<double>
 compute_power_law_couplings(const vector< vector<double> > rj , const double alpha)

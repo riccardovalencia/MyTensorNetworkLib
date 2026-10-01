@@ -32,16 +32,23 @@ make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const ve
  *        with a dissipative impurity on the first physical site.
  *
  * The dissipation of the impurity is added with make_impurity_dissipative_gates (dynamics/lindblad.h).
- * @param J  {Jxx, Jyy, Jzz}.
- * @param h  {hx, hy, hz}.
- * @param dt Time step.
+ * @param sites Spin-1/2 site set of the purified state (2N sites).
+ * @param J     Nearest-neighbour couplings {Jxx, Jyy, Jzz}.
+ * @param h     Fields {hx, hy, hz}.
+ * @param dt    Time step.
+ * @return Two-site gates in each half (none on the central bond), as a symmetric sweep.
  */
 vector<TebdGate>
 make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt);
 
 /**
- * @brief As make_spin_impurity_gates, with next-nearest-neighbour couplings
- *        J_NNN = {Jxx', Jyy', Jzz'} (three-site gates; at least 3 physical sites).
+ * @brief As make_spin_impurity_gates, with next-nearest-neighbour couplings (three-site gates).
+ * @param sites Spin-1/2 site set of the purified state (2N sites, N >= 3).
+ * @param J     Nearest-neighbour couplings {Jxx, Jyy, Jzz}.
+ * @param J_NNN Next-nearest-neighbour couplings {Jxx', Jyy', Jzz'}.
+ * @param h     Fields {hx, hy, hz}.
+ * @param dt    Time step.
+ * @throws ITError if N < 3.
  */
 vector<TebdGate>
 make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt);
