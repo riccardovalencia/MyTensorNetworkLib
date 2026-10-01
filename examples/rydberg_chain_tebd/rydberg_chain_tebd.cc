@@ -31,6 +31,7 @@ namespace fs = std::filesystem;
 //   input parameters (with defaults in the code): N, M, V2, Omega, T, dt, maxDim, sigmax, seed
 // Output: data/<file_root>.txt     -> t, fidelity with initial state, half-chain entropy, max bond dimension
 //         data/<file_root>_nj.txt  -> t, Rydberg density n_j on each site
+//         data/<file_root>_Vj.txt  -> couplings V_j between sites j and j+1
 
 int main(int argc, char* argv[])
 {
@@ -113,6 +114,12 @@ int main(int argc, char* argv[])
     fs::create_directories("data");
     string file_root = tinyformat::format("data/rydberg_N%d_M%d_V2_%.2f_Om_%.3f_D%d", N, M, V2, Omega, maxDim);
     if(sigmax > 0) file_root += tinyformat::format("_sigmax%.5f_seed%d", sigmax, seed);
+
+    // couplings V_j (also used by rydberg_chain_exact_diagonalization.py)
+    ofstream save_file_V(file_root + "_Vj.txt");
+    save_file_V << setprecision(16);
+    for(double v : Vj) save_file_V << v << "\n";
+    save_file_V.close();
 
     ofstream save_file(file_root + ".txt");
     save_file << "# t . fidelity . entropy . MaxD\n";

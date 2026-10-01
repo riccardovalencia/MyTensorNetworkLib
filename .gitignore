@@ -11,3 +11,4 @@ examples/*/*
 !examples/*/*.cc
 !examples/*/*.txt
 !examples/*/*.sh
+!examples/*/*.py
