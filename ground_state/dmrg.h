@@ -47,6 +47,7 @@ struct GroundState
 /**
  * @brief DMRG parameters from an input file: keys dmrg_max_dim, dmrg_cutoff, dmrg_noise,
  *        dmrg_tolerance, dmrg_max_sweeps, dmrg_restarts, dmrg_seed (missing keys keep the defaults).
+ * @param input Input group of the program (e.g. InputGroup(argv[1], "input")).
  */
 DmrgParameters
 read_dmrg_parameters(InputGroup& input);
@@ -54,7 +55,11 @@ read_dmrg_parameters(InputGroup& input);
 /**
  * @brief Ground state of H without conserved quantities, starting each run from a random MPS of
  *        bond dimension min(max_dim, 10).
- * @throws ITError if the site indices of H carry quantum numbers (use the InitState overload).
+ * @param H          Hamiltonian (any site set without quantum numbers).
+ * @param parameters Bond dimension, truncation, noise, convergence, restarts and seed.
+ * @return The lowest-energy state of the restarts, with its energy, variance and convergence flag.
+ * @throws ITError if the site indices of H carry quantum numbers (use the InitState overload),
+ *         or for non-positive max_dim, max_sweeps or number_restarts.
  */
 GroundState
 find_ground_state(const MPO& H, const DmrgParameters& parameters = DmrgParameters());
@@ -64,6 +69,9 @@ find_ground_state(const MPO& H, const DmrgParameters& parameters = DmrgParameter
  *
  * DMRG preserves the quantum numbers, so every run starts from initial_state and number_restarts
  * is ignored; the noise is what lets the bond dimension grow out of the product state.
+ * @param H             Hamiltonian.
+ * @param initial_state Product state of the sector (e.g. the Neel state for S^z = 0).
+ * @param parameters    As in the overload above.
  */
 GroundState
 find_ground_state(const MPO& H, const InitState& initial_state, const DmrgParameters& parameters = DmrgParameters());
@@ -75,6 +83,7 @@ find_ground_state(const MPO& H, const InitState& initial_state, const DmrgParame
  * @param sites    Electron site set.
  * @param Nupfill  Number of up electrons.
  * @param Ndnfill  Number of down electrons.
+ * @param parameters DMRG parameters (see find_ground_state).
  * @throws ITError if the ground state does not have the requested filling.
  */
 GroundState

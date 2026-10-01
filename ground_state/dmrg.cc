@@ -1,6 +1,6 @@
 /**
  * @file dmrg.cc
- * @brief Implementation of dmrg.h (the functions are documented in the header).
+ * @brief Implementation of dmrg.h (interfaces documented in the header, logic commented here).
  */
 #include "dmrg.h"
 #include "../dof/fermion.h"
@@ -78,6 +78,7 @@ struct DmrgRun
 };
 
 
+// <psi|H|psi> (real part; psi normalized)
 static double
 compute_energy(const MPO& H, const MPS& psi)
 {
@@ -85,6 +86,7 @@ compute_energy(const MPO& H, const MPS& psi)
 }
 
 
+// one ITensor dmrg call from psi with the sweep schedule, stopped early by the observer
 static DmrgRun
 run_dmrg(const MPO& H, MPS psi, const DmrgParameters& parameters)
 {
@@ -94,6 +96,7 @@ run_dmrg(const MPO& H, MPS psi, const DmrgParameters& parameters)
 }
 
 
+// reject parameters that would give no sweep or no run
 static void
 check_parameters(const DmrgParameters& parameters)
 {
@@ -130,6 +133,7 @@ make_random_state(const IndexSet& sites, const int bond_dim, mt19937& generator)
 }
 
 
+// result of the chosen run, with the variance <H^2> - <H>^2 computed once at the end
 static GroundState
 make_ground_state(const MPO& H, const DmrgRun& run, const vector<double>& restart_energies)
 {
@@ -140,6 +144,7 @@ make_ground_state(const MPO& H, const DmrgRun& run, const vector<double>& restar
 
 // ----------------------------------------------------------
 
+// every key falls back to the default of DmrgParameters
 DmrgParameters
 read_dmrg_parameters(InputGroup& input)
 {
@@ -155,6 +160,8 @@ read_dmrg_parameters(InputGroup& input)
 }
 
 
+// number_restarts runs, each from a new random state drawn from the same seeded generator;
+// keep the run with the lowest energy
 GroundState
 find_ground_state(const MPO& H, const DmrgParameters& parameters)
 {
@@ -176,6 +183,7 @@ find_ground_state(const MPO& H, const DmrgParameters& parameters)
 }
 
 
+// a single run from the product state (restarts would start from the same state)
 GroundState
 find_ground_state(const MPO& H, const InitState& initial_state, const DmrgParameters& parameters)
 {
@@ -185,6 +193,7 @@ find_ground_state(const MPO& H, const InitState& initial_state, const DmrgParame
 }
 
 
+// DMRG in the sector of the filled product state, then check <N_up> and <N_dn>
 GroundState
 find_fermi_sea(const MPO& H, const SiteSet& sites, const int Nupfill, const int Ndnfill, const DmrgParameters& parameters)
 {
