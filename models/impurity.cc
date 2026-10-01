@@ -28,7 +28,7 @@ using namespace itensor;
 // This part takes care of the coherent dynamics - we have hopping of free spinful fermions
 
 vector<BondGate>
-gates_coherent_unfolded_kondo_impurity_model(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
+make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
 { 
 	// careful with local fields if not homogeneous - I have to flip the array. Remember that [1-N] corresponds to bra 
 	vector<double> Jket = J;
@@ -187,7 +187,7 @@ gates_coherent_unfolded_kondo_impurity_model(const SiteSet sites , const vector<
 
 
 vector<BondGate>
-gates_coherent_part_spin_dissipative_impurity_model(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const double gamma, const double dt)
+make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const double gamma, const double dt)
 {
 
 	// N is always even and corresponds to the physical size
@@ -314,8 +314,8 @@ gates_coherent_part_spin_dissipative_impurity_model(const SiteSet sites , const 
 // the bond in between site N and N+1 is where jump/nonunitary dynamics take place
 
 
-vector<MyBondGate>
-gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt)
+vector<TebdGate>
+make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt)
 {
 
 	// N is always even and corresponds to the physical size
@@ -323,7 +323,7 @@ gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteS
 	int N = N2/2;
 
 
-    vector<MyBondGate> gates, gates_bra, gates_ket;
+    vector<TebdGate> gates, gates_bra, gates_ket;
 
 	double Jxx = J[0];
 	double Jyy = J[1];
@@ -409,14 +409,14 @@ gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteS
 				H = -H_S - H_SS - H_SSS;
 				H = swapPrime(H,0,1);
 
-				MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+				TebdGate g = TebdGate(sites,jn,dt/2.,H);
 				gates_bra.push_back(g);
 			}
 			// action on ket
 			else
 			{
 				H = H_S + H_SS + H_SSS;
-				MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+				TebdGate g = TebdGate(sites,jn,dt/2.,H);
 				gates_ket.push_back(g);
 
 			}
@@ -543,14 +543,14 @@ gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteS
 					H = -H_S - H_SS - H_SSS;
 					H = swapPrime(H,0,1);
 
-					MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+					TebdGate g = TebdGate(sites,jn,dt/2.,H);
 					gates_bra.push_back(g);
 				}
 				// action on ket
 				else
 				{
 					H = H_S + H_SS + H_SSS;
-					MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+					TebdGate g = TebdGate(sites,jn,dt/2.,H);
 					gates_ket.push_back(g);
 
 				}
@@ -673,14 +673,14 @@ gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteS
 					H = -H_S - H_SS - H_SSS;
 					H = swapPrime(H,0,1);
 
-					MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+					TebdGate g = TebdGate(sites,jn,dt/2.,H);
 					gates_bra.push_back(g);
 				}
 				// action on ket
 				else
 				{
 					H = H_S + H_SS + H_SSS;
-					MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+					TebdGate g = TebdGate(sites,jn,dt/2.,H);
 					gates_ket.push_back(g);
 				}
 			}
@@ -695,16 +695,16 @@ gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteS
 	for(double q : Jzz_tot) cerr << q << " ";
 	cerr << "\n";
 
-	vector<MyBondGate> gates_ket_reversed = gates_ket;
-	vector<MyBondGate> gates_bra_reversed = gates_bra;
+	vector<TebdGate> gates_ket_reversed = gates_ket;
+	vector<TebdGate> gates_bra_reversed = gates_bra;
 	
 	reverse(gates_ket_reversed.begin(), gates_ket_reversed.end());
 	reverse(gates_bra_reversed.begin(), gates_bra_reversed.end());
 
-	for(MyBondGate g : gates_bra)  		   gates.push_back(g);
-	for(MyBondGate g : gates_ket) 		   gates.push_back(g);
-	for(MyBondGate g : gates_ket_reversed) gates.push_back(g);
-	for(MyBondGate g : gates_bra_reversed) gates.push_back(g);
+	for(TebdGate g : gates_bra)  		   gates.push_back(g);
+	for(TebdGate g : gates_ket) 		   gates.push_back(g);
+	for(TebdGate g : gates_ket_reversed) gates.push_back(g);
+	for(TebdGate g : gates_bra_reversed) gates.push_back(g);
 
 	return gates;
 }
@@ -725,7 +725,7 @@ gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteS
 // we should apply swapgates
 
 vector<BondGate>
-gates_coherent_unfolded_kondo_impurity_model_energy_basis(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
+make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
 {
 	// N is always even and corresponds to the physical size
 	int N2 = length(sites);

@@ -1,11 +1,11 @@
 /**
- * @file bqem_states.cc
- * @brief Implementation of bqem_states.h (the functions are documented in the header).
+ * @file bosonic_east_model_states.cc
+ * @brief Implementation of bosonic_east_model_states.h (the functions are documented in the header).
  */
-#include "bqem_states.h"
+#include "bosonic_east_model_states.h"
 #include "../dof/boson.h"
 #include "../dynamics/adiabatic.h"
-#include "../models/bqem.h"
+#include "../models/bosonic_east_model.h"
 #include "../mps/mps_tools.h"
 #include <itensor/all.h>
 #include <cmath>
@@ -28,10 +28,10 @@ using namespace itensor;
 // The total size of the system is L
 
 MPS
-super_bosonic_state(MPS state_to_insert, const SiteSet sites, const SiteSet sites_state_to_insert, const int L, const int N, const int n0, const int k)
+make_super_bosonic_state(MPS state_to_insert, const SiteSet sites, const SiteSet sites_state_to_insert, const int L, const int N, const int n0, const int k)
 {
 	MPS psi_t0 = randomMPS(sites);
-	initial_state_n0_excitation( &psi_t0, sites, N , n0, k+1);
+	set_fock_excitation( &psi_t0, sites, N , n0, k+1);
 	insert_state(&psi_t0, state_to_insert, sites, sites_state_to_insert, k+2, L, N);
 	return psi_t0;
 }
@@ -40,11 +40,11 @@ super_bosonic_state(MPS state_to_insert, const SiteSet sites, const SiteSet site
 // return the super-bosonic coherent state
 
 MPS
-super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double s, const double c, double dt, double T)
+make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double s, const double c, double dt, double T)
 {
 	int L = length(*psi_coherent);
-	coherent_state_site_j( psi_coherent, sites_coherent, L , 1, alpha );
-	adiabatic_transformation_linear_protocol( psi_coherent, sites_coherent, s, c, dt, T);
+	set_coherent_state_on_site( psi_coherent, sites_coherent, L , 1, alpha );
+	evolve_adiabatic_linear_ramp( psi_coherent, sites_coherent, s, c, dt, T);
 
 	return *psi_coherent;
 }
@@ -55,11 +55,11 @@ super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, c
 
 // Return a super-bosonic squeezed state
 MPS
-super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeezed, const double alpha, const double s, const double c, double dt, double T)
+make_super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeezed, const double alpha, const double s, const double c, double dt, double T)
 {
 	int L = length(*psi_squeezed);
-	squeezed_state_site_j( psi_squeezed, sites_squeezed, L , 1, alpha );
-	adiabatic_transformation_linear_protocol( psi_squeezed, sites_squeezed, s, c, dt, T);
+	set_squeezed_state_on_site( psi_squeezed, sites_squeezed, L , 1, alpha );
+	evolve_adiabatic_linear_ramp( psi_squeezed, sites_squeezed, s, c, dt, T);
 
 	return *psi_squeezed;
 
@@ -67,7 +67,7 @@ super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeezed, c
 
 
 MPO
-bqem_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt, double T)
+make_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt, double T)
 {
 
 	int size = length(sites);
@@ -78,10 +78,10 @@ bqem_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt
 	{
 		double J = J_target * step * dt / T;
 		cerr << J << endl;
-		// exp_hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt)
+		// make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt)
 
-		MPO expH  = exp_hamiltonian_bqem_n0_not_fixed( sites, size , 1, 0.0 , J,  c, dt);
-		MPO expHd = exp_hamiltonian_bqem_n0_not_fixed( sites, size , 1, 0.0 , J,  c, -1*dt);
+		MPO expH  = make_bosonic_east_model_evolution_mpo( sites, size , 1, 0.0 , J,  c, dt);
+		MPO expHd = make_bosonic_east_model_evolution_mpo( sites, size , 1, 0.0 , J,  c, -1*dt);
 		
 		O = nmultMPO( O , prime(expH) ,{"MaxDim",1000,"Cutoff",1E-14}); 
 		O.mapPrime(2,1);
@@ -94,7 +94,7 @@ bqem_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt
 
 
 tuple<double, double>
-scalar_product_different_n0( MPS *psi1, MPS *psi2, const SiteSet sites1, const SiteSet sites2, const int size, const int n0_1, const int n0_2 , const int lambda, const int symmetry_sector, const double s, const double c, const string symmetry_sector_dir)
+compute_overlap_different_n0( MPS *psi1, MPS *psi2, const SiteSet sites1, const SiteSet sites2, const int size, const int n0_1, const int n0_2 , const int lambda, const int symmetry_sector, const double s, const double c, const string symmetry_sector_dir)
 {
     // if you want to compute the variance over the Hamiltonian with smaller n_0 over the state with greater n_0
     int max_n0 = max(n0_1, n0_2);
@@ -219,7 +219,7 @@ scalar_product_different_n0( MPS *psi1, MPS *psi2, const SiteSet sites1, const S
 
 
     cerr << "Computing variance of n0: " << max_n0 << " over Hamiltonian with n0=" << min_n0 << endl;
-    double variance_constraned_space = compute_variance_hamiltonian_bqem(&psi_constrained, sites_min_n0 , size , lambda, min_n0, symmetry_sector, s, c, symmetry_sector_dir);
+    double variance_constraned_space = compute_bosonic_east_model_energy_variance(&psi_constrained, sites_min_n0 , size , lambda, min_n0, symmetry_sector, s, c, symmetry_sector_dir);
 
     if( overlap_absolute < 1E-10 ) overlap_absolute = 0.;
 
@@ -228,7 +228,7 @@ scalar_product_different_n0( MPS *psi1, MPS *psi2, const SiteSet sites1, const S
 
 
 tuple<double, double>
-scalar_product_different_cutoff( MPS *psi1, MPS *psi2, const SiteSet sites1, const SiteSet sites2, const int size, const int cut_off_fock_space1, const int cut_off_fock_space2 , const int n0, const int symmetry_sector, const double s, const double c, const string symmetry_sector_dir)
+compute_overlap_different_cutoffs( MPS *psi1, MPS *psi2, const SiteSet sites1, const SiteSet sites2, const int size, const int cut_off_fock_space1, const int cut_off_fock_space2 , const int n0, const int symmetry_sector, const double s, const double c, const string symmetry_sector_dir)
 {
 
     int max_cut_off = max(cut_off_fock_space1, cut_off_fock_space2);
@@ -349,7 +349,7 @@ scalar_product_different_cutoff( MPS *psi1, MPS *psi2, const SiteSet sites1, con
     double overlap_absolute = overlap_amplitude.real() * overlap_amplitude.real() + overlap_amplitude.imag() * overlap_amplitude.imag();
 
 
-    double variance_expanded_space = compute_variance_hamiltonian_bqem(&psi_expanded, sites_maxcutoff , size , max_cut_off, n0, symmetry_sector, s, c, symmetry_sector_dir);
+    double variance_expanded_space = compute_bosonic_east_model_energy_variance(&psi_expanded, sites_maxcutoff , size , max_cut_off, n0, symmetry_sector, s, c, symmetry_sector_dir);
 
 
     return {overlap_absolute,variance_expanded_space};

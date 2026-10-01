@@ -24,7 +24,7 @@ using namespace itensor;
 //----------------------------------------------------------------------
 //print input DMRG in Bosonic Quantum East Model
 void
-print_input_dmrg(int size , double s , double c ,double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
+write_dmrg_input(int size , double s , double c ,double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
 	{
 	string input_file = "input.txt";
 	cout << "FileName = " << input_file << endl;
@@ -60,7 +60,7 @@ print_input_dmrg(int size , double s , double c ,double simmetry_sector , int cu
 //----------------------------------------------------------------------
 //print input DMRG in Bosonic Quantum East Model with hopping
 void
-print_input_dmrg_hopping(int size , double s , double c , double epsilon , double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
+write_dmrg_input_hopping(int size , double s , double c , double epsilon , double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
 	{
 	string input_file = "input.txt";
 	cout << "FileName = " << input_file << endl;
@@ -144,7 +144,7 @@ print_projector_fockspace_realization_disorder( vector<vector<double> > &project
 
 
 void 
-print_matrix( string file_name , vector<vector<double> > &matrix ,int set_output_precision)
+write_matrix( string file_name , vector<vector<double> > &matrix ,int set_output_precision)
 {	
 	ofstream save_file( file_name );
 	save_file << setprecision(set_output_precision);	

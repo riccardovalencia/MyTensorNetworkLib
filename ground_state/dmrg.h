@@ -61,11 +61,11 @@ perform_dmrg_variance(double energy_target, MPS * ground_state , const MPO H, co
  * @param ground_state_variance State to overwrite; must have link indices (e.g. randomMPS(sites)).
  */
 void
-initialize_excited_state( MPS *ground_state_variance, const SiteSet sites, const int size, const double energy_target, const int cut_off_fock_space);
+set_excited_state_guess( MPS *ground_state_variance, const SiteSet sites, const int size, const double energy_target, const int cut_off_fock_space);
 
 /**
- * @brief Ground state of H at fixed filling, starting from initial_computational_electron_state.
- * @param H        Hamiltonian (e.g. hamiltonian_tight_binding_electrons).
+ * @brief Ground state of H at fixed filling, starting from make_electron_product_state.
+ * @param H        Hamiltonian (e.g. make_tight_binding_mpo).
  * @param sites    Electron site set.
  * @param Nupfill  Number of up electrons.
  * @param Ndnfill  Number of down electrons.
@@ -74,6 +74,6 @@ initialize_excited_state( MPS *ground_state_variance, const SiteSet sites, const
  *                 filling is not reproduced.
  */
 MPS
-fermi_sea_electrons(MPO H, const SiteSet sites, const int Nupfill, const int Ndnfill, const Sweeps sweeps, double min_varH);
+find_fermi_sea(MPO H, const SiteSet sites, const int Nupfill, const int Ndnfill, const Sweeps sweeps, double min_varH);
 
 #endif

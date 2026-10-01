@@ -18,7 +18,7 @@ using namespace itensor;
  *
  * The exponential is computed once, at construction.
  */
-class MyBondGate
+class TebdGate
 {
 private:
     ITensor gate_;
@@ -31,13 +31,13 @@ public:
      * @param dt    Time step.
      * @param h     Local Hamiltonian term, with indices (s_j, s_j') for every site in j.
      */
-	MyBondGate(const SiteSet sites, vector<int> j, const double dt, const ITensor h);
+	TebdGate(const SiteSet sites, vector<int> j, const double dt, const ITensor h);
     /** @return The gate exp(-i dt h). */
     ITensor gate();
     /** @return The sites the gate acts on. */
-    vector<int> jn();
+    vector<int> sites();
     /** @brief Replace the stored gate, e.g. after mapping it onto different site indices. */
-    void modify_gate(ITensor new_gate);
+    void set_gate(ITensor new_gate);
 };
 
 /**
@@ -46,7 +46,7 @@ public:
  * Stores the first-order term dt*h of exp(dt*h), acting on the sites jket of the ket and jbra
  * of the bra. Apply it as psi -> psi + gate*psi (see dynamics/time_evolution.h).
  */
-class MyBondGateDiss
+class DissipativeGate
 {
 private:
     ITensor gate_;
@@ -61,21 +61,21 @@ public:
      * @param dt    Time step.
      * @param h     Lindblad superoperator term acting on jket and jbra.
      */
-	MyBondGateDiss(const SiteSet sites, vector<int> jket, vector<int> jbra, const double dt, const ITensor h);
+	DissipativeGate(const SiteSet sites, vector<int> jket, vector<int> jbra, const double dt, const ITensor h);
     /** @return dt*h (linear approximation of the exponential). */
     ITensor gate();
     /** @return The sites acted on in the ket. */
-    vector<int> jnket();
+    vector<int> ket_sites();
     /** @return The sites acted on in the bra. */
-    vector<int> jnbra();
+    vector<int> bra_sites();
 };
 
 /**
  * @brief Pair of local operators (Ti on site i, Tj on site j) with a rate gamma.
  *
- * Describes a two-site jump operator L = Ti Tj; see gates_nearest_neighbour_local_lindblad.
+ * Describes a two-site jump operator L = Ti Tj; see make_two_site_dissipative_gates.
  */
-class MyTrainITensor
+class OperatorPair
 {
 private:
     ITensor Ti_;
@@ -90,12 +90,12 @@ public:
      * @param j     Sites {i, j}.
      * @param gamma Rate of the jump operator.
      */
-	MyTrainITensor(vector<ITensor> T, vector<int> j, double gamma);
-    ITensor Ti();     ///< Operator on site i.
-    ITensor Tj();     ///< Operator on site j.
-    int i();          ///< Site i.
-    int j();          ///< Site j.
-    double gamma();   ///< Rate.
+	OperatorPair(vector<ITensor> T, vector<int> j, double gamma);
+    ITensor op_i();     ///< Operator on site i.
+    ITensor op_j();     ///< Operator on site j.
+    int site_i();       ///< Site i.
+    int site_j();       ///< Site j.
+    double rate();      ///< Rate.
 };
 
 /**
@@ -105,7 +105,7 @@ public:
  * truncated SVDs. The state is not normalized.
  *
  * @code
- * for(MyBondGate g : gates) psi = apply_gate(psi, g.gate(), g.jn(), {"Cutoff=",1E-12,"MaxDim=",64});
+ * for(TebdGate g : gates) psi = apply_gate(psi, g.gate(), g.sites(), {"Cutoff=",1E-12,"MaxDim=",64});
  * @endcode
  *
  * @param psi  State to evolve (taken by value).

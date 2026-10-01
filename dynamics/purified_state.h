@@ -18,11 +18,11 @@ using namespace itensor;
 
 /** @return Tr(rho) of the purified state psi. */
 double
-compute_norm_purified_impurity(MPS* psi);
+compute_trace_purified(MPS* psi);
 
 /** @return Tr(rho) of the purified state psi, for MPS with quantum numbers. */
 double
-compute_norm_purified_impurity_qn(MPS* psi);
+compute_trace_purified_qn(MPS* psi);
 
 /**
  * @brief Tr(rho sigma^direction_q) (spin sites) or Tr(rho n_q) (boson sites).
@@ -32,7 +32,7 @@ compute_norm_purified_impurity_qn(MPS* psi);
  * @param q                     Physical site; -1 (default) for all sites.
  */
 vector<complex<double> >
-measure_magnetization_impurity_first_site(MPS* psi , string direction, bool compute_normalization = true, int q = -1);
+measure_magnetization_purified(MPS* psi , string direction, bool compute_normalization = true, int q = -1);
 
 /**
  * @brief Tr(rho O_q) for a local operator O.
@@ -40,7 +40,7 @@ measure_magnetization_impurity_first_site(MPS* psi , string direction, bool comp
  * @param q Physical site; -1 (default) for all sites.
  */
 vector<complex<double> >
-measure_local_obs_impurity_first_site(MPS *psi , const ITensor O, bool compute_normalization, int q = -1);
+measure_local_operator_purified(MPS *psi , const ITensor O, bool compute_normalization, int q = -1);
 
 /**
  * @brief Tr(rho O_q1 O_q2), or its connected part.
@@ -48,6 +48,6 @@ measure_local_obs_impurity_first_site(MPS *psi , const ITensor O, bool compute_n
  * @param connected Subtract Tr(rho O_q1) Tr(rho O_q2).
  */
 complex<double>
-measure_correlation_impurity_first_site(MPS *psi , const ITensor O, bool compute_normalization, int q1, int q2, bool connected = false);
+measure_correlation_purified(MPS *psi , const ITensor O, bool compute_normalization, int q1, int q2, bool connected = false);
 
 #endif

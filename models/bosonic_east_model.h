@@ -1,6 +1,6 @@
 /**
- * @file bqem.h
- * @brief Bosonic quantum east model (bQEM): Hamiltonian MPOs and TEBD gates.
+ * @file bosonic_east_model.h
+ * @brief Bosonic quantum east model (bosonic east model): Hamiltonian MPOs and TEBD gates.
  *
  * Chain of `size` bosonic sites (ITensor Boson) with sigma^x_j = a_j + a^dag_j and
  * U = 1 - 2c. The core kinetically-constrained term is
@@ -16,8 +16,8 @@
  * - s        : J = e^{-s} is the facilitated hopping amplitude;
  * - c        : density-density interaction, U = 1 - 2c.
  */
-#ifndef MYTN_MODELS_BQEM_H
-#define MYTN_MODELS_BQEM_H
+#ifndef MYTN_MODELS_BOSONIC_EAST_MODEL_H
+#define MYTN_MODELS_BOSONIC_EAST_MODEL_H
 
 #include <itensor/all.h>
 
@@ -32,30 +32,30 @@ using namespace itensor;
  *            + (1 - symmetry)/2 n_size.
  */
 MPO
-hamiltonian_bqem( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+make_bosonic_east_model_mpo( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
-/** @brief hamiltonian_bqem plus a drive 0.05 sum_{j=2}^{size-1} sigma^x_j. */
+/** @brief make_bosonic_east_model_mpo plus a drive 0.05 sum_{j=2}^{size-1} sigma^x_j. */
 MPO
-hamiltonian_bqem_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
-/** @brief -hamiltonian_bqem (to target the highest-energy state with DMRG). */
+/** @brief -make_bosonic_east_model_mpo (to target the highest-energy state with DMRG). */
 MPO
-hamiltonian_bqem_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+make_bosonic_east_model_mpo_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
 /**
- * @brief Bulk bQEM term plus on-site interaction and hopping (no site 0, no boundary term):
+ * @brief Bulk bosonic east model term plus on-site interaction and hopping (no site 0, no boundary term):
  *        H = -1/2 sum_j n_j (e^{-s} sigma^x_{j+1} - U n_{j+1} - 1) + epsilon/2 sum_j n_j^2
  *            - t/2 sum_j (a^dag_j a_{j+1} + h.c.).
  */
 MPO
-hamiltonian_bqem_onsite_hopping( const SiteSet sites, int size , double s, double c , double epsilon, double t);
+make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , double s, double c , double epsilon, double t);
 
 /**
  * @brief On-site interaction only, H = epsilon/2 sum_j n_j^2.
  * @note n0, symmetry, s and c are not used.
  */
 MPO
-hamiltonian_bqem_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon);
+make_bosonic_east_model_mpo_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon);
 
 /**
  * @brief Diagonal part without nearest-neighbour terms:
@@ -63,34 +63,34 @@ hamiltonian_bqem_onsite( const SiteSet sites, int size , int n0, double symmetry
  * @note s is not used.
  */
 MPO
-hamiltonian_bqem_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c );
+make_bosonic_east_model_mpo_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c );
 
 /**
- * @brief As hamiltonian_bqem, but site 1 is left untouched and plays the role of site 0
+ * @brief As make_bosonic_east_model_mpo, but site 1 is left untouched and plays the role of site 0
  *        (the chain starts at site 2). Used to find ground states in the sector fixed by n0
  *        starting from a state |n0>|psi>.
  */
 MPO
-hamiltonian_bqem_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
+make_bosonic_east_model_mpo_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c);
 
 /**
- * @brief Bulk bQEM Hamiltonian without the virtual site 0 (n0 is not fixed),
+ * @brief Bulk bosonic east model Hamiltonian without the virtual site 0 (n0 is not fixed),
  *        H = -1/2 sum_j n_j (e^{-s} sigma^x_{j+1} - U n_{j+1}) + 1/2 sum_{j<size} n_j + (1 - symmetry)/2 n_size.
  * @note n0 is not a conserved quantity of this Hamiltonian.
  */
 MPO
-hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c);
+make_bosonic_east_model_mpo_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c);
 
 /**
  * @brief MPO approximation of exp(-i dt H) (ITensor toExpH, first order in dt), with H as in
- *        hamiltonian_bqem_n0_not_fixed and hopping amplitude J. Used by bqem_dressed_operator.
+ *        make_bosonic_east_model_mpo_n0_not_fixed and hopping amplitude J. Used by make_dressed_operator.
  * @note n0 is not used.
  */
 MPO
-exp_hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt);
+make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt);
 
 /**
- * @brief Energy variance <H^2> - <H>^2 of hamiltonian_bqem on psi.
+ * @brief Energy variance <H^2> - <H>^2 of make_bosonic_east_model_mpo on psi.
  *
  * The symmetry eigenvalue of the sector is read from
  * "<symmetry_sector_dir>/symmetry_sector<symmetry_sector>_maxcutoff30_s<s>_c<c>.dat"
@@ -102,19 +102,19 @@ exp_hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , int n0, doubl
  * @param cut_off_fock_space  Fock-space cutoff, selects the entry of the data file.
  * @param n0                  Occupation of the virtual site 0.
  * @param symmetry_sector     Index of the symmetry sector.
- * @param s, c                bQEM parameters.
+ * @param s, c                bosonic east model parameters.
  * @param symmetry_sector_dir Folder containing the symmetry-sector data files.
  * @throws ITError if the data file cannot be opened.
  */
 double
-compute_variance_hamiltonian_bqem(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir);
+compute_bosonic_east_model_energy_variance(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir);
 ///@}
 
 /** @name TEBD */
 ///@{
 
 /**
- * @brief Bond term on (j, j+1) of the bulk bQEM Hamiltonian with hopping J (the n_j term is
+ * @brief Bond term on (j, j+1) of the bulk bosonic east model Hamiltonian with hopping J (the n_j term is
  *        assigned to the bond, the last bond also takes n_size).
  * @param hterm Output bond Hamiltonian.
  * @param J     Facilitated hopping amplitude (e^{-s}).
@@ -142,7 +142,7 @@ void
 build_single_step_jumps_v2( ITensor *hterm , const SiteSet sites , const int size , const double J , const double c , const int j, vector<ITensor> &Lj, vector<ITensor> &Ljd);
 
 /**
- * @brief Second-order Trotter step (BondGate list, for gateTEvol) of the bulk bQEM Hamiltonian.
+ * @brief Second-order Trotter step (BondGate list, for gateTEvol) of the bulk bosonic east model Hamiltonian.
  * @param gates    Output: gates are appended.
  * @param dynamics "closed" (default) or "open" (adds dephasing with rate gamma, see build_single_step_jumps).
  * @param gamma    Dephasing rate (only for "open").

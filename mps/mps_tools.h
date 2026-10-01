@@ -61,7 +61,7 @@ insert_state(MPS* psi_t0, MPS state_to_insert, const SiteSet sites, const SiteSe
  * @param maxDim  Maximum bond dimension.
  */
 void
-swap_gate( MPS *psi, int j1, int j2, double cut_off, int maxDim);
+swap_sites( MPS *psi, int j1, int j2, double cut_off, int maxDim);
 
 /**
  * @brief Density matrix |psi><psi| of a pure state, as an MPO.
@@ -69,13 +69,13 @@ swap_gate( MPS *psi, int j1, int j2, double cut_off, int maxDim);
  * @return MPO with unprimed (ket) and primed (bra) site indices; bond dimension chi^2.
  */
 MPO
-from_mps_to_mpdo(MPS psi);
+make_density_matrix_mpo(MPS psi);
 
 /**
- * @brief Same as from_mps_to_mpdo, fusing the ket and bra link indices into a single index.
+ * @brief Same as make_density_matrix_mpo, fusing the ket and bra link indices into a single index.
  */
 MPO
-from_mps_to_mpdo_v2(MPS psi);
+make_density_matrix_mpo_fused(MPS psi);
 
 /**
  * @brief Reduced density matrix of psi on the sites i..j (inclusive).
@@ -84,7 +84,7 @@ from_mps_to_mpdo_v2(MPS psi);
  * @return ITensor with unprimed (ket) and primed (bra) site indices of the sites i..j.
  */
 ITensor
-extract_reduced_density_matrix(MPS * psi, int i, int j);
+compute_reduced_density_matrix(MPS * psi, int i, int j);
 
 /**
  * @brief Two-point function <psi| op_i op_j |psi> for operators on sites i != j.
@@ -95,6 +95,6 @@ extract_reduced_density_matrix(MPS * psi, int i, int j);
  * @param i,j   Sites (any order).
  */
 complex<double>
-compute_two_point( MPS *psi, const SiteSet sites, ITensor op_i, ITensor op_j, int i, int j);
+measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor op_j, int i, int j);
 
 #endif

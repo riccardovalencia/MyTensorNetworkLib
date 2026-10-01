@@ -14,10 +14,10 @@ The library is organized by role. Each folder contains pairs `name.h` / `name.cc
 
 | Folder | Header | Content |
 |---|---|---|
-| [mps](mps/) | `gates.h` | Gate containers (`MyBondGate`, `MyBondGateDiss`, `MyTrainITensor`) and `apply_gate`. |
+| [mps](mps/) | `gates.h` | Gate containers (`TebdGate`, `DissipativeGate`, `OperatorPair`) and `apply_gate`. |
 | | `entanglement.h` | Von Neumann entanglement entropy. |
 | | `mps_tools.h` | Embedding an MPS into another (`insert_state`), swap gates, density matrices, two-point functions. |
-| [dof](dof/) | `spin_half.h` | Spin-1/2 product states (`initial_computational_state`) and local observables. |
+| [dof](dof/) | `spin_half.h` | Spin-1/2 product states (`make_product_state`) and local observables. |
 | | `boson.h` | Bosonic Fock, coherent, squeezed and cat states; occupations, Fock-space projectors, squeezing. |
 | | `fermion.h` | Product states of spinful fermions. |
 | | `spin_boson.h` | Boson + spins site sets (cavity QED) and their purified (bra-ket) version; initial states. |
@@ -71,13 +71,13 @@ int main()
 {
     int N = 10;
     auto sites = SpinHalf(N, {"ConserveQNs=", false});
-    MPS psi = initial_computational_state(sites, "1100000000");     // |down down up up ...>_z
+    MPS psi = make_product_state(sites, "1100000000");     // |down down up up ...>_z
 
     vector<double> Delta(N, -1.), Omega(N, 0.1), V(N-1, 1.);
-    vector<MyBondGate> gates = gates_rydberg_up_to_vnn(sites, Delta, Omega, V, 0.05);
+    vector<TebdGate> gates = make_rydberg_gates_nn(sites, Delta, Omega, V, 0.05);
     for(int step = 0; step < 100; step++)
     {
-        for(MyBondGate g : gates) psi = apply_gate(psi, g.gate(), g.jn(), {"Cutoff=", 1E-12, "MaxDim=", 64});
+        for(TebdGate g : gates) psi = apply_gate(psi, g.gate(), g.sites(), {"Cutoff=", 1E-12, "MaxDim=", 64});
         psi.position(1);
         psi.normalize();
     }
@@ -104,63 +104,63 @@ Drivers written for previous versions need `#include "mytn.h"` instead of `spin_
 
 | Old name | New name |
 |---|---|
-| `bQEM_dressed_operator` | `bqem_dressed_operator` |
+| `bQEM_dressed_operator` | `make_dressed_operator` |
 | `build_file_TEBD` | `build_file_tebd` |
 | `build_TEBD_dt_step_H` | `build_tebd_dt_step` |
 | `build_TEBD_dt_step_H_open` | `build_tebd_dt_step_open` |
-| `build_totalSx` | `build_total_sx` |
-| `compute_norm_purifed_impurity` | `compute_norm_purified_impurity` |
-| `compute_norm_purifed_impurity_QN` | `compute_norm_purified_impurity_qn` |
-| `compute_variance_H_mmGcbQEM` | `compute_variance_hamiltonian_bqem` |
-| `exp_H_mmGcbQEM_n0_notfixed` | `exp_hamiltonian_bqem_n0_not_fixed` |
-| `exctract_reduced_density_matrix` | `extract_reduced_density_matrix` |
-| `from_MPS_to_MPDO` | `from_mps_to_mpdo` |
-| `from_MPS_to_MPDO_v2` | `from_mps_to_mpdo_v2` |
-| `gates_coherent_part_spin_dissipative_NNN_interactions_impurity_model` | `gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model` |
-| `gates_local_lindbland` | `gates_local_lindblad` |
-| `gates_local_nsites_lindbland` | `gates_local_nsites_lindblad` |
-| `gates_nearest_neighbour_local_lindbland` | `gates_nearest_neighbour_local_lindblad` |
-| `gates_rydberg_up_to_VNN` | `gates_rydberg_up_to_vnn` |
-| `gates_rydberg_up_to_VNNN` | `gates_rydberg_up_to_vnnn` |
-| `gates_rydberg_up_to_VNNN_deprecated` | `gates_rydberg_up_to_vnnn_deprecated` |
+| `build_totalSx` | `make_block_sx_mpo` |
+| `compute_norm_purifed_impurity` | `compute_trace_purified` |
+| `compute_norm_purifed_impurity_QN` | `compute_trace_purified_qn` |
+| `compute_variance_H_mmGcbQEM` | `compute_bosonic_east_model_energy_variance` |
+| `exp_H_mmGcbQEM_n0_notfixed` | `make_bosonic_east_model_evolution_mpo` |
+| `exctract_reduced_density_matrix` | `compute_reduced_density_matrix` |
+| `from_MPS_to_MPDO` | `make_density_matrix_mpo` |
+| `from_MPS_to_MPDO_v2` | `make_density_matrix_mpo_fused` |
+| `gates_coherent_part_spin_dissipative_NNN_interactions_impurity_model` | `make_spin_impurity_nnn_gates` |
+| `gates_local_lindbland` | `make_local_dissipative_gates` |
+| `gates_local_nsites_lindbland` | `make_multisite_dissipative_gates` |
+| `gates_nearest_neighbour_local_lindbland` | `make_two_site_dissipative_gates` |
+| `gates_rydberg_up_to_VNN` | `make_rydberg_gates_nn` |
+| `gates_rydberg_up_to_VNNN` | `make_rydberg_gates_nnn` |
+| `gates_rydberg_up_to_VNNN_deprecated` | `make_rydberg_gates_nnn_deprecated` |
 | `generaring_function_sim_size` | `generating_function_sim_size` |
 | `get_data_DMRG` | `get_data_dmrg` |
 | `get_data_TEBD` | `get_data_tebd` |
-| `H_mmGcbQEM` | `hamiltonian_bqem` |
-| `H_mmGcbQEM_minus` | `hamiltonian_bqem_minus` |
-| `H_mmGcbQEM_n0_not_fixed` | `hamiltonian_bqem_n0_not_fixed` |
-| `H_mmGcbQEM_n0_untouched` | `hamiltonian_bqem_n0_untouched` |
-| `H_mmGcbQEM_onsite` | `hamiltonian_bqem_onsite` |
-| `H_mmGcbQEM_onsite_hopping` | `hamiltonian_bqem_onsite_hopping` |
-| `H_mmGcbQEM_onsite_nonext` | `hamiltonian_bqem_onsite_nonext` |
-| `H_mmGcbQEM_with_drift` | `hamiltonian_bqem_with_drift` |
-| `H_number_conserving_fermions` | `hamiltonian_number_conserving_fermions` |
-| `H_number_conserving_fermions_impurity` | `hamiltonian_number_conserving_fermions_impurity` |
-| `H_tight_binding_electrons` | `hamiltonian_tight_binding_electrons` |
+| `H_mmGcbQEM` | `make_bosonic_east_model_mpo` |
+| `H_mmGcbQEM_minus` | `make_bosonic_east_model_mpo_minus` |
+| `H_mmGcbQEM_n0_not_fixed` | `make_bosonic_east_model_mpo_n0_not_fixed` |
+| `H_mmGcbQEM_n0_untouched` | `make_bosonic_east_model_mpo_n0_untouched` |
+| `H_mmGcbQEM_onsite` | `make_bosonic_east_model_mpo_onsite` |
+| `H_mmGcbQEM_onsite_hopping` | `make_bosonic_east_model_mpo_onsite_hopping` |
+| `H_mmGcbQEM_onsite_nonext` | `make_bosonic_east_model_mpo_onsite_nonext` |
+| `H_mmGcbQEM_with_drift` | `make_bosonic_east_model_mpo_with_drift` |
+| `H_number_conserving_fermions` | `make_single_particle_hamiltonian` |
+| `H_number_conserving_fermions_impurity` | `make_single_particle_hamiltonian_impurity` |
+| `H_tight_binding_electrons` | `make_tight_binding_mpo` |
 | `insert_QN_state` | `insert_qn_state` |
 | `MPO_lindbland_time_evolve` | `mpo_lindblad_time_evolve` |
 | `perform_DMRG` | `perform_dmrg` |
 | `perform_DMRG_meanfield` | `perform_dmrg_meanfield` |
 | `perform_DMRG_soft` | `perform_dmrg_soft` |
 | `perform_DMRG_variance` | `perform_dmrg_variance` |
-| `print_input_DMRG` | `print_input_dmrg` |
-| `print_input_DMRG_hopping` | `print_input_dmrg_hopping` |
+| `print_input_DMRG` | `write_dmrg_input` |
+| `print_input_DMRG_hopping` | `write_dmrg_input_hopping` |
 | `TEBD_lindbland_time_evolve` | `tebd_lindblad_time_evolve` |
 | `TEBD_long_range_int_lindbland_time_evolve` | `tebd_long_range_int_lindblad_time_evolve` |
-| `weigth_coherent_state` | `weight_coherent_state` |
-| `weigth_squeezed_state` | `weight_squeezed_state` |
-| `initial_computational_state(sites, vector<int>)` | `initial_computational_state(sites, "0101...")` |
-| `initial_state_all_UP/DOWN(sites, &psi, N)` | `psi = initial_computational_state(sites, "00..."/"11...", "x")` |
-| `initial_state_DOMAIN_WALL(sites, &psi, N)` | `psi = initial_computational_state(sites, "0..01..1", "x")` |
-| `initial_state_vacuum_state(&psi, sites, size)` (no link indices) | `initial_state_vacuum_state_correct_link(&psi, sites, size)` |
-| `compute_variance_H_mmGcbQEM(..., s, c)` | `compute_variance_hamiltonian_bqem(..., s, c, symmetry_sector_dir)` |
-| `scalar_product_different_n0/_cutoff(..., s, c)` | `scalar_product_different_n0/_cutoff(..., s, c, symmetry_sector_dir)` |
-| `search_ground_state_max_bond_chi(_no_v)(..., scaling_bond_dimension)` | `search_ground_state_max_bond_chi(_no_v)(..., scaling_bond_dimension, symmetry_sector_dir)` |
+| `weigth_coherent_state` | `coherent_state_amplitude` |
+| `weigth_squeezed_state` | `squeezed_state_amplitude` |
+| `make_product_state(sites, vector<int>)` | `make_product_state(sites, "0101...")` |
+| `initial_state_all_UP/DOWN(sites, &psi, N)` | `psi = make_product_state(sites, "00..."/"11...", "x")` |
+| `initial_state_DOMAIN_WALL(sites, &psi, N)` | `psi = make_product_state(sites, "0..01..1", "x")` |
+| `initial_state_vacuum_state(&psi, sites, size)` (no link indices) | `set_vacuum_state(&psi, sites, size)` |
+| `compute_variance_H_mmGcbQEM(..., s, c)` | `compute_bosonic_east_model_energy_variance(..., s, c, symmetry_sector_dir)` |
+| `compute_overlap_different_n0/_cutoff(..., s, c)` | `compute_overlap_different_n0/_cutoff(..., s, c, symmetry_sector_dir)` |
+| `load_ground_state_max_bond_dimension(_no_v)(..., scaling_bond_dimension)` | `load_ground_state_max_bond_dimension(_no_v)(..., scaling_bond_dimension, symmetry_sector_dir)` |
 
 Behaviour fixes with respect to the previous version: `measure_magnetization` and the purified-state measurements
-return `<sigma^y>` with the correct sign; `initialize_spin_boson_state` uses the azimuthal angle `phi`;
-`hamiltonian_tight_binding_electrons` adds the on-site fields on every site; `get_data_tebd` reads `total_time` from `argv[8]`;
-`doubling_space_gates` maps the gates to the correct sites of the bra-ket chain.
+return `<sigma^y>` with the correct sign; `make_spin_boson_state` uses the azimuthal angle `phi`;
+`make_tight_binding_mpo` adds the on-site fields on every site; `get_data_tebd` reads `total_time` from `argv[8]`;
+`make_purified_gates` maps the gates to the correct sites of the bra-ket chain.
 
 ## License
 

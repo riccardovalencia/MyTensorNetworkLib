@@ -25,14 +25,14 @@ using namespace itensor;
  * @param dt    Time step.
  */
 vector<BondGate>
-gates_coherent_unfolded_kondo_impurity_model(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
+make_kondo_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
 
 /** @brief Same model with the bath in its energy basis (inputs ordered on the physical sites 1..N). */
 vector<BondGate>
-gates_coherent_unfolded_kondo_impurity_model_energy_basis(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
+make_kondo_impurity_gates_energy_basis(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt);
 
 /**
- * @brief Coherent gates of a spin-1/2 chain (gates_spin_model conventions, models/spin_chain.h)
+ * @brief Coherent gates of a spin-1/2 chain (make_spin_chain_gates conventions, models/spin_chain.h)
  *        with a dissipative impurity on the first physical site.
  * @param J     {Jxx, Jyy, Jzz}.
  * @param h     {hx, hy, hz}.
@@ -40,10 +40,10 @@ gates_coherent_unfolded_kondo_impurity_model_energy_basis(const SiteSet sites , 
  * @param gamma Dissipation rate.
  */
 vector<BondGate>
-gates_coherent_part_spin_dissipative_impurity_model(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const double gamma, const double dt);
+make_spin_impurity_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const double gamma, const double dt);
 
 /** @brief As above, with next-nearest-neighbour couplings J_NNN (three-site gates). */
-vector<MyBondGate>
-gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt);
+vector<TebdGate>
+make_spin_impurity_nnn_gates(const SiteSet sites , const vector<double> J, const vector<double> J_NNN, const vector<double> h, const double dt);
 
 #endif

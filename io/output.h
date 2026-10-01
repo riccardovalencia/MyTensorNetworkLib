@@ -24,7 +24,7 @@ using namespace itensor;
  * @param set_output_precision Number of digits.
  */
 void
-print_matrix( string file_name , vector<vector<double> > &matrix , int set_output_precision);
+write_matrix( string file_name , vector<vector<double> > &matrix , int set_output_precision);
 ///@}
 
 /** @name Spin chains and full counting statistics */
@@ -64,13 +64,13 @@ printing_generating_function( const stringstream *save_file , const int numberPo
 /** @name Bosonic quantum east model */
 ///@{
 
-/** @brief Write the DMRG parameters of a bQEM run to "input.txt". */
+/** @brief Write the DMRG parameters of a bosonic east model run to "input.txt". */
 void
-print_input_dmrg(int size , double s , double c , double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
+write_dmrg_input(int size , double s , double c , double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
 
-/** @brief As print_input_dmrg, including on-site interaction epsilon and hopping t. */
+/** @brief As write_dmrg_input, including on-site interaction epsilon and hopping t. */
 void
-print_input_dmrg_hopping(int size , double s , double c , double epsilon, double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
+write_dmrg_input_hopping(int size , double s , double c , double epsilon, double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
 
 /**
  * @brief Write the occupations (site, <n_j>) to "occupation_number_size<size>_s<100s>_c<100c>_cutoff<..>_n0<..>_chi<bond_dimension>...".
@@ -91,7 +91,7 @@ void
 print_occupation_number_excited_states( vector<double> &occupation_number, int size, double s, double c , int cut_off_fock_space , int n0 , int number_state , int set_output_precision);
 
 /**
- * @brief Write the Fock-state probabilities (output of measure_projector_all_sites), one line per site,
+ * @brief Write the Fock-state probabilities (output of measure_fock_probabilities), one line per site,
  *        to "projector_fock_space_size<size>_s<100s>_c<100c>_cutoff<..>_n0<..>_chi<bond_dimension>...".
  */
 void

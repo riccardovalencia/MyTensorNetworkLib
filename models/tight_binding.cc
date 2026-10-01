@@ -20,7 +20,7 @@ using namespace itensor;
 
 
 MPO
-hamiltonian_tight_binding_electrons(const int N , const SiteSet sites, const vector<double> J, const vector<double> hup, const vector<double> hdn)
+make_tight_binding_mpo(const int N , const SiteSet sites, const vector<double> J, const vector<double> hup, const vector<double> hdn)
 {
     int size_J = J.size();
     int size_hup = hup.size();
@@ -52,7 +52,7 @@ hamiltonian_tight_binding_electrons(const int N , const SiteSet sites, const vec
 
 
 ITensor
-hamiltonian_number_conserving_fermions(const int N , const vector<double> J, const vector<double> h, const bool spinful)
+make_single_particle_hamiltonian(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 {
     int L = N;
     vector<double> Jp = J;
@@ -80,7 +80,7 @@ hamiltonian_number_conserving_fermions(const int N , const vector<double> J, con
 
 
 ITensor
-hamiltonian_number_conserving_fermions_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful)
+make_single_particle_hamiltonian_impurity(const int N , const vector<double> J, const vector<double> h, const bool spinful)
 {
     int L = N;
     vector<double> Jp = J;
@@ -115,7 +115,7 @@ hamiltonian_number_conserving_fermions_impurity(const int N , const vector<doubl
 // Simulation of free spinful fermions 
 
 vector<BondGate>
-gates_free_spinful_fermions(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
+make_free_fermion_gates(const SiteSet sites , const vector<double> J, const vector<double> hup, const vector<double> hdn, const double dt)
 { 
 
 

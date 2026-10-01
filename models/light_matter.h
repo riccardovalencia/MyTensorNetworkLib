@@ -1,10 +1,10 @@
 /**
  * @file light_matter.h
- * @brief Collective light-matter models: one bosonic mode a (site 1, see custom_spin_boson)
+ * @brief Collective light-matter models: one bosonic mode a (site 1, see make_spin_boson_sites)
  *        coupled to all the spin-1/2 (sites 2..N). S^a = sum_j s^a_j are collective spins.
  *
  * The all-to-all coupling is split into "long-range" gates between the boson and each spin,
- * applied with swap_gate (mps/mps_tools.h); see the collective_light_matter examples.
+ * applied with swap_sites (mps/mps_tools.h); see the collective_light_matter examples.
  */
 #ifndef MYTN_MODELS_LIGHT_MATTER_H
 #define MYTN_MODELS_LIGHT_MATTER_H
@@ -17,7 +17,7 @@ using namespace itensor;
 
 /**
  * @brief Gates of the Tavis-Cummings model H = omega0 n_a + h S^z + g (S^+ a + S^- a^dag).
- * @param sites            Site set from custom_spin_boson.
+ * @param sites            Site set from make_spin_boson_sites.
  * @param omega0           Frequency of the boson.
  * @param h                Field on the spins.
  * @param g                Light-matter coupling.
@@ -25,13 +25,13 @@ using namespace itensor;
  * @param photon_or_matter "short-range" for the local terms; otherwise the photon-matter gates.
  */
 vector<BondGate>
-gates_tavis_cummings(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string photon_or_matter);
+make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string photon_or_matter);
 
 /**
  * @brief Gates of a general light-matter model,
  *        H = omega0 n_a + h S^z + (coupling) + (nearest-neighbour spin interaction).
  *
- * @param sites            Site set from custom_spin_boson.
+ * @param sites            Site set from make_spin_boson_sites.
  * @param omega0           Frequency of the boson.
  * @param h                Field on the spins.
  * @param g                Light-matter coupling (include the 1/sqrt(N) scaling if wanted).
@@ -43,10 +43,10 @@ gates_tavis_cummings(const SiteSet sites , const double omega0 , const double h 
  *                         "x": V sum_j X_j X_{j+1}.
  */
 vector<BondGate>
-gates_photon_matter(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon, string type_of_coupling = "tavis", const double V = 0, string interaction_axis = "z");
+make_light_matter_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon, string type_of_coupling = "tavis", const double V = 0, string interaction_axis = "z");
 
 /** @name Purified (bra-ket) states
- *  Gates mapped onto the doubled chain with doubling_space_gates (dynamics/lindblad.h): the two
+ *  Gates mapped onto the doubled chain with make_purified_gates (dynamics/lindblad.h): the two
  *  bosons sit on the central bond, the spins of the ket to their right and those of the bra
  *  (mirrored) to their left.
  */
@@ -62,20 +62,20 @@ gates_photon_matter(const SiteSet sites , const double omega0 , const double h ,
  * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
  */
 MPS
-apply_local_gate_purified(MPS psi, MyBondGate gate, const Args args);
+apply_local_gate_purified(MPS psi, TebdGate gate, const Args args);
 
 /**
  * @brief Apply a photon-matter gate and move the boson one site outward with a swap.
  *
  * The gate couples the boson, adjacent to the spin it acts on, and that spin. Applying the
- * "long-range" gates of gates_photon_matter in order lets the boson travel through the ket (or the
+ * "long-range" gates of make_light_matter_gates in order lets the boson travel through the ket (or the
  * bra) and interact with every spin.
  * @param psi  Purified state (taken by value).
  * @param gate Photon-matter gate mapped onto the doubled chain; jn = {boson site, spin site}.
  * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
  */
 MPS
-apply_photon_matter_gate_purified(MPS psi, MyBondGate gate, const Args args);
+apply_photon_matter_gate_purified(MPS psi, TebdGate gate, const Args args);
 ///@}
 
 #endif

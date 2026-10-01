@@ -57,7 +57,7 @@ measure_generating_function( MPO* rho , const SpinHalf sites , int N , int maxLe
 
 /** @brief MPO of sum_{j=start}^{start+size} S^x_j. */
 MPO
-build_total_sx( const SpinHalf sites , const int start , const int size );
+make_block_sx_mpo( const SpinHalf sites , const int start , const int size );
 
 /**
  * @brief First four cumulants of S^x_A for block sizes 0..maxLength-1.

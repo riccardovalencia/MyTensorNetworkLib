@@ -23,8 +23,8 @@ using namespace itensor;
  * | "y"   | +y    | -y    |
  *
  * @code
- * MPS kink  = initial_computational_state(sites, "1100000000");      // z basis
- * MPS wall  = initial_computational_state(sites, "0000011111", "x"); // domain wall along x
+ * MPS kink  = make_product_state(sites, "1100000000");      // z basis
+ * MPS wall  = make_product_state(sites, "0000011111", "x"); // domain wall along x
  * @endcode
  *
  * @param sites  Spin-1/2 site set of N sites.
@@ -35,7 +35,7 @@ using namespace itensor;
  *         or sites that are not spin-1/2.
  */
 MPS
-initial_computational_state(const SiteSet sites , const string config , const string basis = "z");
+make_product_state(const SiteSet sites , const string config , const string basis = "z");
 
 /**
  * @brief Local magnetization (spins) or occupation (bosons) on every site.
@@ -53,7 +53,7 @@ measure_magnetization(MPS* psi, const SiteSet sites , string direction);
  * @param sites Spin-1/2 site set (N > 1).
  */
 double
-measure_kink( MPS* psi, const SiteSet sites);
+measure_kink_number( MPS* psi, const SiteSet sites);
 
 /**
  * @brief Density-density correlations <n_start n_j> for j = 1..N.
@@ -64,7 +64,7 @@ measure_kink( MPS* psi, const SiteSet sites);
  * @return N values, one per site j.
  */
 vector<double>
-measure_correlations(MPS* psi, const SiteSet sites, const int start, const bool connected);
+measure_density_correlations(MPS* psi, const SiteSet sites, const int start, const bool connected);
 
 /**
  * @brief Print <X_j> and <Z_j> for j = 1..N to stdout.
@@ -73,6 +73,6 @@ measure_correlations(MPS* psi, const SiteSet sites, const int start, const bool 
  * @param N     Number of sites.
  */
 void
-measure_mx_mz( const SpinHalf sites , MPS psi , const int N );
+print_magnetization( const SpinHalf sites , MPS psi , const int N );
 
 #endif

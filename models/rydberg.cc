@@ -21,7 +21,7 @@ using namespace itensor;
 
 
 MPO
-mpo_pxp(const SiteSet s, const double omega)
+make_pxp_mpo(const SiteSet s, const double omega)
 {
 	int N = length(s);
     MPO H = MPO(s);
@@ -226,14 +226,14 @@ mpo_pxp(const SiteSet s, const double omega)
 // H = omega \sum_j P_j X_{j-1} P_{j+1}
 // where P_j = (1+Z_j)/2
 
-vector<MyBondGate>
-gates_pxp(const SiteSet sites , const double omega, const double dt)
+vector<TebdGate>
+make_pxp_gates(const SiteSet sites , const double omega, const double dt)
 {
 
 	int N = length(sites);
 
 
-	vector<MyBondGate> gates;
+	vector<TebdGate> gates;
 
 	// first layer (acts on sites [1,2,3] , [4,5,6] , ... )
 	for(int j=1 ; j <= N-2 ; j+=3)
@@ -242,7 +242,7 @@ gates_pxp(const SiteSet sites , const double omega, const double dt)
 		ITensor X2 = 2*op(sites,"Sx",j+1);
 		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,omega*P1*X2*P3);
+		TebdGate g = TebdGate(sites,jn,dt/2.,omega*P1*X2*P3);
 		gates.push_back(g);
 	}
 
@@ -253,7 +253,7 @@ gates_pxp(const SiteSet sites , const double omega, const double dt)
 		ITensor X2 = 2*op(sites,"Sx",j+1);
 		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,omega*P1*X2*P3);
+		TebdGate g = TebdGate(sites,jn,dt/2.,omega*P1*X2*P3);
 		gates.push_back(g);
 	}
 
@@ -264,15 +264,15 @@ gates_pxp(const SiteSet sites , const double omega, const double dt)
 		ITensor X2 = 2*op(sites,"Sx",j+1);
 		ITensor P3 = (op(sites,"Id",j+2) + 2*op(sites,"Sz",j+2))/2;
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,omega*P1*X2*P3);
+		TebdGate g = TebdGate(sites,jn,dt/2.,omega*P1*X2*P3);
 		gates.push_back(g);
 	}
 
 
-	vector<MyBondGate> gates_ = gates;
+	vector<TebdGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
 
-	for(MyBondGate gate : gates_) gates.push_back(gate);
+	for(TebdGate gate : gates_) gates.push_back(gate);
 	
 	return gates;
 }
@@ -280,13 +280,13 @@ gates_pxp(const SiteSet sites , const double omega, const double dt)
 
 // Rydberg Hamiltonian - we keep up to nearest neighbor interactions
 
-vector<MyBondGate>
-gates_rydberg_up_to_vnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
+vector<TebdGate>
+make_rydberg_gates_nn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
 
 	int N = length(sites);
 
-	vector<MyBondGate> gates;
+	vector<TebdGate> gates;
 
 
 	for(int j=1 ; j <= N-1 ; j+=1)
@@ -331,15 +331,15 @@ gates_rydberg_up_to_vnn(const SiteSet sites , const vector<double> Deltaj, const
 
 
 		vector<int> jn = {j,j+1};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H);
 		gates.push_back(g);
 	}
 
 
-	vector<MyBondGate> gates_ = gates;
+	vector<TebdGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
 
-	for(MyBondGate gate : gates_) gates.push_back(gate);
+	for(TebdGate gate : gates_) gates.push_back(gate);
 	
 	return gates;
 }
@@ -352,13 +352,13 @@ gates_rydberg_up_to_vnn(const SiteSet sites , const vector<double> Deltaj, const
 
 // PLUS: it does not split the single-site terms separately. You earn ~30% in computation time
 
-vector<MyBondGate>
-gates_rydberg_up_to_vnnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
+vector<TebdGate>
+make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
 
 	int N = length(sites);
 
-	vector<MyBondGate> gates;
+	vector<TebdGate> gates;
 	vector<double> omega;
 	vector<double> delta;
 
@@ -433,7 +433,7 @@ gates_rydberg_up_to_vnnn(const SiteSet sites , const vector<double> Deltaj, cons
 		ITensor H = H_NN + H1;
 
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H);
 		gates.push_back(g);
 	}
 
@@ -509,7 +509,7 @@ gates_rydberg_up_to_vnnn(const SiteSet sites , const vector<double> Deltaj, cons
 		ITensor H = H_NN + H1;
 
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H);
 		gates.push_back(g);
 	}
 
@@ -585,15 +585,15 @@ gates_rydberg_up_to_vnnn(const SiteSet sites , const vector<double> Deltaj, cons
 		ITensor H = H_NN + H1;
 
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H);
 		gates.push_back(g);
 	}
 
 
-	vector<MyBondGate> gates_ = gates;
+	vector<TebdGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
 
-	for(MyBondGate gate : gates_) gates.push_back(gate);
+	for(TebdGate gate : gates_) gates.push_back(gate);
 	
 	return gates;
 }
@@ -604,15 +604,15 @@ gates_rydberg_up_to_vnnn(const SiteSet sites , const vector<double> Deltaj, cons
 // 2. We prepare the gates for H_j, and then we put them inside a time-evolving operator U_j (of time step dt/2) via SVDs. Namely: we construct the gates and then the resulting MPO
 // 3. Either we return the vector [U_1,U_2,U_3,U_3,U_2,U_1]. Or we multiply the MPOs in order to have a single one.
 
-// deprecated in favour of gates_rydberg_up_to_vnnn: in the new version we have single-site terms applied together with the 3-site one.
+// deprecated in favour of make_rydberg_gates_nnn: in the new version we have single-site terms applied together with the 3-site one.
 
-vector<MyBondGate>
-gates_rydberg_up_to_vnnn_deprecated(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
+vector<TebdGate>
+make_rydberg_gates_nnn_deprecated(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
 
 	int N = length(sites);
 
-	vector<MyBondGate> gates;
+	vector<TebdGate> gates;
 
 	// on site terms
 	for(int j=1 ; j<= N ; j++)
@@ -622,7 +622,7 @@ gates_rydberg_up_to_vnnn_deprecated(const SiteSet sites , const vector<double> D
 
 		ITensor H = Omegaj[j-1] * Xj + Deltaj[j-1] * Nj;
 		vector<int> jn = {j};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H);
 		gates.push_back(g);
 	}
 
@@ -657,7 +657,7 @@ gates_rydberg_up_to_vnnn_deprecated(const SiteSet sites , const vector<double> D
 
 
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H_NN);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H_NN);
 		gates.push_back(g);
 	}
 	
@@ -689,7 +689,7 @@ gates_rydberg_up_to_vnnn_deprecated(const SiteSet sites , const vector<double> D
 		H_NN += V13 * Nj[0] * Ij[1] * Nj[2] ;
 
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H_NN);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H_NN);
 		gates.push_back(g);
 	}
 
@@ -722,14 +722,14 @@ gates_rydberg_up_to_vnnn_deprecated(const SiteSet sites , const vector<double> D
 		H_NN += V13 * Nj[0] * Ij[1] * Nj[2] ;
 
 		vector<int> jn = {j,j+1,j+2};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H_NN);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H_NN);
 		gates.push_back(g);
 	}
 
-	vector<MyBondGate> gates_ = gates;
+	vector<TebdGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
 
-	for(MyBondGate gate : gates_) gates.push_back(gate);
+	for(TebdGate gate : gates_) gates.push_back(gate);
 	
 	return gates;
 }
@@ -738,7 +738,7 @@ gates_rydberg_up_to_vnnn_deprecated(const SiteSet sites , const vector<double> D
 // given spatial configurations, it returs the potentials 1/rj^alpha
  
 vector<double>
-compute_potential(const vector< vector<double> > rj , const double alpha)
+compute_power_law_couplings(const vector< vector<double> > rj , const double alpha)
 {
 
     vector<double> V;

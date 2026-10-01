@@ -1,8 +1,8 @@
 /**
- * @file bqem.cc
- * @brief Implementation of bqem.h (the functions are documented in the header).
+ * @file bosonic_east_model.cc
+ * @brief Implementation of bosonic_east_model.h (the functions are documented in the header).
  */
-#include "bqem.h"
+#include "bosonic_east_model.h"
 #include "../models/spin_chain.h"
 #include <itensor/all.h>
 #include <cmath>
@@ -213,7 +213,7 @@ build_tebd_dt_step_open(vector<BondGate> &gates, const SiteSet sites, const int 
 // Hamiltonian H = - 0.5 n_0 ( exp(-s) \sigma_1^x -1) - 0.5 \sum_{j=1}^{L-1} n_j (exp(-s) \sigma_{j+1}^x - (1-2c) n_{j+1} -1) + 0.5 n_L * sector + 0.5 * n_L
 
 MPO
-hamiltonian_bqem( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+make_bosonic_east_model_mpo( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
 
 	double U = 1-2*c;
@@ -249,7 +249,7 @@ hamiltonian_bqem( const SiteSet sites, int size , int n0, double symmetry , doub
 // Hamiltonian H = - 0.5 n_0 ( exp(-s) \sigma_1^x -1) - 0.5 \sum_{j=1}^{L-1} n_j (exp(-s) \sigma_{j+1}^x - (1-2c) n_{j+1} -1) + 0.5 n_L * sector + 0.5 * n_L
 
 MPO
-hamiltonian_bqem_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
 
 	double U = 1-2*c;
@@ -288,7 +288,7 @@ hamiltonian_bqem_with_drift( const SiteSet sites, int size , int n0, double symm
 
 
 MPO
-hamiltonian_bqem_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+make_bosonic_east_model_mpo_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
 
 
@@ -325,7 +325,7 @@ hamiltonian_bqem_minus( const SiteSet sites, int size , int n0, double symmetry 
 
 
 MPO
-hamiltonian_bqem_onsite_hopping( const SiteSet sites, int size , double s, double c, double epsilon, double t)
+make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , double s, double c, double epsilon, double t)
 {
 
 
@@ -358,7 +358,7 @@ hamiltonian_bqem_onsite_hopping( const SiteSet sites, int size , double s, doubl
 
 
 MPO
-hamiltonian_bqem_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon)
+make_bosonic_east_model_mpo_onsite( const SiteSet sites, int size , int n0, double symmetry , double s, double c , double epsilon)
 {
 	 
 	double U = 1-2*c;
@@ -381,7 +381,7 @@ hamiltonian_bqem_onsite( const SiteSet sites, int size , int n0, double symmetry
 
 
 MPO
-hamiltonian_bqem_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c )
+make_bosonic_east_model_mpo_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double s, double c )
 {
 
 	auto ampo = AutoMPO(sites);
@@ -418,7 +418,7 @@ hamiltonian_bqem_onsite_nonext( const SiteSet sites, int size , int n0, double s
 // n0 from a site of the form |n0>|psi>.
 
 MPO
-hamiltonian_bqem_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+make_bosonic_east_model_mpo_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
 {
 
 
@@ -462,7 +462,7 @@ hamiltonian_bqem_n0_untouched( const SiteSet sites, int size , int n0, double sy
 // of the operators acting on the 0-th site). 
 
 MPO
-hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c)
+make_bosonic_east_model_mpo_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c)
 {
 
 
@@ -495,7 +495,7 @@ hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , double symmetry ,
 // Exponential of the Hamiltonian. This is done in order to apply it to operators
 
 MPO
-exp_hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt)
+make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , int n0, double symmetry , double J, double c, double dt)
 {
 	 
 	double U  = 1 - 2 * c;
@@ -522,7 +522,7 @@ exp_hamiltonian_bqem_n0_not_fixed( const SiteSet sites, int size , int n0, doubl
 
 
 double 
-compute_variance_hamiltonian_bqem(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir)
+compute_bosonic_east_model_energy_variance(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir)
 {
 	double symmetry;
 	ifstream symmetry_sector_file;
@@ -530,7 +530,7 @@ compute_variance_hamiltonian_bqem(MPS *psi , const SiteSet sites, int size , int
 	cerr << name_symmetry_sector_file << endl;
 	symmetry_sector_file.open(name_symmetry_sector_file);
 	if(!symmetry_sector_file.is_open())
-		throw ITError("compute_variance_hamiltonian_bqem: cannot open " + name_symmetry_sector_file);
+		throw ITError("compute_bosonic_east_model_energy_variance: cannot open " + name_symmetry_sector_file);
 
 	for (int i = 1; i < cut_off_fock_space; i++)
 	{
@@ -540,7 +540,7 @@ compute_variance_hamiltonian_bqem(MPS *psi , const SiteSet sites, int size , int
 
 	symmetry_sector_file >> symmetry;
 
-	MPO H = hamiltonian_bqem( sites, size , n0, symmetry , s, c) ; 
+	MPO H = make_bosonic_east_model_mpo( sites, size , n0, symmetry , s, c) ; 
 
 
 	double variance = inner((*psi),H,H,(*psi))  -   inner((*psi),H,(*psi)) *  inner((*psi),H,(*psi));

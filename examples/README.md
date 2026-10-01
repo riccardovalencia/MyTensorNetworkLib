@@ -59,7 +59,7 @@ state = up
 
 ### `rydberg_chain_tebd`
 Closed dynamics of a 1D Rydberg chain (interactions up to next-nearest neighbours, anti-blockade
-detunings) from a kink state, with 3-site TEBD gates (`gates_rydberg_up_to_vnnn`).
+detunings) from a kink state, with 3-site TEBD gates (`make_rydberg_gates_nnn`).
 Optional gaussian disorder on the atomic positions reproduces Fig. S1 of arXiv:2309.12392.
 - Inputs: `N`, `M` (initial excitations), `V2`, `Omega`, `T`, `dt`, `maxDim`, `sigmax`, `seed`.
 - Output: fidelity, half-chain entropy, bond dimension; Rydberg densities `n_j(t)`.

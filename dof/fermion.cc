@@ -20,7 +20,7 @@ using namespace itensor;
 
 
 MPS
-initial_computational_electron_state(const SiteSet sites, const int Nupfill, const int Ndnfill)
+make_electron_product_state(const SiteSet sites, const int Nupfill, const int Ndnfill)
 {
     int N = length(sites);
 

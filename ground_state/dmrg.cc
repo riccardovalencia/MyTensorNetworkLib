@@ -416,7 +416,7 @@ return variance;
 
 
 void
-initialize_excited_state( MPS *ground_state_variance, const SiteSet sites, const int size, const double energy_target, const int cut_off_fock_space)
+set_excited_state_guess( MPS *ground_state_variance, const SiteSet sites, const int size, const double energy_target, const int cut_off_fock_space)
 {
     int number_particles = (energy_target >= 0) ? int(energy_target) : 0;
 
@@ -424,7 +424,7 @@ initialize_excited_state( MPS *ground_state_variance, const SiteSet sites, const
  	std::uniform_real_distribution<double> distribution(0, size-1);
 
 	// start from the vacuum, keeping the link indices of *ground_state_variance
-	initial_state_vacuum_state_correct_link( ground_state_variance, sites, size );
+	set_vacuum_state( ground_state_variance, sites, size );
 
 	// current_occupation[j] - 1 bosons on site j+1
 	vector<int> current_occupation(size, 1);
@@ -437,7 +437,7 @@ initialize_excited_state( MPS *ground_state_variance, const SiteSet sites, const
 			target_site	 = int(distribution(generator));
 		}while(current_occupation[target_site]>cut_off_fock_space);
 
-		put_occupation( ground_state_variance, sites, target_site + 1, current_occupation[target_site] );
+		set_site_occupation( ground_state_variance, sites, target_site + 1, current_occupation[target_site] );
 		current_occupation[target_site] +=1 ;
 	}
 
@@ -452,7 +452,7 @@ initialize_excited_state( MPS *ground_state_variance, const SiteSet sites, const
 
 
 MPS 
-fermi_sea_electrons(MPO H, const SiteSet sites, const int Nupfill, const int Ndnfill, Sweeps sweeps, double min_varH)
+find_fermi_sea(MPO H, const SiteSet sites, const int Nupfill, const int Ndnfill, Sweeps sweeps, double min_varH)
 {
     int N = length(sites);
 

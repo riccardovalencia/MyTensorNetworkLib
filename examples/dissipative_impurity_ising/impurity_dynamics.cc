@@ -99,24 +99,24 @@ int main(int argc, char* argv[])
     double dt_coherent = dissipative ? dt/2. : dt;
 
     vector<BondGate>   gates_2sites;
-    vector<MyBondGate> gates_3sites;
-    if(Jzzz == 0.) gates_2sites = gates_coherent_part_spin_dissipative_impurity_model(sites, J_NN, h, Lj, gamma, dt_coherent);
-    else           gates_3sites = gates_coherent_part_spin_dissipative_nnn_interactions_impurity_model(sites, J_NN, J_NNN, h, dt_coherent);
+    vector<TebdGate> gates_3sites;
+    if(Jzzz == 0.) gates_2sites = make_spin_impurity_gates(sites, J_NN, h, Lj, gamma, dt_coherent);
+    else           gates_3sites = make_spin_impurity_nnn_gates(sites, J_NN, J_NNN, h, dt_coherent);
 
-    vector<MyBondGateDiss> gates_D;
-    if(dissipative) gates_D = gates_dissipative_impurity(sites, Lj, gamma, dt);
+    vector<DissipativeGate> gates_D;
+    if(dissipative) gates_D = make_impurity_dissipative_gates(sites, Lj, gamma, dt);
 
     auto coherent_step = [&](MPS& state)
     {
         if(Jzzz == 0.) gateTEvol(gates_2sites, dt, dt, state, args);
-        else for(MyBondGate g : gates_3sites) state = apply_gate(state, g.gate(), g.jn(), args);
+        else for(TebdGate g : gates_3sites) state = apply_gate(state, g.gate(), g.sites(), args);
     };
     auto time_step = [&](MPS& state)
     {
         coherent_step(state);
         if(dissipative)
         {
-            for(MyBondGateDiss g : gates_D) state = apply_dissipative_gate(state, g, args);
+            for(DissipativeGate g : gates_D) state = apply_dissipative_gate(state, g, args);
             coherent_step(state);
         }
     };
@@ -143,9 +143,9 @@ int main(int argc, char* argv[])
         if(k % steps_measure != 0) continue;
 
         double t = k*dt;
-        out << t << " " << maxLinkDim(rho) << " " << compute_norm_purified_impurity(&rho) << endl;
+        out << t << " " << maxLinkDim(rho) << " " << compute_trace_purified(&rho) << endl;
         out_xj << t;
-        for(complex<double> x : measure_magnetization_impurity_first_site(&rho, "x", true)) out_xj << " " << x.real();
+        for(complex<double> x : measure_magnetization_purified(&rho, "x", true)) out_xj << " " << x.real();
         out_xj << endl;
         cerr << "t = " << t << "  maxD = " << maxLinkDim(rho) << "\n";
     }
@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // 3. Autocorrelation <Z_1(t) Z_1(0)>: apply Z on the first ket site and keep evolving
 
-    rho /= compute_norm_purified_impurity(&rho);
+    rho /= compute_trace_purified(&rho);
     ITensor A = rho(N+1) * 2 * op(sites, "Sz", N+1);
     A.mapPrime(1, 0);
     rho.set(N+1, A);
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
         time_step(rho);
         if(k % steps_corr != 0) continue;
 
-        complex<double> c = measure_magnetization_impurity_first_site(&rho, "z", false, 1)[0];
+        complex<double> c = measure_magnetization_purified(&rho, "z", false, 1)[0];
         out_corr << k*dt << " " << c.real() << " " << c.imag() << " " << abs(c) << endl;
     }
 

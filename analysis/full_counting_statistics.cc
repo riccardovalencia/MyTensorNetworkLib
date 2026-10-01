@@ -130,7 +130,7 @@ measure_generating_function( MPS* psi , const SpinHalf sites , int N , int n , i
 //----------------------------------------------------------------------
 //return the MPO of the total magnetization of a spin-1/2 system of a subsystem of size "size"
 MPO
-build_total_sx( const SpinHalf sites , const int start ,  const int size )
+make_block_sx_mpo( const SpinHalf sites , const int start ,  const int size )
 	{
 	
 	AutoMPO ampo(sites);
@@ -169,7 +169,7 @@ measuring_moments( MPS *psi , const SpinHalf sites , const int N , const int n ,
 			else start = ( N/2 - (size + 1) / 2 ) ;
 		
 			(*psi).position( start );
-			MPO totalSx = build_total_sx( sites , start , size );
+			MPO totalSx = make_block_sx_mpo( sites , start , size );
 	
 			// powers of the MPO: in ITensor v3, A*B = nmultMPO(A,prime(B)) with primes 2 -> 1
 			Args args_mult = {"MaxDim",500,"Cutoff",1E-16};

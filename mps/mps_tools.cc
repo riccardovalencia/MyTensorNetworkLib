@@ -20,7 +20,7 @@ using namespace itensor;
 
 
 complex<double>
-compute_two_point( MPS *psi, const SiteSet sites, ITensor op_i, ITensor op_j, int i, int j)
+measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor op_j, int i, int j)
 {
 	if(j<i)
 	{
@@ -397,7 +397,7 @@ insert_state(MPS* psi_t0, MPS state_to_insert, const SiteSet sites, const SiteSe
 // see http://itensor.org/support/2330/non-consecutive-swap-gates
 
 void
-swap_gate( MPS *psi, int j1, int j2, double cut_off, int maxDim)
+swap_sites( MPS *psi, int j1, int j2, double cut_off, int maxDim)
 {
 
     SiteSet sj = siteInds(*psi);
@@ -447,7 +447,7 @@ swap_gate( MPS *psi, int j1, int j2, double cut_off, int maxDim)
 // Given a pure state psi, presented as an MPS, it return its density matrix representation |psi> <psi| as an MPO
 
 MPO 
-from_mps_to_mpdo(MPS psi )
+make_density_matrix_mpo(MPS psi )
 {
     // ket and bra (bra is primed)
     MPS ket = psi;
@@ -521,7 +521,7 @@ from_mps_to_mpdo(MPS psi )
 // Similar to above, but it uses a variation for fusing the link indices in a single one
 
 MPO 
-from_mps_to_mpdo_v2(MPS psi )
+make_density_matrix_mpo_fused(MPS psi )
 {
     // ket and bra (bra is primed)
     MPS ket = psi;
@@ -591,7 +591,7 @@ from_mps_to_mpdo_v2(MPS psi )
 // ----------------------------------------------------------
 // compute the reduced density matrix bewteen sites i and j
 ITensor
-extract_reduced_density_matrix(MPS *psi, int i, int j)
+compute_reduced_density_matrix(MPS *psi, int i, int j)
 {
     int L = length(*psi);
 

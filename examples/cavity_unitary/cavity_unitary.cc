@@ -42,13 +42,13 @@ int main(int argc, char* argv[])
     int steps_measure = 10;
     int total_steps   = int(T / dt);
 
-    SiteSet sites = custom_spin_boson(N+1, max_occ);
-    MPS psi    = initialize_spin_boson_state(sites, 0, theta, 0.);
+    SiteSet sites = make_spin_boson_sites(N+1, max_occ);
+    MPS psi    = make_spin_boson_state(sites, 0, theta, 0.);
     MPS psi_t0 = psi;
 
     // local terms (no swaps) and photon-matter gates between the boson and each spin
-    vector<BondGate> gates_local = gates_photon_matter(sites, omega0, h, g/sqrt(N), dt, "short-range", coupling);
-    vector<BondGate> gates_pm    = gates_photon_matter(sites, omega0, h, g/sqrt(N), dt, "long-range",  coupling);
+    vector<BondGate> gates_local = make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "short-range", coupling);
+    vector<BondGate> gates_pm    = make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "long-range",  coupling);
 
     // two-site gate on (j, j+1): center on j, normalize, apply, split with a truncated SVD
     auto apply = [&](const ITensor& gate, int j)
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
             auto [U,S,V] = svd(noPrime(AA), inds(psi(j-1)), {"Cutoff=", cut_off, "MaxDim=", maxDim});
             psi.set(j-1, U);
             psi.set(j, S*V);
-            swap_gate(&psi, j-1, j, cut_off, maxDim);
+            swap_sites(&psi, j-1, j, cut_off, maxDim);
         }
 
         if((k+1) % steps_measure != 0) continue;

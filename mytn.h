@@ -28,8 +28,8 @@
 #include "models/light_matter.h"
 #include "models/impurity.h"
 #include "models/tight_binding.h"
-#include "models/bqem.h"
-#include "models/bqem_states.h"
+#include "models/bosonic_east_model.h"
+#include "models/bosonic_east_model_states.h"
 
 #include "dynamics/lindblad.h"
 #include "dynamics/time_evolution.h"

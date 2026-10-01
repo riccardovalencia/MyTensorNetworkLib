@@ -32,7 +32,7 @@ using namespace itensor;
 // We DO NOT implement the swap gates as gates, but directly in the TEBD algorithm.
 
 vector<BondGate>
-gates_tavis_cummings(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon)
+make_tavis_cummings_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon)
 {
     vector<BondGate> gates;
 
@@ -249,7 +249,7 @@ gates_tavis_cummings(const SiteSet sites , const double omega0 , const double h 
 // We DO NOT implement the swap gates as gates, but directly in the TEBD algorithm.
 
 vector<BondGate>
-gates_photon_matter(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon, string type_of_coupling, const double V, string interaction_axis)
+make_light_matter_gates(const SiteSet sites , const double omega0 , const double h , const double g, const double dt, string matter_or_photon, string type_of_coupling, const double V, string interaction_axis)
 {
     vector<BondGate> gates;
 
@@ -537,11 +537,11 @@ gates_photon_matter(const SiteSet sites , const double omega0 , const double h ,
 // Two-site gate on neighbouring sites of the purified chain (jn in any order)
 
 MPS
-apply_local_gate_purified(MPS psi, MyBondGate gate, const Args args)
+apply_local_gate_purified(MPS psi, TebdGate gate, const Args args)
 {
     double cut_off = args.getReal("Cutoff");
     int maxDim     = args.getInt("MaxDim");
-    vector<int> jn = gate.jn();
+    vector<int> jn = gate.sites();
     int j = *min_element(jn.begin(), jn.end());
 
     psi.position(j);
@@ -558,11 +558,11 @@ apply_local_gate_purified(MPS psi, MyBondGate gate, const Args args)
 // (see Phys. Rev. Research 2, 043255 (2020) for swap gates)
 
 MPS
-apply_photon_matter_gate_purified(MPS psi, MyBondGate gate, const Args args)
+apply_photon_matter_gate_purified(MPS psi, TebdGate gate, const Args args)
 {
     double cut_off = args.getReal("Cutoff");
     int maxDim     = args.getInt("MaxDim");
-    vector<int> jn = gate.jn();
+    vector<int> jn = gate.sites();
     int j = jn[1];
     // ket: the spin is to the right of the boson (sites j-1, j); bra: to its left (sites j, j+1)
     int jl = (jn[0] < jn[1]) ? j-1 : j;
@@ -572,6 +572,6 @@ apply_photon_matter_gate_purified(MPS psi, MyBondGate gate, const Args args)
     auto [U,S,V] = svd(noPrime(AA),inds(psi(jl)),{"Cutoff=",cut_off,"MaxDim=",maxDim});
     psi.set(jl,U);
     psi.set(jl+1,S*V);
-    swap_gate(&psi,jl,jl+1,cut_off,maxDim);
+    swap_sites(&psi,jl,jl+1,cut_off,maxDim);
     return psi;
 }

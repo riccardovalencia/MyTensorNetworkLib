@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
     string initial_state = string(M, '1') + string(N - M, '0');   // kink: "11000..."
 
-    MPS psi    = initial_computational_state(sites, initial_state);
+    MPS psi    = make_product_state(sites, initial_state);
     MPS psi_t0 = psi;
 
     // ---------------------------------
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    vector<double> Vj = compute_potential(rj, 6.);
+    vector<double> Vj = compute_power_law_couplings(rj, 6.);
 
     vector<double> Deltaj, Omegaj;
     for(int j : range1(N))
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
         Deltaj.push_back(j % 2 == 0 ? -V1 : -V2);  // anti-blockade
     }
 
-    vector<MyBondGate> gates = gates_rydberg_up_to_vnnn(sites, Deltaj, Omegaj, Vj, dt);
+    vector<TebdGate> gates = make_rydberg_gates_nnn(sites, Deltaj, Omegaj, Vj, dt);
 
     // ---------------------------------
     // Output files
@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
 
         if(k == total_steps) break;
 
-        for(MyBondGate g : gates) psi = apply_gate(psi, g.gate(), g.jn(), TEBD_args);
+        for(TebdGate g : gates) psi = apply_gate(psi, g.gate(), g.sites(), TEBD_args);
 
         psi.position(1);
         psi.normalize();

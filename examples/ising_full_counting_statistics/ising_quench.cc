@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
     else if(state == "wall") config = string(N/2, '0') + string(N - N/2, '1');
     else { cerr << "Unknown state " << state << " (use up, down or wall)\n"; return 1; }
 
-    MPS psi = initial_computational_state(sites, config, "x");
+    MPS psi = make_product_state(sites, config, "x");
 
     // ---------------------------------
     // Second-order Trotter gates: forward sweep with dt/2, then the reversed sweep

@@ -4,7 +4,7 @@
  *
  * X, Y, Z are Pauli matrices. Unless stated otherwise the gate lists implement one
  * second-order Trotter step of length dt: a forward sweep with dt/2 followed by the reversed
- * sweep. Apply MyBondGate lists with apply_gate (mps/gates.h) and BondGate lists with
+ * sweep. Apply TebdGate lists with apply_gate (mps/gates.h) and BondGate lists with
  * ITensor's gateTEvol.
  */
 #ifndef MYTN_MODELS_SPIN_CHAIN_H
@@ -24,29 +24,29 @@ using namespace itensor;
  * @param h     Fields {hx, hy, hz}.
  * @param dt    Time step.
  */
-vector<MyBondGate>
-gates_spin_model(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt);
+vector<TebdGate>
+make_spin_chain_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt);
 
-/** @brief Same as gates_spin_model, as ITensor BondGate (for gateTEvol). */
+/** @brief Same as make_spin_chain_gates, as ITensor BondGate (for gateTEvol). */
 vector<BondGate>
-gates_spin_model_bondgate(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt);
+make_spin_chain_bond_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt);
 
 /**
- * @brief Gates of gates_spin_model plus the anti-hermitian term -i/2 sum_k gamma_k L_k^dag L_k
+ * @brief Gates of make_spin_chain_gates plus the anti-hermitian term -i/2 sum_k gamma_k L_k^dag L_k
  *        (effective non-hermitian Hamiltonian of quantum trajectories).
  * @param Lj       Local jump operators.
  * @param Lj_sites Site of each jump operator.
  * @param gamma    Rate of each jump operator.
  */
 vector<BondGate>
-gates_spin_eff_model_bondgate(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const vector<int> Lj_sites, const vector<double> gamma, const double dt);
+make_spin_chain_effective_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const vector<int> Lj_sites, const vector<double> gamma, const double dt);
 
 /**
  * @brief Single-site gates of H = sum_j (w_x X_j + w_y Y_j + w_z Z_j).
  * @param omegaj Field {w_x, w_y, w_z}, the same on every site.
  */
-vector<MyBondGate>
-gates_spin_local_field(const SiteSet sites , vector<double> omegaj, const double dt);
+vector<TebdGate>
+make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double dt);
 
 /**
  * @brief Bond term of the Ising chain in longitudinal (hx) and transverse (hz) fields,

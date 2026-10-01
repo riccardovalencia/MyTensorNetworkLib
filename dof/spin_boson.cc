@@ -24,7 +24,7 @@ using namespace itensor;
 // boson with max occupation max_occ, while the other (N-1) are spin-1/2
 
 SiteSet
-custom_spin_boson(const int N , const int max_occ)
+make_spin_boson_sites(const int N , const int max_occ)
 {
     IndexSet is = IndexSet(N);
 
@@ -60,7 +60,7 @@ custom_spin_boson(const int N , const int max_occ)
 // Useful if you have dissipative channels acting solely on the bosonic DOF.
 
 SiteSet
-custom_spin_boson_doubling(const int N , const int max_occ)
+make_purified_spin_boson_sites(const int N , const int max_occ)
 {
     // doubling space (and so system size)
     int N2 = 2 * N;
@@ -117,7 +117,7 @@ set_down_amplitude(ITensor& wf, double theta, double phi, IndexVals... iv)
 //       : do a function ITensor fock_state(IndexSet,n) which return |n>
 
 MPS
-initialize_spin_boson_state(const SiteSet sites , const int n_photon , double theta, double phi)
+make_spin_boson_state(const SiteSet sites , const int n_photon , double theta, double phi)
 {
 
     MPS psi = randomMPS(sites);
@@ -214,7 +214,7 @@ initialize_spin_boson_state(const SiteSet sites , const int n_photon , double th
 // TO DO : do a function ITensor spin_coherent_state(IndexSet,theta,phi) which returns a spin coherent state
 //       : do a function ITensor fock_state(IndexSet,n) which return |n>
 MPS
-initialize_spin_boson_state(const SiteSet sites , const int n_photon , const vector<double> theta, const vector<double> phi)
+make_spin_boson_state(const SiteSet sites , const int n_photon , const vector<double> theta, const vector<double> phi)
 {
 
     MPS psi = randomMPS(sites);

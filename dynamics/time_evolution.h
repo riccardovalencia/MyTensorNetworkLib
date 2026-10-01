@@ -28,21 +28,21 @@ using namespace itensor;
  * @param gates Coherent gates on the purified state.
  */
 MPS
-tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
+tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
 
 /**
  * @brief Lindblad evolution with long-range coherent gates (boson coupled to every spin, applied
- *        with swap_gate) and dissipation on the boson.
+ *        with swap_sites) and dissipation on the boson.
  * @param gates_H Coherent gates on the purified state.
  */
 MPS
-tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
+tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
 
 /**
  * @brief Lindblad evolution with the coherent part given as an MPO H, applied to first order in dt.
  * @param H Hamiltonian MPO acting on the purified state.
  */
 MPS
-mpo_lindblad_time_evolve(MPS psi_t, MPO H , vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
+mpo_lindblad_time_evolve(MPS psi_t, MPO H , vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start = 0.);
 
 #endif

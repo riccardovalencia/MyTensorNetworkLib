@@ -24,7 +24,7 @@ using namespace itensor;
 
 
 MPS
-tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
+tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
 {
 	int total_steps = int(T/dt);
 	int MaxDim = TEBD_args.getInt("MaxDim");
@@ -37,7 +37,7 @@ tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateD
 
         if(dissipative)
         {
-            for (MyBondGateDiss gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
+            for (DissipativeGate gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
 
             gateTEvol( gates , dt , dt , psi_t , TEBD_args); 
         }
@@ -45,7 +45,7 @@ tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateD
 
         if(normalize)
         {
-            double norm = compute_norm_purified_impurity(&psi_t);
+            double norm = compute_trace_purified(&psi_t);
             psi_t /= norm;
         }
 
@@ -78,7 +78,7 @@ tebd_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates , vector<MyBondGateD
 // to the N and N+1 site in the unfolded MPS)
 
 MPS
-tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
+tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
 {
 	int total_steps = int(T/dt);
 	int MaxDim     = TEBD_args.getInt("MaxDim");
@@ -111,7 +111,7 @@ tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 				
 				psi_t.set(j,U);
 				psi_t.set(j+1,S*V);
-				swap_gate(&psi_t,j,j+1,cut_off,MaxDim);
+				swap_sites(&psi_t,j,j+1,cut_off,MaxDim);
 
 			}
 
@@ -124,7 +124,7 @@ tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 				auto [U,S,V] = svd(noPrime(AA),inds(psi_t(j-1)),{"Cutoff=",cut_off,"MaxDim=",MaxDim});
 				psi_t.set(j-1,U);
 				psi_t.set(j,S*V);
-				swap_gate(&psi_t,j-1,j,cut_off,MaxDim);
+				swap_sites(&psi_t,j-1,j,cut_off,MaxDim);
 			}
 
 
@@ -133,7 +133,7 @@ tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 
         if(dissipative)
         {
-            for (MyBondGateDiss gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
+            for (DissipativeGate gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
 
 
 			// long range interaction gates -> need to swap gates (see https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.2.043255)
@@ -156,7 +156,7 @@ tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 					
 					psi_t.set(j,U);
 					psi_t.set(j+1,S*V);
-					swap_gate(&psi_t,j,j+1,cut_off,MaxDim);
+					swap_sites(&psi_t,j,j+1,cut_off,MaxDim);
 
 				}
 
@@ -169,7 +169,7 @@ tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 					auto [U,S,V] = svd(noPrime(AA),inds(psi_t(j-1)),{"Cutoff=",cut_off,"MaxDim=",MaxDim});
 					psi_t.set(j-1,U);
 					psi_t.set(j,S*V);
-					swap_gate(&psi_t,j-1,j,cut_off,MaxDim);
+					swap_sites(&psi_t,j-1,j,cut_off,MaxDim);
 				}
 			}
             
@@ -178,7 +178,7 @@ tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 
         if(normalize)
         {
-            double norm = compute_norm_purified_impurity(&psi_t);
+            double norm = compute_trace_purified(&psi_t);
             psi_t /= norm;
         }
 
@@ -213,7 +213,7 @@ tebd_long_range_int_lindblad_time_evolve(MPS psi_t, vector<BondGate> gates_H, ve
 // The coherent part is applied via a first-order approximation of exp(-iH t) = 1 -i H t.
 
 MPS
-mpo_lindblad_time_evolve(MPS psi_t, MPO H , vector<MyBondGateDiss> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
+mpo_lindblad_time_evolve(MPS psi_t, MPO H , vector<DissipativeGate> gates_D , Args TEBD_args, bool dissipative , double dt , double T , int steps_save_state, bool normalize, string file_root, double t_start)
 {
 	int total_steps = int(T/dt);
 	int MaxDim = TEBD_args.getInt("MaxDim");
@@ -234,7 +234,7 @@ mpo_lindblad_time_evolve(MPS psi_t, MPO H , vector<MyBondGateDiss> gates_D , Arg
 	
         if(dissipative)
         {
-            for (MyBondGateDiss gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
+            for (DissipativeGate gate : gates_D) psi_t = apply_dissipative_gate(psi_t, gate, {"Cutoff=",cut_off,"MaxDim=",MaxDim});
 
 
 			dpsi = applyMPO(Ht,psi_t,{"Method=","DensityMatrix","MaxDim=",MaxDim,"Cutoff=",cut_off});
@@ -244,7 +244,7 @@ mpo_lindblad_time_evolve(MPS psi_t, MPO H , vector<MyBondGateDiss> gates_D , Arg
 
         if(normalize)
         {
-            double norm = compute_norm_purified_impurity(&psi_t);
+            double norm = compute_trace_purified(&psi_t);
             psi_t /= norm;
         }
 

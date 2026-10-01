@@ -26,12 +26,12 @@ using namespace itensor;
 // AND PRIME TO THE BRA. BUT FROM ITENSOR DEFAULT CONVENTION IT COULD BE THAT THEY ARE SWAPPED. THIS IS WHY IT LOOKS LIKE
 // MY CONVENTION OF S^- IS THE OPPOSITE OF THE ONE OF ITENSOR (IN REALITY THEY ARE NOT DIFFERENT). I SHOULD CHECK THIS
 // REWRITING A PIECE OF CODE CONCERNING THIS AND TESTING WITH A NON-HERMITIAN JUMP.
-vector<MyBondGateDiss>
-gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_sites, vector<double> gammaj , const double dt)
+vector<DissipativeGate>
+make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_sites, vector<double> gammaj , const double dt)
 {
 
 	int N = length(sites);
-	vector<MyBondGateDiss> gates;
+	vector<DissipativeGate> gates;
 
 	// ket has index sj
 	// bra has index sj'
@@ -105,10 +105,10 @@ gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_si
 
 		ITensor Dj = gammaj[j-1] * (lj_ljd - 0.5 * ljdlj_I - 0.5 * I_ljdlj);
 
-		vector<int> jnket = {j};
-		vector<int> jnbra = {j};
+		vector<int> ket_sites = {j};
+		vector<int> bra_sites = {j};
 
-		MyBondGateDiss g = MyBondGateDiss(sites,jnket,jnbra,dt,Dj);
+		DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt,Dj);
 	
 		gates.push_back(g);
 
@@ -121,12 +121,12 @@ gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_si
 // using this, we have the more standard usage of indices, but we have to use the ITensor convention
 // for S^- , which corresponds to the standard S^+ convention. 
 
-vector<MyBondGateDiss>
-gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt)
+vector<DissipativeGate>
+make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt)
 {
 
 	int N = length(sites);
-	vector<MyBondGateDiss> gates;
+	vector<DissipativeGate> gates;
 
 	// ket has index sj
 	// bra has index sj'
@@ -202,10 +202,10 @@ gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<double> ga
 
 		ITensor Dj = gammaj[j-1] * (lj_ljd - 0.5 * ljdlj_I - 0.5 * I_ljdlj);
 
-		vector<int> jnket = {j};
-		vector<int> jnbra = {j};
+		vector<int> ket_sites = {j};
+		vector<int> bra_sites = {j};
 
-		MyBondGateDiss g = MyBondGateDiss(sites,jnket,jnbra,dt,Dj);
+		DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt,Dj);
 	
 		gates.push_back(g);
 
@@ -217,12 +217,12 @@ gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<double> ga
 
 
 // keeping as backup - 4.05.23
-// vector<MyBondGateDiss>
-// gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt)
+// vector<DissipativeGate>
+// make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt)
 // {
 
 // 	int N = length(sites);
-// 	vector<MyBondGateDiss> gates;
+// 	vector<DissipativeGate> gates;
 
 // 	// ket has index sj
 // 	// bra has index sj'
@@ -245,10 +245,10 @@ gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<double> ga
 // 	//   sj'''
 
 
-// 	// vector<MyBondGate> gates_ = gates;
+// 	// vector<TebdGate> gates_ = gates;
 // 	// reverse(gates_.begin(), gates_.end());
 
-// 	// for(MyBondGate gate : gates_) gates.push_back(gate);
+// 	// for(TebdGate gate : gates_) gates.push_back(gate);
 	
 // 	return gates;
 // }
@@ -261,33 +261,33 @@ gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<double> ga
 // Drawback: we would have long-range interactions in the final case study both in the Hamiltonian part 
 // and jump part -> MULTIPLE LOOPS NECESSARY                                                           -> HUGE INEFFICENCY FROM LOOPING
 
-// MyTrainITensor is a personalized class containing ITensors which have to act either on 
+// OperatorPair is a personalized class containing ITensors which have to act either on 
 
 
 // It is a 4-sites object
 // // We apply Li \rho L_j^\dagger + L_j \rho L_i^\dagger - 1/2( {L_i^\dagger L_j , \rho} + {L_j^\dagger L_i,\rho} ) (OR SIMILAR)
 
 
-vector<MyBondGateDiss>
-gates_nearest_neighbour_local_lindblad(const SiteSet sites , vector<MyTrainITensor> TTrain, const double dt)
+vector<DissipativeGate>
+make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrain, const double dt)
 {
 
 	int N = length(sites);
-	vector<MyBondGateDiss> gates;
+	vector<DissipativeGate> gates;
 	// check size of the two containers
 
-	for(MyTrainITensor T : TTrain)
+	for(OperatorPair T : TTrain)
 	{
 		
-		int i = T.i();
-		int j = T.j();
+		int i = T.site_i();
+		int j = T.site_j();
 
-		ITensor li = T.Ti();
-		ITensor lj = T.Tj();
+		ITensor li = T.op_i();
+		ITensor lj = T.op_j();
 		ITensor lid = dag(li);
 		ITensor ljd = dag(lj);
 
-		double gamma = T.gamma();
+		double gamma = T.rate();
 
 		// site index
 
@@ -349,10 +349,10 @@ gates_nearest_neighbour_local_lindblad(const SiteSet sites , vector<MyTrainITens
 			// all together
 
 			ITensor Dj = gamma * (lj_ljd - 0.5 * ljdlj_I - 0.5 * I_ljdlj);
-			vector<int> jnket = {j};
-			vector<int> jnbra = {j};
+			vector<int> ket_sites = {j};
+			vector<int> bra_sites = {j};
 
-			MyBondGateDiss g = MyBondGateDiss(sites,jnket,jnbra,dt/2.,Dj);
+			DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt/2.,Dj);
 		
 			gates.push_back(g);
 
@@ -448,10 +448,10 @@ gates_nearest_neighbour_local_lindblad(const SiteSet sites , vector<MyTrainITens
 			ITensor Dij = gamma * (L_Ld - 0.5 * LdL_I - 0.5 * I_LdL);
 
 
-			vector<int> jnket = {i,j};
-			vector<int> jnbra = {i,j};
+			vector<int> ket_sites = {i,j};
+			vector<int> bra_sites = {i,j};
 
-			MyBondGateDiss g = MyBondGateDiss(sites,jnket,jnbra,dt/2.,Dij);
+			DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt/2.,Dij);
 		
 			gates.push_back(g);
 
@@ -461,10 +461,10 @@ gates_nearest_neighbour_local_lindblad(const SiteSet sites , vector<MyTrainITens
 	}
 
 
-	vector<MyBondGateDiss> gates_ = gates;
+	vector<DissipativeGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
 
-	for(MyBondGateDiss gate : gates_) gates.push_back(gate);
+	for(DissipativeGate gate : gates_) gates.push_back(gate);
 	
 	return gates;
 }
@@ -474,12 +474,12 @@ gates_nearest_neighbour_local_lindblad(const SiteSet sites , vector<MyTrainITens
 // We have a Lidbland of the form L_{i,j} \rho L_{i,j}^\dagger + ...
 
 // NOT USEFUL AT THE MOMENT - NOT TESTED (SHOULD WORK)
-vector<MyBondGateDiss>
-gates_local_nsites_lindblad(const SiteSet sites , vector<ITensor> Lij_list, vector<vector<int> > Lj_sites, vector<double> gammaj , const double dt)
+vector<DissipativeGate>
+make_multisite_dissipative_gates(const SiteSet sites , vector<ITensor> Lij_list, vector<vector<int> > Lj_sites, vector<double> gammaj , const double dt)
 {
 
 	int N = length(sites);
-	vector<MyBondGateDiss> gates;
+	vector<DissipativeGate> gates;
 
 
 	// check size of the two containers
@@ -560,20 +560,20 @@ gates_local_nsites_lindblad(const SiteSet sites , vector<ITensor> Lij_list, vect
 
 		ITensor Dj = gammaj[k] * (lj_ljd - 0.5 * ljdlj_I - 0.5 * I_ljdlj);
 
-		vector<int> jnket = {i,j};
-		vector<int> jnbra = {i,j};
+		vector<int> ket_sites = {i,j};
+		vector<int> bra_sites = {i,j};
 
-		MyBondGateDiss g = MyBondGateDiss(sites,jnket,jnbra,dt/2.,Dj);
+		DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt/2.,Dj);
 	
 		gates.push_back(g);
 
 	}
 
 
-	vector<MyBondGateDiss> gates_ = gates;
+	vector<DissipativeGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
 
-	for(MyBondGateDiss gate : gates_) gates.push_back(gate);
+	for(DissipativeGate gate : gates_) gates.push_back(gate);
 	
 	return gates;
 }
@@ -588,13 +588,13 @@ gates_local_nsites_lindblad(const SiteSet sites , vector<ITensor> Lij_list, vect
 // There was an error - the swap done at the end was a mistake (referring to modification 03.09.2023)
 // for hermitian jump it was not a problem. For non hermitian one yes.
 
-vector<MyBondGateDiss>
-gates_dissipative_impurity(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt)
+vector<DissipativeGate>
+make_impurity_dissipative_gates(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt)
 {
 
 	int N = length(sites)/2;
 
-	vector<MyBondGateDiss> gates;
+	vector<DissipativeGate> gates;
 
 	vector<ITensor> Id;
 
@@ -634,10 +634,10 @@ gates_dissipative_impurity(const SiteSet sites , const vector<ITensor> Lj, const
 
 	ITensor D = gamma * (lj1d * lj2 - 0.5 * LdL_I - 0.5 * I_LdL);
 
-	vector<int> jnket = {N,N+1};
-	vector<int> jnbra = {N,N+1};
+	vector<int> ket_sites = {N,N+1};
+	vector<int> bra_sites = {N,N+1};
 
-	MyBondGateDiss g = MyBondGateDiss(sites,jnket,jnbra,dt,D);
+	DissipativeGate g = DissipativeGate(sites,ket_sites,bra_sites,dt,D);
 
 	gates.push_back(g);
 
@@ -651,12 +651,12 @@ gates_dissipative_impurity(const SiteSet sites , const vector<ITensor> Lj, const
 // the bond in between site N and N+1 is where jump/nonunitary dynamics take place
 // Here we apply the jump/nonunitary part on the bond in between.
 
-// Differences with gates_dissipative_impurity: above we used a first order Kraus approximation of the 
+// Differences with make_impurity_dissipative_gates: above we used a first order Kraus approximation of the 
 // dissipative part. Here, I use the class BondGate of ITensor which is able to exponentiate
 // also non hermitian things since it uses a high grade Pade approximation
 
 vector<BondGate>
-gates_dissipative_impurity_high_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt)
+make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt)
 {
 
 	int N = length(sites)/2;
@@ -701,8 +701,8 @@ gates_dissipative_impurity_high_pade(const SiteSet sites , const vector<ITensor>
 
 	ITensor D = gamma * (lj1d * lj2 - 0.5 * LdL_I - 0.5 * I_LdL);
 
-	vector<int> jnket = {N,N+1};
-	vector<int> jnbra = {N,N+1};
+	vector<int> ket_sites = {N,N+1};
+	vector<int> bra_sites = {N,N+1};
 
 	BondGate g = BondGate(sites,N,N+1,BondGate::tImag,-1*dt,D); 
 	gates.push_back(g);
@@ -725,12 +725,12 @@ gates_dissipative_impurity_high_pade(const SiteSet sites , const vector<ITensor>
 // we start from the center, so that the first interaction is nearest-neighbor and then
 // we should apply swapgates
 
-vector<MyBondGate>
-doubling_space_gates(const vector<BondGate> gates_single, const SiteSet sites_single,  const SiteSet sites_doubled)
+vector<TebdGate>
+make_purified_gates(const vector<BondGate> gates_single, const SiteSet sites_single,  const SiteSet sites_doubled)
 {
     // physical site i (1..N) -> ket site N + i, mirrored bra site N + 1 - i
     int N = length(sites_single);
-    vector<MyBondGate> gates_doubled;
+    vector<TebdGate> gates_doubled;
 
     for(bool ket : {true, false})
     {
@@ -753,8 +753,8 @@ doubling_space_gates(const vector<BondGate> gates_single, const SiteSet sites_si
             gate *= delta(prime(si2),prime(sinew2));
 
             // the bra evolves with the conjugate gate
-            MyBondGate gnew = MyBondGate(sites_doubled,{inew_1,inew_2},0,gate);
-            gnew.modify_gate(ket ? gate : dag(gate));
+            TebdGate gnew = TebdGate(sites_doubled,{inew_1,inew_2},0,gate);
+            gnew.set_gate(ket ? gate : dag(gate));
             gates_doubled.push_back(gnew);
         }
     }
@@ -766,11 +766,11 @@ doubling_space_gates(const vector<BondGate> gates_single, const SiteSet sites_si
 // rho -> rho + gate * rho on the sites (j, j+1), j = first ket site of the gate
 
 MPS
-apply_dissipative_gate(MPS psi, MyBondGateDiss gate, const Args args)
+apply_dissipative_gate(MPS psi, DissipativeGate gate, const Args args)
 {
     double cut_off = args.getReal("Cutoff");
     int maxDim     = args.getInt("MaxDim");
-    int j          = gate.jnket()[0];
+    int j          = gate.ket_sites()[0];
 
     ITensor AA   = psi(j) * psi(j+1);
     ITensor dpsi = gate.gate() * AA;

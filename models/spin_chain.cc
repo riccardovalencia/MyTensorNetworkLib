@@ -3,7 +3,7 @@
  * @brief Implementation of spin_chain.h (the functions are documented in the header).
  */
 #include "spin_chain.h"
-#include "../models/bqem.h"
+#include "../models/bosonic_east_model.h"
 #include "../mps/gates.h"
 #include <itensor/all.h>
 #include <cmath>
@@ -28,13 +28,13 @@ using namespace itensor;
 //        - hz \sum_j X_j - Jzz \sum_j Z_j Z_{j+1}
 // where J = [Jxx,Jyy,Jzz] and h = [hx,hy,hz]
 
-vector<MyBondGate>
-gates_spin_model(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
+vector<TebdGate>
+make_spin_chain_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
 {
 
 	int N = length(sites);
 
-    vector<MyBondGate> gates;
+    vector<TebdGate> gates;
 
 	cerr << "vector J = (J_xx, J_yy , J_zz)\n";
 	double Jxx = J[0];
@@ -74,13 +74,13 @@ gates_spin_model(const SiteSet sites , const vector<double> J, const vector<doub
 		ITensor H = H_S + H_SS;
 
 		vector<int> jn = {j,j+1};
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,H);
+		TebdGate g = TebdGate(sites,jn,dt/2.,H);
 		gates.push_back(g);
 	}
 	
-	vector<MyBondGate> gates_ = gates;
+	vector<TebdGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
-	for(MyBondGate gate : gates_) gates.push_back(gate);
+	for(TebdGate gate : gates_) gates.push_back(gate);
 
 	return gates;
 }
@@ -92,11 +92,11 @@ gates_spin_model(const SiteSet sites , const vector<double> J, const vector<doub
 //        - hy \sum_j X_j - Jyy \sum_j Y_j Y_{j+1}  
 //        - hz \sum_j X_j - Jzz \sum_j Z_j Z_{j+1}
 // where J = [Jxx,Jyy,Jzz] and h = [hx,hy,hz]
-// Same as the one retuning <MyBondGate>: overload of the function. 
+// Same as the one retuning <TebdGate>: overload of the function. 
 // Depending on the degree of flexibility and control needed could be better to use one over the other
 
 vector<BondGate>
-gates_spin_model_bondgate(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
+make_spin_chain_bond_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const double dt)
 {
 
 	int N = length(sites);
@@ -156,7 +156,7 @@ gates_spin_model_bondgate(const SiteSet sites , const vector<double> J, const ve
 // The coherent dynamics is given by the generic short range spin model
 
 vector<BondGate>
-gates_spin_eff_model_bondgate(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const vector<int> Lj_sites, const vector<double> gamma, const double dt)
+make_spin_chain_effective_gates(const SiteSet sites , const vector<double> J, const vector<double> h, const vector<ITensor> Lj, const vector<int> Lj_sites, const vector<double> gamma, const double dt)
 {
 
 	int N = length(sites);
@@ -234,12 +234,12 @@ gates_spin_eff_model_bondgate(const SiteSet sites , const vector<double> J, cons
 }
 
 
-vector<MyBondGate>
-gates_spin_local_field(const SiteSet sites , vector<double> omegaj, const double dt)
+vector<TebdGate>
+make_local_field_gates(const SiteSet sites , vector<double> omegaj, const double dt)
 {
 
 	int N = length(sites);
-	vector<MyBondGate> gates;
+	vector<TebdGate> gates;
 
 	// H = \sum_j omveja
 	for(int j=1 ; j <= N; j++)
@@ -252,15 +252,15 @@ gates_spin_local_field(const SiteSet sites , vector<double> omegaj, const double
 
 		vector<int> jn = {j};
 
-		MyBondGate g = MyBondGate(sites,jn,dt/2.,hj);
+		TebdGate g = TebdGate(sites,jn,dt/2.,hj);
 		gates.push_back(g);
 	}
 
 
-	vector<MyBondGate> gates_ = gates;
+	vector<TebdGate> gates_ = gates;
 	reverse(gates_.begin(), gates_.end());
 
-	for(MyBondGate gate : gates_) gates.push_back(gate);
+	for(TebdGate gate : gates_) gates.push_back(gate);
 	
 	return gates;
 }

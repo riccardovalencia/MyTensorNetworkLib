@@ -17,11 +17,11 @@ using namespace itensor;
  * @param max_occ Maximum occupation of the boson.
  */
 SiteSet
-custom_spin_boson(const int N , const int max_occ);
+make_spin_boson_sites(const int N , const int max_occ);
 
 /**
  * @brief Doubled (bra-ket) site set of 2N sites for the purified density matrix of
- *        custom_spin_boson(N, max_occ).
+ *        make_spin_boson_sites(N, max_occ).
  *
  * @verbatim
  *   s_{N-1} ... s_1  b  |  b  s_1 ... s_{N-1}
@@ -33,24 +33,24 @@ custom_spin_boson(const int N , const int max_occ);
  * @param max_occ Maximum occupation of the boson.
  */
 SiteSet
-custom_spin_boson_doubling(const int N , const int max_occ);
+make_purified_spin_boson_sites(const int N , const int max_occ);
 
 /**
  * @brief Product state |n_photon> (x) |theta,phi>^(N-1), with the spin-coherent state
  *        |theta,phi> = cos(theta/2)|up_z> + e^{i phi} sin(theta/2)|down_z>.
  * The MPS is real for phi = 0 and complex otherwise.
- * @param sites    Site set from custom_spin_boson.
+ * @param sites    Site set from make_spin_boson_sites.
  * @param n_photon Fock state of the boson.
  * @param theta    Polar angle of the spin-coherent state on the Bloch sphere.
  * @param phi      Azimuthal angle.
  */
 MPS
-initialize_spin_boson_state(const SiteSet sites , const int n_photon , double theta, double phi);
+make_spin_boson_state(const SiteSet sites , const int n_photon , double theta, double phi);
 
 /**
  * @brief Same as above with site-dependent angles theta[j], phi[j] for the spins.
  */
 MPS
-initialize_spin_boson_state(const SiteSet sites , const int n_photon , const vector<double> theta, const vector<double> phi);
+make_spin_boson_state(const SiteSet sites , const int n_photon , const vector<double> theta, const vector<double> phi);
 
 #endif

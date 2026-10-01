@@ -3,7 +3,7 @@
  * @brief Dissipative gates for Lindblad dynamics, d rho/dt = -i[H, rho] + sum_k gamma_k D[L_k] rho,
  *        with D[L] rho = L rho L^dag - 1/2 {L^dag L, rho}, acting on the vectorized density matrix.
  *
- * The dissipative gates are first order in dt (MyBondGateDiss stores dt * superoperator) and are
+ * The dissipative gates are first order in dt (DissipativeGate stores dt * superoperator) and are
  * applied as rho -> rho + gate * rho, see dynamics/time_evolution.h.
  */
 #ifndef MYTN_DYNAMICS_LINDBLAD_H
@@ -23,16 +23,16 @@ using namespace itensor;
  * @param gammaj   Rates.
  * @param dt       Time step.
  */
-vector<MyBondGateDiss>
-gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_sites, vector<double> gammaj , const double dt);
+vector<DissipativeGate>
+make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<int> lj_sites, vector<double> gammaj , const double dt);
 
 /** @brief Local dissipators on every site: Lj[j-1] with rate gammaj[j-1] acts on site j. */
-vector<MyBondGateDiss>
-gates_local_lindblad(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt);
+vector<DissipativeGate>
+make_local_dissipative_gates(const SiteSet sites , vector<ITensor> Lj, vector<double> gammaj , const double dt);
 
-/** @brief Dissipators with two-site jump operators L = Ti Tj (see MyTrainITensor). */
-vector<MyBondGateDiss>
-gates_nearest_neighbour_local_lindblad(const SiteSet sites , vector<MyTrainITensor> TTrain, const double dt);
+/** @brief Dissipators with two-site jump operators L = Ti Tj (see OperatorPair). */
+vector<DissipativeGate>
+make_two_site_dissipative_gates(const SiteSet sites , vector<OperatorPair> TTrain, const double dt);
 
 /**
  * @brief Dissipators with jump operators acting on arbitrary groups of sites.
@@ -40,35 +40,35 @@ gates_nearest_neighbour_local_lindblad(const SiteSet sites , vector<MyTrainITens
  * @param Lj_sites Sites of each jump operator.
  * @warning Not tested.
  */
-vector<MyBondGateDiss>
-gates_local_nsites_lindblad(const SiteSet sites , vector<ITensor> Lij_list, vector<vector<int> > Lj_sites, vector<double> gammaj , const double dt);
+vector<DissipativeGate>
+make_multisite_dissipative_gates(const SiteSet sites , vector<ITensor> Lij_list, vector<vector<int> > Lj_sites, vector<double> gammaj , const double dt);
 
 /**
  * @brief Dissipator gamma D[L] for each L in Lj, acting on the impurity of the unfolded purified
  *        state (central bond, see models/impurity.h), to first order in dt.
  */
-vector<MyBondGateDiss>
-gates_dissipative_impurity(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
+vector<DissipativeGate>
+make_impurity_dissipative_gates(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
 
-/** @brief As gates_dissipative_impurity, with a higher-order (Pade) approximation of the exponential. */
+/** @brief As make_impurity_dissipative_gates, with a higher-order (Pade) approximation of the exponential. */
 vector<BondGate>
-gates_dissipative_impurity_high_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
+make_impurity_dissipative_gates_pade(const SiteSet sites , const vector<ITensor> Lj, const double gamma, const double dt);
 
 /**
  * @brief Apply a dissipative gate to the vectorized density matrix, rho -> rho + gate * rho, on the
- *        two sites (j, j+1) with j = gate.jnket()[0], and split them back with a truncated SVD.
+ *        two sites (j, j+1) with j = gate.ket_sites()[0], and split them back with a truncated SVD.
  *
  * The orthogonality center is not moved and the state is not normalized.
  * @code
- * for(MyBondGateDiss g : gates_D) psi = apply_dissipative_gate(psi, g, {"Cutoff=",1E-14,"MaxDim=",256});
+ * for(DissipativeGate g : gates_D) psi = apply_dissipative_gate(psi, g, {"Cutoff=",1E-14,"MaxDim=",256});
  * @endcode
  * @param psi  Purified state (taken by value).
- * @param gate Dissipative gate (e.g. from gates_dissipative_impurity).
+ * @param gate Dissipative gate (e.g. from make_impurity_dissipative_gates).
  * @param args SVD parameters; "Cutoff" and "MaxDim" are required.
  * @return The updated MPS.
  */
 MPS
-apply_dissipative_gate(MPS psi, MyBondGateDiss gate, const Args args);
+apply_dissipative_gate(MPS psi, DissipativeGate gate, const Args args);
 
 /**
  * @brief Copy gates built on the physical chain onto the unfolded bra-ket chain: each gate acts on
@@ -77,10 +77,10 @@ apply_dissipative_gate(MPS psi, MyBondGateDiss gate, const Args args);
  * Physical site i (1..N) is mapped to the ket site N + i and to the bra site N + 1 - i. The ket gates
  * come first, in the order of gates_single, followed by the bra gates.
  * @param gates_single  Gates on the physical site set.
- * @param sites_single  Physical site set (N sites), e.g. custom_spin_boson(N, max_occ).
- * @param sites_doubled Doubled site set (2N sites), e.g. custom_spin_boson_doubling(N, max_occ).
+ * @param sites_single  Physical site set (N sites), e.g. make_spin_boson_sites(N, max_occ).
+ * @param sites_doubled Doubled site set (2N sites), e.g. make_purified_spin_boson_sites(N, max_occ).
  */
-vector<MyBondGate>
-doubling_space_gates(const vector<BondGate> gates_single, const SiteSet sites_single, const SiteSet sites_doubled);
+vector<TebdGate>
+make_purified_gates(const vector<BondGate> gates_single, const SiteSet sites_single, const SiteSet sites_doubled);
 
 #endif

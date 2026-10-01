@@ -35,7 +35,7 @@ using namespace itensor;
 // -> q gets suitable transformed into the site in the MPS formalism.
 
 vector<complex<double> >
-measure_magnetization_impurity_first_site(MPS *psi , string direction, bool compute_normalization, int q)
+measure_magnetization_purified(MPS *psi , string direction, bool compute_normalization, int q)
 {
     IndexSet sites = siteInds((*psi));
     int N = length(sites)/2;
@@ -50,7 +50,7 @@ measure_magnetization_impurity_first_site(MPS *psi , string direction, bool comp
     double norm = 1.;
     if(compute_normalization)
     {
-        norm = compute_norm_purified_impurity(psi);
+        norm = compute_trace_purified(psi);
     }
     
     if(q!=-1)
@@ -234,7 +234,7 @@ measure_magnetization_impurity_first_site(MPS *psi , string direction, bool comp
 
 
 vector<complex<double> >
-measure_local_obs_impurity_first_site(MPS *psi , const ITensor O, bool compute_normalization, int q)
+measure_local_operator_purified(MPS *psi , const ITensor O, bool compute_normalization, int q)
 {
     IndexSet sites = siteInds((*psi));
     int N = int(length(sites)/2);
@@ -245,7 +245,7 @@ measure_local_obs_impurity_first_site(MPS *psi , const ITensor O, bool compute_n
     // compute normalization
 
     double norm = 1.;
-    if(compute_normalization)  norm = compute_norm_purified_impurity(psi);
+    if(compute_normalization)  norm = compute_trace_purified(psi);
     
     ITensor M;
 
@@ -382,7 +382,7 @@ measure_local_obs_impurity_first_site(MPS *psi , const ITensor O, bool compute_n
 // ----------------------------------------------------------
 // Compute Tr(rho) where rho is unfolded as an MPS.
 double
-compute_norm_purified_impurity(MPS (*psi))
+compute_trace_purified(MPS (*psi))
 {
     IndexSet sites = siteInds((*psi));
     int N = length(sites)/2;
@@ -415,7 +415,7 @@ compute_norm_purified_impurity(MPS (*psi))
 // Compute Tr(rho) where rho is unfolded as an MPS with quantum numbers QN
 
 double
-compute_norm_purified_impurity_qn(MPS (*psi))
+compute_trace_purified_qn(MPS (*psi))
 {
     IndexSet sites = siteInds((*psi));
     int N = length(sites)/2;
@@ -459,7 +459,7 @@ compute_norm_purified_impurity_qn(MPS (*psi))
 // -> q1 and q2 get suitable transformed into the site in the MPS formalism.
 
 complex<double>
-measure_correlation_impurity_first_site(MPS *psi , const ITensor O, bool compute_normalization, int q1, int q2, bool connected)
+measure_correlation_purified(MPS *psi , const ITensor O, bool compute_normalization, int q1, int q2, bool connected)
 {
     IndexSet sites = siteInds((*psi));
     int N = int(length(sites)/2);
@@ -487,7 +487,7 @@ measure_correlation_impurity_first_site(MPS *psi , const ITensor O, bool compute
 
     // compute normalization
     double norm = 1.;
-    if(compute_normalization)  norm = compute_norm_purified_impurity(psi);
+    if(compute_normalization)  norm = compute_trace_purified(psi);
     
     ITensor M;
 
@@ -585,8 +585,8 @@ measure_correlation_impurity_first_site(MPS *psi , const ITensor O, bool compute
     if(connected)
     {  
         cerr<< "Measuring connected\n";
-        vector<complex<double> > Oq1 = measure_local_obs_impurity_first_site( psi , O, compute_normalization, q1);
-        vector<complex<double> > Oq2 = measure_local_obs_impurity_first_site( psi , O, compute_normalization, q2);
+        vector<complex<double> > Oq1 = measure_local_operator_purified( psi , O, compute_normalization, q1);
+        vector<complex<double> > Oq2 = measure_local_operator_purified( psi , O, compute_normalization, q2);
         Oq1q2 = Oq1q2 - Oq1[0] * Oq2[0];
     }
 

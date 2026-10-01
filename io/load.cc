@@ -3,7 +3,7 @@
  * @brief Implementation of load.h (the functions are documented in the header).
  */
 #include "load.h"
-#include "../models/bqem.h"
+#include "../models/bosonic_east_model.h"
 #include <itensor/all.h>
 #include <cmath>
 #include <complex>
@@ -21,7 +21,7 @@ using namespace itensor;
 
 
 tuple<MPS, Boson, double>
-search_ground_state_max_bond_chi(string results_dir , int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension, double scaling_bond_dimension, const string symmetry_sector_dir)
+load_ground_state_max_bond_dimension(string results_dir , int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension, double scaling_bond_dimension, const string symmetry_sector_dir)
 {
     double tolerance_variance = 1E-8;
     stringstream  name_dir_cutoff;
@@ -61,7 +61,7 @@ search_ground_state_max_bond_chi(string results_dir , int size , int lambda, int
 
         cerr << "Opened file : " << tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
 
-        double variance_H = compute_variance_hamiltonian_bqem(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
+        double variance_H = compute_bosonic_east_model_energy_variance(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
 
         cerr << "variance : " << variance_H << endl;
 
@@ -79,7 +79,7 @@ search_ground_state_max_bond_chi(string results_dir , int size , int lambda, int
 
 
 tuple<MPS, Boson, double>
-search_ground_state_max_bond_chi_no_v(string results_dir , int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension, double scaling_bond_dimension, const string symmetry_sector_dir)
+load_ground_state_max_bond_dimension_no_version(string results_dir , int size , int lambda, int n0, int symmetry_sector, double s, double c, int bond_dimension, double scaling_bond_dimension, const string symmetry_sector_dir)
 {
     double tolerance_variance = 100000;
     stringstream  name_dir_cutoff;
@@ -115,7 +115,7 @@ search_ground_state_max_bond_chi_no_v(string results_dir , int size , int lambda
         readFromFile(tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(), n0 ,bond_dimension),psi);
         psi /= norm(psi);
         cerr << "Opened file : " << tinyformat::format("%s/ground_state_file_n0%d_chi%d",name_dir_s.str(),n0,bond_dimension) << endl;
-        double variance_H = compute_variance_hamiltonian_bqem(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
+        double variance_H = compute_bosonic_east_model_energy_variance(&psi, sites, size , lambda, n0, symmetry_sector, s, c, symmetry_sector_dir);
         cerr << "variance : " << variance_H << endl;
 
         if(variance_H < tolerance_variance) return {psi , sites, variance_H};
@@ -129,7 +129,7 @@ search_ground_state_max_bond_chi_no_v(string results_dir , int size , int lambda
 
 
 tuple<MPS, Boson>
-search_state_adiabatic_coherent(string results_dir , const int size , const int cut_off, const double s, const double c, const complex<double> alpha, const int state_choice, double beta )
+load_adiabatic_state(string results_dir , const int size , const int cut_off, const double s, const double c, const complex<double> alpha, const int state_choice, double beta )
 {   
     string name_state;
     if( state_choice == 0 ) name_state = "super_coherent";

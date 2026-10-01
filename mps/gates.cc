@@ -21,7 +21,7 @@ using namespace itensor;
 
 // My classes
 
-MyBondGate::MyBondGate(const SiteSet sites, vector<int> j, const double dt, const ITensor h)
+TebdGate::TebdGate(const SiteSet sites, vector<int> j, const double dt, const ITensor h)
 {
 	jn_ = j;
 	gate_ = expHermitian(h,-1_i * dt);
@@ -29,25 +29,25 @@ MyBondGate::MyBondGate(const SiteSet sites, vector<int> j, const double dt, cons
 }
 
 
-ITensor MyBondGate::gate()
+ITensor TebdGate::gate()
 {
 	return gate_;
 }
 
 
-vector<int> MyBondGate::jn()
+vector<int> TebdGate::sites()
 {
 	return jn_;
 }
 
 
-void MyBondGate::modify_gate(ITensor new_gate)
+void TebdGate::set_gate(ITensor new_gate)
 {
 	gate_ = new_gate;
 }
 
 
-MyBondGateDiss::MyBondGateDiss(const SiteSet sites, vector<int> jket, vector<int> jbra, double dt, ITensor h)
+DissipativeGate::DissipativeGate(const SiteSet sites, vector<int> jket, vector<int> jbra, double dt, ITensor h)
 {
 	jnket_ = jket;
 	jnbra_ = jbra;
@@ -60,25 +60,25 @@ MyBondGateDiss::MyBondGateDiss(const SiteSet sites, vector<int> jket, vector<int
 }
 
 
-ITensor MyBondGateDiss::gate()
+ITensor DissipativeGate::gate()
 {
 	return gate_;
 }
 
 
-vector<int> MyBondGateDiss::jnket()
+vector<int> DissipativeGate::ket_sites()
 {
 	return jnket_;
 }
 
 
-vector<int> MyBondGateDiss::jnbra()
+vector<int> DissipativeGate::bra_sites()
 {
 	return jnbra_;
 }
 
 
-MyTrainITensor::MyTrainITensor(vector<ITensor> T, vector<int> j, double gamma)
+OperatorPair::OperatorPair(vector<ITensor> T, vector<int> j, double gamma)
 {
 	Ti_   = T[0];
     Tj_   = T[1];
@@ -88,31 +88,31 @@ MyTrainITensor::MyTrainITensor(vector<ITensor> T, vector<int> j, double gamma)
 }
 
 
-ITensor MyTrainITensor::Ti()
+ITensor OperatorPair::op_i()
 {
 	return Ti_;
 }
 
 
-ITensor MyTrainITensor::Tj()
+ITensor OperatorPair::op_j()
 {
 	return Tj_;
 }
 
 
-int MyTrainITensor::i()
+int OperatorPair::site_i()
 {
 	return i_;
 }
 
 
-int MyTrainITensor::j()
+int OperatorPair::site_j()
 {
 	return j_;
 }
 
 
-double MyTrainITensor::gamma()
+double OperatorPair::rate()
 {
 	return gamma_;
 }

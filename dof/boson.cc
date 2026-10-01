@@ -23,7 +23,7 @@ using namespace itensor;
 // ----------------------------------------------------------------------
 // Initial bosonic state of the form |n0> |0000...0>.
 void
-initial_state_n0_excitation( MPS* psi, const SiteSet sites, const int size , const int n0 , const int excitation_position)
+set_fock_excitation( MPS* psi, const SiteSet sites, const int size , const int n0 , const int excitation_position)
 {
 	
 	// SITE 1
@@ -90,7 +90,7 @@ initial_state_n0_excitation( MPS* psi, const SiteSet sites, const int size , con
 
 
 void
-initial_state_n0_excitation_pinned( MPS* psi, const SiteSet sites, const int size , const int n0 , const int excitation_position)
+set_fock_excitation_pinned( MPS* psi, const SiteSet sites, const int size , const int n0 , const int excitation_position)
 {
 	
 	// SITE 1
@@ -152,7 +152,7 @@ initial_state_n0_excitation_pinned( MPS* psi, const SiteSet sites, const int siz
 // ----------------------------------------------------------------------
 // Initial vacuum bosonic state |0000...0>.
 void
-initial_state_vacuum_state_correct_link( MPS* psi, const SiteSet sites, const int size )
+set_vacuum_state( MPS* psi, const SiteSet sites, const int size )
 {
 
 	Index sj = sites(1);
@@ -185,7 +185,7 @@ initial_state_vacuum_state_correct_link( MPS* psi, const SiteSet sites, const in
 // ----------------------------------------------------------------------
 // Initial all one bosonic state |1111...1>.
 void
-initial_state_all_one_state_correct_link( MPS* psi, const SiteSet sites, const int size )
+set_unit_filling_state( MPS* psi, const SiteSet sites, const int size )
 {
 
 	Index sj = sites(1);
@@ -220,7 +220,7 @@ initial_state_all_one_state_correct_link( MPS* psi, const SiteSet sites, const i
 
 // Initial bosonic state of the form |000..0> |alpha>_j |0000...0>, such that a|alpha> = alpha|alpha>.
 void
-coherent_state_site_j( MPS* psi, const SiteSet sites, const int size , const int site, const complex<double> alpha )
+set_coherent_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const complex<double> alpha )
 {
 
 	Index sj = sites(1);
@@ -229,7 +229,7 @@ coherent_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 
 	if(site==1)
 		{
-		for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), weight_coherent_state(alpha, d-1));
+		for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), coherent_state_amplitude(alpha, d-1));
 		}
 	else
 		{
@@ -246,7 +246,7 @@ coherent_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 		wf = ITensor(sj,li,ri);
 		if(j==site)
 			{
-			for( int d=1; d <= dim(sj); d++) wf.set(sj(d), li(1), ri(1), weight_coherent_state(alpha, d-1));
+			for( int d=1; d <= dim(sj); d++) wf.set(sj(d), li(1), ri(1), coherent_state_amplitude(alpha, d-1));
 			}
 		else
 			{
@@ -262,7 +262,7 @@ coherent_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 	
 	if(site==size)
 		{
-		for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), weight_coherent_state(alpha, d-1));
+		for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), coherent_state_amplitude(alpha, d-1));
 		}
 	else
 		{
@@ -277,7 +277,7 @@ coherent_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 
 
 void
-coherent_state_all_sites( MPS* psi, const SiteSet sites, const int size , complex<double> alpha )
+set_coherent_state_all_sites( MPS* psi, const SiteSet sites, const int size , complex<double> alpha )
 {
 
 	Index sj = sites(1);
@@ -285,7 +285,7 @@ coherent_state_all_sites( MPS* psi, const SiteSet sites, const int size , comple
 	ITensor wf = ITensor(sj,li);
 
 
-	for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), weight_coherent_state(alpha, d-1));
+	for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), coherent_state_amplitude(alpha, d-1));
 	(*psi).set(1,wf);
 
 
@@ -295,7 +295,7 @@ coherent_state_all_sites( MPS* psi, const SiteSet sites, const int size , comple
 		li = commonIndex((*psi)(j-1),(*psi)(j));
 		Index ri = commonIndex((*psi)(j),(*psi)(j+1));
 		wf = ITensor(sj,li,ri);
-		for( int d=1; d <= dim(sj); d++) wf.set(sj(d), li(1), ri(1), weight_coherent_state(alpha, d-1));
+		for( int d=1; d <= dim(sj); d++) wf.set(sj(d), li(1), ri(1), coherent_state_amplitude(alpha, d-1));
 		(*psi).set(j,wf);
 
 	}
@@ -305,14 +305,14 @@ coherent_state_all_sites( MPS* psi, const SiteSet sites, const int size , comple
 	wf = ITensor(sj,li);
 
 
-	for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), weight_coherent_state(alpha, d-1));
+	for( int d=1; d <= dim(sj); d++) wf.set(sj(d),li(1), coherent_state_amplitude(alpha, d-1));
 	(*psi).set(size,wf);
 }
 
 
 // Initial bosonic state of the form |000..0> |alpha>_j |0000...0>, such that a|alpha> = alpha|alpha>.
 void
-squeezed_state_site_j( MPS* psi, const SiteSet sites, const int size , const int site, const double r )
+set_squeezed_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const double r )
 {
 
 	Index sj = sites(1);
@@ -324,7 +324,7 @@ squeezed_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 		ITensor wf = ITensor(sj,li);
 		if(site==1)
 			{
-			for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1),  weight_squeezed_state(r, d-1));
+			for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1),  squeezed_state_amplitude(r, d-1));
 			for( int d=2; d <= dim(sj); d+=2) wf.set(sj(d),li(1),  0);
 			}
 		else
@@ -342,7 +342,7 @@ squeezed_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 			wf = ITensor(sj,li,ri);
 			if(j==site)
 				{
-				for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1),ri(1), weight_squeezed_state(r, d-1));
+				for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1),ri(1), squeezed_state_amplitude(r, d-1));
 				for( int d=2; d <= dim(sj); d+=2) wf.set(sj(d),li(1),ri(1),  0);
 				}
 			else
@@ -359,7 +359,7 @@ squeezed_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 		
 		if(site==size)
 			{
-			for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1), weight_squeezed_state(r, d-1));
+			for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),li(1), squeezed_state_amplitude(r, d-1));
 			for( int d=2; d <= dim(sj); d+=2) wf.set(sj(d),li(1),  0);
 			}
 		else
@@ -374,7 +374,7 @@ squeezed_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 	else
 	{
 		ITensor wf = ITensor(sj);
-		for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),  weight_squeezed_state(r, d-1));
+		for( int d=1; d <= dim(sj); d+=2) wf.set(sj(d),  squeezed_state_amplitude(r, d-1));
 		for( int d=2; d <= dim(sj); d+=2) wf.set(sj(d),  0);
 		(*psi).set(size,wf);
 	}
@@ -384,12 +384,12 @@ squeezed_state_site_j( MPS* psi, const SiteSet sites, const int size , const int
 
 
 void
-initial_state_cat_state_site_j( MPS* psi, const SiteSet sites, const int size , const int site, const complex<double> alpha )
+set_cat_state_on_site( MPS* psi, const SiteSet sites, const int size , const int site, const complex<double> alpha )
 {
 	MPS psi_t_1 = randomMPS(sites);
 	MPS psi_t_2 = randomMPS(sites);
-	coherent_state_site_j( &psi_t_1, sites, size , site, alpha );
-	coherent_state_site_j( &psi_t_2, sites, size , site, -alpha );
+	set_coherent_state_on_site( &psi_t_1, sites, size , site, alpha );
+	set_coherent_state_on_site( &psi_t_2, sites, size , site, -alpha );
 	*psi = sqrt(0.5) * sum(psi_t_1,psi_t_2);
 	(*psi).position(1);
 	(*psi).normalize();
@@ -397,18 +397,18 @@ initial_state_cat_state_site_j( MPS* psi, const SiteSet sites, const int size , 
 
 
 void
-kink_state(MPS *psi, const SiteSet sites, const int number_ones)
+set_kink_state(MPS *psi, const SiteSet sites, const int number_ones)
 {
 	int L =  length(*psi);
 	
-	for(int j=1 ; j<= number_ones; j++)     put_occupation(psi,sites,j,1);
-	for(int j=number_ones + 1 ; j<= L; j++) put_occupation(psi,sites,j,0);
+	for(int j=1 ; j<= number_ones; j++)     set_site_occupation(psi,sites,j,1);
+	for(int j=number_ones + 1 ; j<= L; j++) set_site_occupation(psi,sites,j,0);
 
 }
 
 
 void
-put_occupation(MPS *psi, const SiteSet sites, const int position, const int n)
+set_site_occupation(MPS *psi, const SiteSet sites, const int position, const int n)
 {
 	Index sj;
 	Index li;
@@ -468,7 +468,7 @@ factorial(int n)
 // weight coherent state
 
 complex<double> 
-weight_coherent_state( const complex<double> alpha, const int k)
+coherent_state_amplitude( const complex<double> alpha, const int k)
 {
 	complex<double> alpha_power_k = pow(alpha,k);
 	return exp(-abs(alpha)*abs(alpha) / 2 ) * (alpha_power_k.real() + 1i*alpha_power_k.imag()) / sqrt(factorial(k));
@@ -478,7 +478,7 @@ weight_coherent_state( const complex<double> alpha, const int k)
 // weight squeezed state
 
 double 
-weight_squeezed_state( const double r, const int k)
+squeezed_state_amplitude( const double r, const int k)
 {
 	double result;
 	result  = pow((-1 * tanh(r)),int(k/2));
@@ -492,7 +492,7 @@ weight_squeezed_state( const double r, const int k)
 //----------------------------------------------------------------------
 // expectation value: <\sigma_j^x^2>
 double 
-expectation_value_sigma_x_square( MPS *state , const SiteSet sites , const int j )
+measure_sigma_x_squared( MPS *state , const SiteSet sites , const int j )
 {
 	ITensor observable = op(sites, "A", j);
 	observable += op(sites,"Adag",j);
@@ -512,7 +512,7 @@ expectation_value_sigma_x_square( MPS *state , const SiteSet sites , const int j
 //----------------------------------------------------------------------
 // expectation value: <\sigma_j^x>
 double 
-expectation_value_sigma_x( MPS *state , const SiteSet sites , const int j )
+measure_sigma_x( MPS *state , const SiteSet sites , const int j )
 {
 	ITensor observable = op(sites, "A", j);
 	observable += op(sites,"Adag",j);
@@ -531,7 +531,7 @@ expectation_value_sigma_x( MPS *state , const SiteSet sites , const int j )
 //----------------------------------------------------------------------
 // expectation value: <\sigma_j^x n_j>
 double 
-expectation_value_sigma_x_n( MPS *state , const SiteSet sites , const int j )
+measure_sigma_x_n( MPS *state , const SiteSet sites , const int j )
 {
 	ITensor observable = op(sites, "A", j);
 	observable += op(sites,"Adag",j);
@@ -551,7 +551,7 @@ expectation_value_sigma_x_n( MPS *state , const SiteSet sites , const int j )
 //----------------------------------------------------------------------
 // expectation value: <n_j \sigma_j^x>
 double 
-expectation_value_n_sigma_x( MPS *state , const SiteSet sites , const int j )
+measure_n_sigma_x( MPS *state , const SiteSet sites , const int j )
 {
 	ITensor observable = op(sites,"N",j);
 	ITensor observable2 = op(sites, "A", j);
@@ -587,7 +587,7 @@ for(int j = 1 ; j <= size ; j++)
 
 
 double
-measure_imbalance( vector<double> &occupation_number, int k)
+compute_imbalance( vector<double> &occupation_number, int k)
 {
 
 	double nk = occupation_number[k];
@@ -599,7 +599,7 @@ measure_imbalance( vector<double> &occupation_number, int k)
 }
 
 
-double max_projector_at_cutoff(vector<vector<double> > &projector_all_sites,const int size,const int cut_off)
+double compute_max_cutoff_probability(vector<vector<double> > &projector_all_sites,const int size,const int cut_off)
 {
 	double maximum = -1;
 	for(int j = 1 ; j <= size ; j++) maximum = std::max(projector_all_sites[j-1][cut_off-1], maximum);
@@ -612,7 +612,7 @@ double max_projector_at_cutoff(vector<vector<double> > &projector_all_sites,cons
 // measure squareoccupation number along the 1D chain
 
 void 
-measure_square_occupation_number( MPS *ground_state , const SiteSet sites , const int size ,  vector<double> &square_occupation_number )
+measure_occupation_number_squared( MPS *ground_state , const SiteSet sites , const int size ,  vector<double> &square_occupation_number )
 {
 for(int j = 1 ; j <= size ; j++)
 	{
@@ -633,7 +633,7 @@ for(int j = 1 ; j <= size ; j++)
 
 // measure of the projector along all the sites and all the Fock space
 
-void measure_projector_all_sites( MPS *ground_state , const SiteSet sites , const int size , const int cut_off_fock_space ,  vector<vector<double> > &projector_all_sites ,  vector<double> &occupation_number)
+void measure_fock_probabilities( MPS *ground_state , const SiteSet sites , const int size , const int cut_off_fock_space ,  vector<vector<double> > &projector_all_sites ,  vector<double> &occupation_number)
 {
 	for(int j = 1 ; j <= size ; j++)
 	{
@@ -673,7 +673,7 @@ void measure_projector_all_sites( MPS *ground_state , const SiteSet sites , cons
 
 // Measure the covariance matrix size X size. Each element is <N_i N_j>_c - 
 void
-measure_covariance_matrix_number_operator( MPS *psi , const SiteSet sites , vector<vector<double> > &covariance_matrix_NN_system, vector<vector<double> > &covariance_matrix_NN_gaussian, vector<vector<double> > &relative_error)
+measure_number_covariance( MPS *psi , const SiteSet sites , vector<vector<double> > &covariance_matrix_NN_system, vector<vector<double> > &covariance_matrix_NN_gaussian, vector<vector<double> > &relative_error)
 {
 	int size = length(*psi);
 
@@ -718,11 +718,11 @@ measure_covariance_matrix_number_operator( MPS *psi , const SiteSet sites , vect
 
 			if( i != j)
 			{
-				NiNj    = abs(compute_two_point(psi,sites ,Ni_op,Nj_op , i , j));
-				Aid_Ajd = compute_two_point(psi,sites,Adi_op,Adj_op , i , j);
-				Ai_Aj   = compute_two_point(psi,sites,Ai_op,Aj_op , i , j);
-				Aid_Aj  = compute_two_point(psi,sites,Adi_op,Aj_op  , i , j);
-				Ai_Ajd  = compute_two_point(psi,sites,Ai_op,Adj_op  , i , j);	
+				NiNj    = abs(measure_two_point_function(psi,sites ,Ni_op,Nj_op , i , j));
+				Aid_Ajd = measure_two_point_function(psi,sites,Adi_op,Adj_op , i , j);
+				Ai_Aj   = measure_two_point_function(psi,sites,Ai_op,Aj_op , i , j);
+				Aid_Aj  = measure_two_point_function(psi,sites,Adi_op,Aj_op  , i , j);
+				Ai_Ajd  = measure_two_point_function(psi,sites,Ai_op,Adj_op  , i , j);	
 			}
 
 
@@ -804,7 +804,7 @@ measure_covariance_matrix_number_operator( MPS *psi , const SiteSet sites , vect
 
 
 double
-measure_delta_x(MPS *psi, MPO *A, MPO *Adag )
+measure_variance_x(MPS *psi, MPO *A, MPO *Adag )
 {
 
 	complex<double> a_expectation_value     = innerC(*psi, *A   , *psi);
@@ -818,7 +818,7 @@ measure_delta_x(MPS *psi, MPO *A, MPO *Adag )
 
 
 double
-measure_delta_p(MPS *psi, MPO *A, MPO *Adag )
+measure_variance_p(MPS *psi, MPO *A, MPO *Adag )
 {
 
 	complex<double> a_expectation_value     = innerC(*psi, *A   , *psi);

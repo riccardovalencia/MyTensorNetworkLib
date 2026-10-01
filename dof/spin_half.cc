@@ -27,14 +27,14 @@ using namespace itensor;
 // Examples: "0000" (all up), "1111" (all down), "0011" (domain wall), "0101" (Neel).
 
 MPS
-initial_computational_state(const SiteSet sites , const string config , const string basis)
+make_product_state(const SiteSet sites , const string config , const string basis)
 {
     int N = length(sites);
 
     if((int)config.size() != N)
-        throw ITError(tinyformat::format("initial_computational_state: config \"%s\" has %d characters, but there are %d sites",config,config.size(),N));
+        throw ITError(tinyformat::format("make_product_state: config \"%s\" has %d characters, but there are %d sites",config,config.size(),N));
     if(basis != "z" && basis != "x" && basis != "y")
-        throw ITError("initial_computational_state: basis must be \"z\", \"x\" or \"y\", got \"" + basis + "\"");
+        throw ITError("make_product_state: basis must be \"z\", \"x\" or \"y\", got \"" + basis + "\"");
 
     // product state with link indices of dimension 1
     MPS psi(sites);
@@ -45,9 +45,9 @@ initial_computational_state(const SiteSet sites , const string config , const st
         char c = config[j-1];
 
         if(!hasTags(sj,"Site,S=1/2"))
-            throw ITError(tinyformat::format("initial_computational_state: site %d is not a spin-1/2",j));
+            throw ITError(tinyformat::format("make_product_state: site %d is not a spin-1/2",j));
         if(c != '0' && c != '1')
-            throw ITError(tinyformat::format("initial_computational_state: invalid character '%c' in config (only '0' and '1' allowed)",c));
+            throw ITError(tinyformat::format("make_product_state: invalid character '%c' in config (only '0' and '1' allowed)",c));
 
         // amplitudes on |up_z> and |down_z>
         double sign = (c == '0') ? 1. : -1.;
@@ -161,7 +161,7 @@ measure_magnetization(MPS* psi, const SiteSet sites , string direction)
 // Compute number of kinks (|\up_z \dw_z>) on a state psi
 
 double 
-measure_kink( MPS* psi, const SiteSet sites)
+measure_kink_number( MPS* psi, const SiteSet sites)
 {
     int N = length(sites);
 
@@ -197,7 +197,7 @@ measure_kink( MPS* psi, const SiteSet sites)
 // Where N = (1-2*S^z)/2 = |down_z> <down_z|
 
 vector<double>
-measure_correlations(MPS* psi, const SiteSet sites, const int start, const bool connected)
+measure_density_correlations(MPS* psi, const SiteSet sites, const int start, const bool connected)
 {
     int N = length(sites);
     vector<double> C;
@@ -280,7 +280,7 @@ measure_correlations(MPS* psi, const SiteSet sites, const int start, const bool 
 //measure of longitudinal and trasnversal magnetization in each site
 
 void 
-measure_mx_mz( const SpinHalf sites , MPS psi , const int N)
+print_magnetization( const SpinHalf sites , MPS psi , const int N)
 	{
 	
 	for( int j = 1 ; j <= N ; j++ )

@@ -3,7 +3,7 @@
  * @brief Implementation of adiabatic.h (the functions are documented in the header).
  */
 #include "adiabatic.h"
-#include "../models/bqem.h"
+#include "../models/bosonic_east_model.h"
 #include <itensor/all.h>
 #include <cmath>
 #include <complex>
@@ -24,7 +24,7 @@ using namespace itensor;
 
 
 void
-adiabatic_transformation_linear_protocol( MPS *psi_start, const SiteSet sites, const double s, const double c, const double dt, const double beta)
+evolve_adiabatic_linear_ramp( MPS *psi_start, const SiteSet sites, const double s, const double c, const double dt, const double beta)
 {
 
 	// beta controls the slope of the linear ramping. The greater is beta the slower is the protocol
@@ -56,7 +56,7 @@ adiabatic_transformation_linear_protocol( MPS *psi_start, const SiteSet sites, c
 
 
 void
-adiabatic_transformation_tanh_protocol( MPS *psi_start, const SiteSet sites, const double s, const double c, const double dt, const double beta)
+evolve_adiabatic_tanh_ramp( MPS *psi_start, const SiteSet sites, const double s, const double c, const double dt, const double beta)
 {
 
 	// beta controls the slope of the tanh. The greater is beta the slower is the protocol

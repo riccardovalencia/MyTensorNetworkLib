@@ -56,14 +56,14 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Initial state |0> (x) |theta,phi>^N, purified on the doubled chain
 
-    SiteSet sites_single = custom_spin_boson(N+1, max_occ);
-    MPS psi = initialize_spin_boson_state(sites_single, 0, 0.9 * M_PI, 0.);
+    SiteSet sites_single = make_spin_boson_sites(N+1, max_occ);
+    MPS psi = make_spin_boson_state(sites_single, 0, 0.9 * M_PI, 0.);
 
-    SiteSet sites = custom_spin_boson_doubling(N+1, max_occ);
+    SiteSet sites = make_purified_spin_boson_sites(N+1, max_occ);
     MPS rho = randomMPS(sites);
     insert_state(&rho, psi, 1,   true,  true);    // bra on sites 1..N+1 (mirrored, conjugated)
     insert_state(&rho, psi, N+2, false, false);   // ket on sites N+2..2N+2
-    rho /= compute_norm_purified_impurity(&rho);
+    rho /= compute_trace_purified(&rho);
 
     // ---------------------------------
     // Operators: photon number (boson), Pauli X and Z (spin), given on the indices of a physical site
@@ -92,18 +92,18 @@ int main(int argc, char* argv[])
     // Gates: built on the physical chain and copied on ket and bra
 
     double dt_coherent = dissipative ? dt/2. : dt;
-    vector<BondGate> local_single = gates_photon_matter(sites_single, omega0, h, g/sqrt(N), dt_coherent, "short-range", coupling, V);
-    vector<BondGate> pm_single    = gates_photon_matter(sites_single, omega0, h, g/sqrt(N), dt_coherent, "long-range",  coupling);
-    vector<MyBondGate> gates_local = doubling_space_gates(local_single, sites_single, sites);
-    vector<MyBondGate> gates_pm    = doubling_space_gates(pm_single,    sites_single, sites);
+    vector<BondGate> local_single = make_light_matter_gates(sites_single, omega0, h, g/sqrt(N), dt_coherent, "short-range", coupling, V);
+    vector<BondGate> pm_single    = make_light_matter_gates(sites_single, omega0, h, g/sqrt(N), dt_coherent, "long-range",  coupling);
+    vector<TebdGate> gates_local = make_purified_gates(local_single, sites_single, sites);
+    vector<TebdGate> gates_pm    = make_purified_gates(pm_single,    sites_single, sites);
 
-    vector<MyBondGateDiss> gates_D;
-    if(dissipative) gates_D = gates_dissipative_impurity(sites, Lj, kappa, dt);
+    vector<DissipativeGate> gates_D;
+    if(dissipative) gates_D = make_impurity_dissipative_gates(sites, Lj, kappa, dt);
 
     auto coherent_step = [&]()
     {
-        for(MyBondGate gate : gates_local) rho = apply_local_gate_purified(rho, gate, args);
-        for(MyBondGate gate : gates_pm)    rho = apply_photon_matter_gate_purified(rho, gate, args);
+        for(TebdGate gate : gates_local) rho = apply_local_gate_purified(rho, gate, args);
+        for(TebdGate gate : gates_pm)    rho = apply_photon_matter_gate_purified(rho, gate, args);
     };
 
     // ---------------------------------
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
     out_z << setprecision(8) << "# t . <Z_1> . ... . <Z_N>\n";
 
     // physical site q: 1 = boson, j+1 = spin j
-    auto expectation = [&](const ITensor& O, int q) { return real(measure_local_obs_impurity_first_site(&rho, O, false, q)[0]); };
+    auto expectation = [&](const ITensor& O, int q) { return real(measure_local_operator_purified(&rho, O, false, q)[0]); };
 
     // ---------------------------------
     // Time evolution
@@ -130,13 +130,13 @@ int main(int argc, char* argv[])
         coherent_step();
         if(dissipative)
         {
-            for(MyBondGateDiss gate : gates_D) rho = apply_dissipative_gate(rho, gate, args);
+            for(DissipativeGate gate : gates_D) rho = apply_dissipative_gate(rho, gate, args);
             coherent_step();
         }
 
         if((k+1) % steps_measure != 0) continue;
 
-        double norm = compute_norm_purified_impurity(&rho);
+        double norm = compute_trace_purified(&rho);
         out << t << " " << norm << " " << expectation(X, 2)/norm << " " << expectation(Z, 2)/norm
             << " " << expectation(Nb, 1)/norm << " " << maxLinkDim(rho) << endl;
         out_x << t;
