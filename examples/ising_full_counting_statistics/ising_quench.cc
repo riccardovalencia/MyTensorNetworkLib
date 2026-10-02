@@ -24,7 +24,9 @@ using namespace itensor;
 // Output (data/<run>/):
 //   thermal.txt              beta and energy density of the thermal state, energy density of psi(0)
 //   thermal_gf.txt           theta, Re G_1, Im G_1, ... of the thermal state
+//   thermal_xj.txt           j, <X_j> in the thermal state
 //   and every t_measure:
+//   xj.txt                   t, <X_1>, ..., <X_N>  (magnetization along x of each spin)
 //   entropy.txt              t, S_1, ..., S_{N-1}  (entanglement entropy across each bond, natural log)
 //   gf_t<t>.txt              theta, Re G_1, Im G_1, ..., Re G_L, Im G_L  (L = max_block_size)
 //   distance_to_thermal.txt  t, D_1, ..., D_L with D_l(t) = max_theta |G_l(theta, t) - G_l^thermal(theta)|
@@ -54,6 +56,21 @@ compute_block_generating_functions(State* state, const SpinHalf& sites, const in
     vector<vector<complex<double> > > G;
     for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(state, sites, l, theta));
     return G;
+}
+
+
+// Tr(rho X_j) for every site, with the MPO of X_j = 2 S^x_j
+static vector<double>
+measure_magnetization_x(const MPO& rho, const SiteSet& sites)
+{
+    vector<double> xj;
+    for(int j = 1 ; j <= length(sites) ; j++)
+    {
+        AutoMPO ampo(sites);
+        ampo += 2., "Sx", j;
+        xj.push_back(real(traceC(rho, toMPO(ampo))));
+    }
+    return xj;
 }
 
 
@@ -109,6 +126,7 @@ int main(int argc, char* argv[])
     vector<vector<complex<double> > > G_thermal = compute_block_generating_functions(&thermal.rho, sites, max_block_size, theta);
 
     write_generating_function(dir + "thermal_gf.txt", theta, G_thermal);
+    write_site_values(dir + "thermal_xj.txt", measure_magnetization_x(thermal.rho, sites), 13);
     ofstream out_thermal(dir + "thermal.txt");
     out_thermal << setprecision(13) << "# beta . energy density (thermal state) . energy density of psi(0)\n"
                 << thermal.beta << " " << thermal.energy / N << " " << energy / N << endl;
@@ -123,6 +141,8 @@ int main(int argc, char* argv[])
 
     ofstream out_entropy(dir + "entropy.txt");
     out_entropy << setprecision(10) << "# t . S_1 . ... . S_{N-1}\n";
+    ofstream out_xj(dir + "xj.txt");
+    out_xj << setprecision(10) << "# t . <X_1> . ... . <X_N>\n";
     ofstream out_distance(dir + "distance_to_thermal.txt");
     out_distance << setprecision(10) << "# t";
     for(int l = 1 ; l <= max_block_size ; l++) out_distance << " . D_" << l;
@@ -139,6 +159,10 @@ int main(int argc, char* argv[])
             psi.position(1);
             psi.normalize();
         }
+
+        out_xj << t;
+        for(double x : measure_magnetization(&psi, sites, "x")) out_xj << " " << x;
+        out_xj << endl;
 
         out_entropy << t;
         for(int b = 1 ; b < N ; b++) out_entropy << " " << compute_entanglement_entropy(&psi, b, true);

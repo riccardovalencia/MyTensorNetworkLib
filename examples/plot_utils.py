@@ -92,9 +92,10 @@ def plot_columns(path, ed_columns=None, title='', marker=''):
     return fig
 
 
-def plot_site_map(path, quantity, site_label='site j', title=''):
+def plot_site_map(path, quantity, site_label='site j', title='', reference=None, reference_label='reference'):
     """Site-resolved quantity in a file with rows "t q_1 q_2 ...": heatmap over (site, t), profiles
-    at a few times and the time trace of every site (ED dashed, if any)."""
+    at a few times and the time trace of every site (ED dashed, if any). reference: optional file with
+    rows "j q_j" (e.g. the thermal profile), drawn dotted red on the profiles."""
     import matplotlib.pyplot as plt
     data = load(path)[1]
     t, values = data[:, 0], data[:, 1:]
@@ -114,6 +115,9 @@ def plot_site_map(path, quantity, site_label='site j', title=''):
             row = np.argmin(np.abs(ed_data[:, 0] - t[k]))
             if abs(ed_data[row, 0] - t[k]) < 1e-8:
                 ax_profiles.plot(sites, ed_data[row, 1:], 'k--', lw=1)
+    if reference and os.path.exists(reference):
+        reference_data = load(reference)[1]
+        ax_profiles.plot(reference_data[:, 0], reference_data[:, 1], 'r:', lw=2, label=reference_label)
     ax_profiles.set(xlabel=site_label, ylabel=quantity, title='profiles' + (' (ED dashed)' if ed_data is not None else ''))
     ax_profiles.legend(fontsize='small')
 

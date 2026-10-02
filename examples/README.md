@@ -161,8 +161,8 @@ Ising chain in longitudinal and transverse fields, H = -J sum (X_j X_{j+1} + hx 
 full counting statistics of the block magnetization (arXiv:2005.01679).
 - `ising_quench`: does the state thermalize? TEBD from a product state along x (`state` = `up`, `down`,
   `wall`), compared with the thermal state that has the energy of the initial state, <psi(0)|H|psi(0)>
-  (`find_thermal_state`, imaginary-time evolution of the identity). Every `t_measure`: the entanglement
-  entropy across each bond, the generating function G_l(theta) = <exp(i theta S^x_A)> of blocks of
+  (`find_thermal_state`, imaginary-time evolution of the identity). Every `t_measure`: the magnetization
+  <X_j> of each spin (`xj.txt`, thermal profile in `thermal_xj.txt`), the entanglement entropy across each bond, the generating function G_l(theta) = <exp(i theta S^x_A)> of blocks of
   l = 1..`max_block_size` sites, and its distance from the thermal one, D_l(t) = max_theta |G_l(theta, t) - G_l^thermal(theta)|
   (`distance_to_thermal.txt`; also `thermal.txt` with beta, `thermal_gf.txt`). With hx != 0 (non-integrable)
   D_l(t) decays down to finite-size fluctuations.

@@ -37,10 +37,10 @@ when the tests were written, so that a regression is caught while round-off and 
 | Test | Input | What it exercises | max \|TN - ED\| | Tolerance |
 |---|---|---|---|---|
 | `test_rydberg_chain` | `rydberg_chain.txt` | three-site gates in three layers (`make_rydberg_gates_nnn`) | 1.2e-5 | 5e-5 |
-| `test_ising_quench` | `ising_quench.txt` | spin-chain gates (`make_ising_gates`), entanglement entropy, full counting statistics (thermal outputs excluded) | 1.8e-5 | 5e-5 |
+| `test_ising_quench` | `ising_quench.txt` | spin-chain gates (`make_ising_gates`), <X_j>, entanglement entropy, full counting statistics (thermal outputs excluded) | 1.8e-5 | 5e-5 |
 | `test_cavity_dicke` | `cavity_dicke.txt` | boson-spin swap gates, Dicke coupling (`make_light_matter_gates`) | 2.0e-3 | 5e-3 |
 | `test_cavity_tavis_cummings` | `cavity_tavis.txt` | same, Tavis-Cummings coupling | 3.2e-5 | 1e-4 |
-| `test_ising_thermalization` | `ising_quench.txt` | thermal state at the energy of the initial state (`find_thermal_state`), its generating functions and their distance from the evolved ones | 3.2e-4 | 1e-3 |
+| `test_ising_thermalization` | `ising_quench.txt` | thermal state at the energy of the initial state (`find_thermal_state`): its <X_j>, its generating functions and their distance from the evolved ones | 3.2e-4 | 1e-3 |
 | `test_leaky_cavity` | `leaky_cavity.txt` | Lindblad dynamics: `make_purified_gates`, local dissipators, purified-state observables | 4.5e-4 | 1.5e-3 |
 | `test_impurity_integrable` | `impurity_integrable.txt` | impurity gates and dissipator on the central bond, regression theorem; exact free-fermion solution | 1.5e-3 | 5e-3 |
 | `test_impurity_xx_coupling` | `impurity_xx.txt` | same with an XX coupling (dense Lindblad solution) | 2.9e-3 | 1e-2 |

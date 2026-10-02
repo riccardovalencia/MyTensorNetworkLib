@@ -1,5 +1,5 @@
-"""Plot the output of ising_quench (see ../plot_utils.py): entanglement entropy of each cut (heatmap,
-profiles, time traces), distance of the generating functions from the thermal ones against time, and the
+"""Plot the output of ising_quench (see ../plot_utils.py): magnetization <X_j>(t) of each spin and
+entanglement entropy of each cut (heatmaps, profiles with the thermal <X_j>, time traces), distance of the generating functions from the thermal ones against time, and the
 generating functions at each time with the thermal ones (red dotted).
 
 Usage: python3 plot_ising_quench.py [run name] [--show]      (default: the latest run in data/)
@@ -11,6 +11,7 @@ import plot_utils as pu  # noqa: E402
 
 data, plots, show = pu.parse_arguments('ising_quench_*')
 run = os.path.basename(data[:-1])
+pu.save(pu.plot_site_map(data + 'xj.txt', '<X_j>', title=run, reference=data + 'thermal_xj.txt', reference_label='thermal'), plots, 'xj', show)
 pu.save(pu.plot_site_map(data + 'entropy.txt', 'S_j', site_label='cut (j, j+1)', title=run), plots, 'entropy', show)
 pu.save(pu.plot_columns(data + 'distance_to_thermal.txt', title=run + '\nmax_theta |G_l(theta, t) - G_l^thermal(theta)|', marker='o'),
         plots, 'distance_to_thermal', show)

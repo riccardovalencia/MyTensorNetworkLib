@@ -93,7 +93,7 @@ def convergence_ratio(example, program, input_name, step, parameter='dt', output
 
 
 # outputs of ising_quench that depend on the thermal state (imaginary-time step dbeta), not on dt
-THERMAL_OUTPUTS = ('thermal_gf', 'distance')
+THERMAL_OUTPUTS = ('thermal_gf', 'thermal_xj', 'distance')
 TOLERANCE_THERMAL = 1e-3
 
 
