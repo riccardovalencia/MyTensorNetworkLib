@@ -6,6 +6,7 @@
 #include "../mps/gates.h"
 #include "../mps/mps_tools.h"
 #include <itensor/all.h>
+#include <functional>
 #include <cmath>
 #include <vector>
 
@@ -203,7 +204,7 @@ make_purified_gates(const vector<TebdGate> gates_single, const SiteSet sites_sin
 {
     // physical site i (1..N) -> ket site N + i, mirrored bra site N + 1 - i
     int N = length(sites_single);
-    auto physical_site = [&](const Index& s)
+    function<int(const Index&)> physical_site = [&](const Index& s)
     {
         for(int i = 1 ; i <= N ; i++) if(sites_single(i) == s) return i;
         throw ITError("make_purified_gates: gate index not in sites_single");
@@ -214,7 +215,7 @@ make_purified_gates(const vector<TebdGate> gates_single, const SiteSet sites_sin
     {
         for(TebdGate g : gates_single)
         {
-            auto map_site = [&](int i) { return ket ? N + i : N + 1 - i; };
+            function<int(int)> map_site = [&](int i) { return ket ? N + i : N + 1 - i; };
 
             // move every site index of the gate onto the doubled chain
             ITensor original = g.gate();
@@ -254,7 +255,8 @@ apply_dissipative_gate(MPS psi, DissipativeGate gate, const Args args)
     dpsi.mapPrime(1,0);
     AA = AA + dpsi;
 
-    auto [U,S,V] = svd(AA,inds(psi(j)),{"Cutoff=",cut_off,"MaxDim=",maxDim});
+    ITensor U, S, V;
+    tie(U, S, V) = svd(AA,inds(psi(j)),{"Cutoff=",cut_off,"MaxDim=",maxDim});
     psi.set(j,U);
     psi.set(j+1,S*V);
     return psi;

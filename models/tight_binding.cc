@@ -20,7 +20,7 @@ make_tight_binding_mpo(const int N , const SiteSet sites, const vector<double> J
     int size_hdn = hdn.size();
 
 
-    auto ampo = AutoMPO(sites);
+    AutoMPO ampo(sites);
 
     for(int j : range1(N-1))
     {

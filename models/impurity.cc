@@ -7,6 +7,7 @@
 #include "tight_binding.h"
 #include "../mps/gates.h"
 #include <itensor/all.h>
+#include <functional>
 #include <algorithm>
 #include <vector>
 
@@ -107,9 +108,9 @@ make_three_site_spin_hamiltonian(const SiteSet& sites, const int j, const int p,
         pauli[2].push_back(2 * op(sites,"Sz",q));
     }
     // product of the operators O[a] on the sites a in `on` and of identities elsewhere
-    auto embed = [&](const vector<ITensor>& O, const vector<int>& on)
+    function<ITensor(const vector<ITensor>&, const vector<int>&)> embed = [&](const vector<ITensor>& O, const vector<int>& on)
     {
-        auto factor = [&](int a) { return (find(on.begin(), on.end(), a) != on.end()) ? O[a] : I[a]; };
+        function<ITensor(int)> factor = [&](int a) { return (find(on.begin(), on.end(), a) != on.end()) ? O[a] : I[a]; };
         return factor(0) * factor(1) * factor(2);
     };
 

@@ -19,10 +19,10 @@ compute_entanglement_entropy( MPS* psi, int site, bool natural_log )
     ITensor wf = (*psi)(site) * (*psi)(site+1);
     ITensor U  = (*psi)(site);
     ITensor S, V;
-    auto spectrum = svd(wf, U, S, V);
+    Spectrum spectrum = svd(wf, U, S, V);
 
     double entropy = 0.;
-    for(auto p : spectrum.eigs())
+    for(double p : spectrum.eigs())
     {
         if(p > 1E-12) entropy += -p * (natural_log ? log(p) : log2(p));
     }

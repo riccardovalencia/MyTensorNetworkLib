@@ -33,7 +33,7 @@ compute_folded_contraction(MPS* psi, const map<int, ITensor>& pair_operators)
     ITensor M;
     for(int k = 1 ; k <= N ; k++)
     {
-        auto it = pair_operators.find(k);
+        map<int, ITensor>::const_iterator it = pair_operators.find(k);
         ITensor O = (it != pair_operators.end()) ? it->second : delta(siteIndex(*psi,k), siteIndex(*psi,2*N-k+1));
         if(k == 1) M = (*psi)(k) * O * (*psi)(2*N-k+1);
         else

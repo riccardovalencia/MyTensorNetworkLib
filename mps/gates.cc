@@ -157,16 +157,18 @@ apply_gate(MPS psi, const ITensor gate, vector<int> sites, const Args args)
     }
     else if(sites.size() == 2)
     {
-        auto [U,S,V] = svd(AA, inds(psi(j)), {"Cutoff=", cut_off, "MaxDim=", max_dim});
+        ITensor U, S, V;
+        tie(U, S, V) = svd(AA, inds(psi(j)), {"Cutoff=", cut_off, "MaxDim=", max_dim});
         psi.set(j, U);
         psi.set(j+1, S*V);
     }
     else if(sites.size() == 3)
     {
-        auto [U,S,V] = svd(AA, inds(psi(j)), {"Cutoff=", cut_off, "MaxDim=", max_dim});
+        ITensor U, S, V, U1, S1, V1;
+        tie(U, S, V) = svd(AA, inds(psi(j)), {"Cutoff=", cut_off, "MaxDim=", max_dim});
         Index l = commonIndex(U, S);
         psi.set(j, U);
-        auto [U1,S1,V1] = svd(S*V, {inds(psi(j+1)), l}, {"Cutoff=", cut_off, "MaxDim=", max_dim});
+        tie(U1, S1, V1) = svd(S*V, {inds(psi(j+1)), l}, {"Cutoff=", cut_off, "MaxDim=", max_dim});
         psi.set(j+1, U1);
         psi.set(j+2, S1*V1);
     }

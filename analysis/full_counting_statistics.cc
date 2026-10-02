@@ -4,6 +4,7 @@
  */
 #include "full_counting_statistics.h"
 #include <itensor/all.h>
+#include <functional>
 #include <cmath>
 #include <complex>
 #include <vector>
@@ -49,7 +50,7 @@ compute_generating_function( MPS* psi, const SpinHalf sites, int block_size, con
     vector<complex<double> > G;
     for(double th : theta)
     {
-        auto phase = [&](int j) { return expHermitian(op(sites, "Sx", j), th * 1_i); };
+        function<ITensor(int)> phase = [&](int j) { return expHermitian(op(sites, "Sx", j), th * 1_i); };
         ITensor contraction;
         if(block_size == 1)
         {

@@ -246,7 +246,7 @@ make_three_site_layers(const int N, const double dt, const function<ITensor(int)
 vector<TebdGate>
 make_pxp_gates(const SiteSet sites , const double omega, const double dt)
 {
-    auto pxp = [&](int j)
+    function<ITensor(int)> pxp = [&](int j)
     {
         ITensor P1 = (op(sites,"Id",j) + 2*op(sites,"Sz",j))/2;
         ITensor X2 = 2*op(sites,"Sx",j+1);
@@ -298,7 +298,7 @@ vector<TebdGate>
 make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const vector<double> Omegaj, const vector<double> Vj, const double dt)
 {
     int N = length(sites);
-    auto rydberg_term = [&](int j)
+    function<ITensor(int)> rydberg_term = [&](int j)
     {
         vector<ITensor> Nj, Ij, Xj;
         for(int q = j ; q <= j+2 ; q++)

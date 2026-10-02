@@ -40,7 +40,7 @@ MPO
 make_spin_chain_mpo(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h)
 {
     int N = length(sites);
-    auto ampo = AutoMPO(sites);
+    AutoMPO ampo(sites);
     for(int j = 1 ; j <= N ; j++)
     {
         if(h[0] != 0.) { ampo += h[0], "S+", j;  ampo += h[0], "S-", j; }

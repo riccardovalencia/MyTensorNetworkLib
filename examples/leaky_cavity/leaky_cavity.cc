@@ -1,4 +1,5 @@
 #include <itensor/all.h>
+#include <functional>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -114,7 +115,7 @@ int main(int argc, char* argv[])
     out_z << setprecision(8) << "# t . <Z_1> . ... . <Z_N>\n";
 
     // physical site q: 1 = boson, j+1 = spin j
-    auto expectation = [&](const ITensor& O, int q) { return real(measure_local_operator_purified(&rho, O, false, q)[0]); };
+    function<double(const ITensor&, int)> expectation = [&](const ITensor& O, int q) { return real(measure_local_operator_purified(&rho, O, false, q)[0]); };
 
     // ---------------------------------
     // Time evolution

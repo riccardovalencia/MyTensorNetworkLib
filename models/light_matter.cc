@@ -6,6 +6,7 @@
 #include "../dof/spin_half.h"
 #include "../mps/mps_tools.h"
 #include <itensor/all.h>
+#include <functional>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -54,7 +55,7 @@ make_local_bond_hamiltonian(const SiteSet& sites, const int j, const double omeg
     int N = length(sites);
     Index s1 = sites(j);
     Index s2 = sites(j+1);
-    auto field = [&](const Index& s) { return hasTags(s,"Site,Boson") ? omega0 : h; };
+    function<double(const Index&)> field = [&](const Index& s) { return hasTags(s,"Site,Boson") ? omega0 : h; };
 
     ITensor I1 = make_identity_operator(s1, prime(s1)), I2 = make_identity_operator(s2, prime(s2));
     ITensor D1 = make_magnetization_operator(s1, "z"), D2 = make_magnetization_operator(s2, "z");   // n_a or Z_j

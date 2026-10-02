@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 
     SpinHalf sites = SpinHalf(N, {"ConserveQNs=", false});
 
-    auto ampo = AutoMPO(sites);
+    AutoMPO ampo(sites);
     for(int j = 1 ; j < N ; j++) ampo += -4. * J, "Sx", j, "Sx", j+1;
     for(int j = 1 ; j <= N ; j++)
     {
@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Infinite-temperature state, normalized
 
-    auto ampo_id = AutoMPO(sites);
+    AutoMPO ampo_id(sites);
     for(int j = 1 ; j <= N ; j++) ampo_id += "Id", j;
     MPO rho = toMPO(ampo_id, {"Exact=", true});
     rho /= trace(rho);

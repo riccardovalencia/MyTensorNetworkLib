@@ -5,6 +5,7 @@
 #include "dmrg.h"
 #include "../dof/fermion.h"
 #include <itensor/all.h>
+#include <functional>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -200,7 +201,7 @@ find_fermi_sea(const MPO& H, const SiteSet& sites, const int Nupfill, const int 
 {
     GroundState ground_state = find_ground_state(H, make_electron_init_state(sites, Nupfill, Ndnfill), parameters);
 
-    auto total_number = [&](const string& n)
+    function<double(const string&)> total_number = [&](const string& n)
     {
         AutoMPO ampo = AutoMPO(sites);
         for(int j : range1(length(sites))) ampo += 1, n, j;

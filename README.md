@@ -119,6 +119,8 @@ cd tests && make test LIBRARY_DIR=/path/to/itensor     # ~45 s; needs numpy, sci
   spelling (`N`, `J`, `hx`, `Omega`). Functions start with a verb: `make_*` returns a new object, `set_*` overwrites
   a state, `apply_*`/`evolve_*` act on a state, `measure_*` returns expectation values, `compute_*` other derived
   quantities, `write_*`/`load_*` handle files. Pure mathematical helpers are nouns (`factorial`, `coherent_state_amplitude`).
+- Types are written explicitly (no `auto`): lambdas are stored in `std::function`, the results of `svd` are
+  unpacked with `std::tie`.
 - Errors (invalid arguments, missing files) throw `ITError`; the library never calls `exit`.
 - Sites are 1-indexed, as in ITensor.
 - Spin-1/2: `|0> = |up_z>`, `|1> = |down_z>`. The excitation (Rydberg) projector is `n = (1 - Z)/2 = |down_z><down_z|`.

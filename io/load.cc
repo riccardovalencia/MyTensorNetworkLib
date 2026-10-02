@@ -5,6 +5,7 @@
 #include "load.h"
 #include "../models/bosonic_east_model.h"
 #include <itensor/all.h>
+#include <functional>
 #include <cmath>
 #include <complex>
 #include <fstream>
@@ -47,7 +48,7 @@ load_largest_bond_dimension(const string& dir, int size, int lambda, int n0, int
     Boson sites;
     readFromFile(sites_file, sites);
 
-    auto state_file = [&](int chi) { return tinyformat::format("%s/ground_state_file_n0%d_chi%d", dir, n0, chi); };
+    function<string(int)> state_file = [&](int chi) { return tinyformat::format("%s/ground_state_file_n0%d_chi%d", dir, n0, chi); };
     while(fileExists(state_file(bond_dimension))) bond_dimension = int(bond_dimension * scaling_bond_dimension);
     bond_dimension = int(bond_dimension / scaling_bond_dimension);
 
@@ -72,7 +73,7 @@ load_ground_state_max_bond_dimension(string results_dir , int size , int lambda,
 
     for(int version = 1 ; fileExists(tinyformat::format("%s_v%d/sites_file_n0%d", dir, version, n0)) ; version++)
     {
-        auto loaded = load_largest_bond_dimension(tinyformat::format("%s_v%d", dir, version), size, lambda, n0, symmetry_sector, s, c, bond_dimension, scaling_bond_dimension, symmetry_sector_dir);
+        tuple<MPS, Boson, double> loaded = load_largest_bond_dimension(tinyformat::format("%s_v%d", dir, version), size, lambda, n0, symmetry_sector, s, c, bond_dimension, scaling_bond_dimension, symmetry_sector_dir);
         if(get<2>(loaded) < tolerance_variance) return loaded;
     }
     Boson sites = Boson(1,{"ConserveQNs",false,"MaxOcc=",1});

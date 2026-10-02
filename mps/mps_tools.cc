@@ -39,16 +39,16 @@ measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor
 	(*psi).position(i); 
 
 	//Create the bra/dual version of the MPS psi
-	auto psidag = dag(*psi);
+	MPS psidag = dag(*psi);
 
 	//Prime the link indices to make them distinct from
 	//the original ket links
 	psidag.prime("Link");
 
 	//index linking i-1 to i:
-	auto li_1 = leftLinkIndex(*psi,i);
+	Index li_1 = leftLinkIndex(*psi,i);
 
-	auto C = prime((*psi)(i),li_1)*op_i;
+	ITensor C = prime((*psi)(i),li_1)*op_i;
 	C *= prime(psidag(i),"Site");
 	for(int k = i+1; k < j; ++k)
 		{
@@ -56,7 +56,7 @@ measure_two_point_function( MPS *psi, const SiteSet sites, ITensor op_i, ITensor
 		C *= psidag(k);
 		}
 	//index linking j to j+1:
-	auto lj = rightLinkIndex((*psi),j);
+	Index lj = rightLinkIndex((*psi),j);
 
 	C *= prime((*psi)(j),lj)*op_j;
 	C *= prime(psidag(j),"Site");

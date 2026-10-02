@@ -29,7 +29,7 @@ write_dmrg_summary(int size , double s , double c , const vector<pair<string,dou
 	     << "size : " << size << "\n"
 	     << "s : " << s  << "\n"
 	     << "c : " << c << "\n";
-	for(const auto& [name, value] : extra_physical) text << name << " : " << value << "\n";
+	for(const pair<string,double>& parameter : extra_physical) text << parameter.first << " : " << parameter.second << "\n";
 	text << "simmetry_sector : " << simmetry_sector << "\n \n"
 	     << "Numerical quantities.\n"
 	     << "cut_off_fock_space : " << cut_off_fock_space << "\n"
@@ -93,7 +93,7 @@ write_generating_function( const string file_name, const vector<double>& theta, 
     for(size_t k = 0 ; k < theta.size() ; k++)
     {
         out << theta[k];
-        for(const auto& G_l : G) out << " " << G_l[k].real() << " " << G_l[k].imag();
+        for(const vector<complex<double> >& G_l : G) out << " " << G_l[k].real() << " " << G_l[k].imag();
         out << "\n";
     }
 }
