@@ -20,7 +20,7 @@ Set `MYTN_KEEP_TEST_DATA=1` to keep the temporary folders with the TN and ED out
 
 1. The input file `inputs/<case>.txt` (same format as the sample inputs of the examples, smaller
    parameters) is copied into a temporary folder, with some parameters possibly overridden (e.g. `dt`).
-2. The TN program `examples/<example>/<program>` runs there and writes its results to `data/`.
+2. The TN program `examples/<example>/<program>` runs there and writes its results to `data/<run>/`.
 3. The ED script `examples/<example>/<program>_exact_diagonalization.py` is imported and its
    `main(input_file)` solves the same problem exactly, matches the rows of the TN files (same time
    or theta) and returns the largest |TN - ED| of every observable.

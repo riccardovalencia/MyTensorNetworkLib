@@ -1,50 +1,36 @@
 #!/bin/bash
+# Run leaky_cavity for several couplings g (units of the critical coupling): each run writes into its
+# own folder data/<run>/ (the run name contains g), plot it with plot_leaky_cavity.py <run>.
+# Usage: ./sweep_g.sh   (from examples/leaky_cavity, after building the examples)
 
-N=3         # system size
-MAX_OCC=2   # max occupation photon
-OMEGA0=1    # photon frequency
-H=0.5       # atom splitting
-V=0.5       # rydberg-rydberg interactions
-# photon matter coupling
-G_LIST=(0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0)
-G_LIST=(1.5 3.00)
-# cavity decay rate
-KAPPA=1
-# total time
-T=20
-# time step
-DT=0.01
-# max bond dimension
-MAXDIM=256
+N=3          # number of sites (cavity + N-1 spins)
+MAX_OCC=2    # maximal photon occupation
+H=0.5        # atomic splitting
+V=0.5        # Rydberg interaction
+KAPPA=1      # cavity decay rate
+T=20         # total time
+DT=0.01      # time step
+MAX_DIM=256  # maximal bond dimension
+G_LIST=(1.5 3.0)
 
-MAIN_DIR=./
-BIN=$(pwd)/leaky_cavity  # absolute path: the script cd-s into SAVEDIR
+INPUT_FILE=$(mktemp)
+trap 'rm -f "$INPUT_FILE"' EXIT
 
-SAVEDIR=${MAIN_DIR}/leaky_cavity_N${N}_maxocc${MAX_OCC}
-if [ ! -d $SAVEDIR ]; then                                                                                  # verifica che la directory da creare non esista già
-    if ! mkdir $SAVEDIR ; then                                                                              # verifica che la creazione della directory non sia fallita
-    exit -1
-    fi
-fi 
-
-cd ${SAVEDIR}
-
-for G in ${G_LIST[*]}
+for G in "${G_LIST[@]}"
 do
-    INPUT_FILE="input.txt"
-
-    echo "input" > ${INPUT_FILE}
-    echo "{" >> ${INPUT_FILE}
-    echo "N="${N} >> ${INPUT_FILE}
-    echo "max_occ="${MAX_OCC} >> ${INPUT_FILE}
-    echo "V="${V} >> ${INPUT_FILE}
-    echo "h="${H} >> ${INPUT_FILE}
-    echo "g="${G} >> ${INPUT_FILE}
-    echo "kappa="${KAPPA} >> ${INPUT_FILE}
-    echo "T="${T} >> ${INPUT_FILE}
-    echo "dt="${DT} >> ${INPUT_FILE}
-    echo "maxDim="${MAXDIM} >> ${INPUT_FILE}
-    echo "}" >> ${INPUT_FILE}
-
-    ${BIN} ${INPUT_FILE}
+    cat > "$INPUT_FILE" <<EOF
+input
+{
+N = $N
+max_occ = $MAX_OCC
+h = $H
+V = $V
+g = $G
+kappa = $KAPPA
+T = $T
+dt = $DT
+max_dim = $MAX_DIM
+}
+EOF
+    ./leaky_cavity "$INPUT_FILE" || exit 1
 done

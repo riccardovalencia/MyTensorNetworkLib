@@ -4,6 +4,7 @@
  */
 #include "output.h"
 #include <itensor/all.h>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -14,6 +15,18 @@
 
 using namespace std;
 using namespace itensor;
+
+
+// create_directories also creates the missing parents and does nothing if the folder exists
+string
+make_run_directory(const string& folder, const string& run_name, const string& input_file)
+{
+    string dir = folder + "/" + run_name + "/";
+    std::filesystem::create_directories(dir);
+    if(!input_file.empty())
+        std::filesystem::copy_file(input_file, dir + "input.txt", std::filesystem::copy_options::overwrite_existing);
+    return dir;
+}
 
 
 //----------------------------------------------------------------------

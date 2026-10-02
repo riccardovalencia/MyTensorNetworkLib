@@ -4,7 +4,7 @@ beta is fixed by requiring the energy density of |+x...+x>, -J ((N-1)/N + hx); t
 it with steps of 2 dbeta, so small differences of order dbeta are expected.
 
 Usage: python3 ising_thermal_exact_diagonalization.py input_ising_thermal.txt
-Output: data/<root>_exact_diagonalization_gf.txt, compared with the TN file <root>_gf.txt.
+Output: data/<run>/gf_exact_diagonalization.txt, compared with the TN file gf.txt.
 """
 import os
 import sys
@@ -12,7 +12,7 @@ import numpy as np
 from scipy.optimize import brentq
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from exact_diagonalization_tools import read_input, save_and_compare, theta_grid
+from exact_diagonalization_tools import read_input, run_directory, save_and_compare, theta_grid
 from ising_common_exact_diagonalization import ising_hamiltonian, generating_function_table
 
 
@@ -33,9 +33,9 @@ def main(input_file):
     rho = V @ np.diag(w / w.sum()) @ V.conj().T
     print(f'beta = {beta:.6f}')
 
-    root = 'data/ising_thermal_N%d_J%.2f_hx%.2f_hz%.2f' % (N, J, hx, hz)
-    return {'gf': save_and_compare(root + '_exact_diagonalization_gf.txt', generating_function_table(rho, N, theta_grid(number_points), max_block_size),
-                                   'theta ' + ' '.join(f'ReG_{l} ImG_{l}' for l in range(1, max_block_size + 1)), root + '_gf.txt')}
+    run_dir = run_directory('ising_thermal_N%d_J%.2f_hx%.2f_hz%.2f_dbeta%g_D%d' % (N, J, hx, hz, p.get('dbeta', 0.001), p.get('max_dim', 1000)))
+    return {'gf': save_and_compare(generating_function_table(rho, N, theta_grid(number_points), max_block_size),
+                                   'theta ' + ' '.join(f'ReG_{l} ImG_{l}' for l in range(1, max_block_size + 1)), run_dir + 'gf.txt')}
 
 
 if __name__ == '__main__':

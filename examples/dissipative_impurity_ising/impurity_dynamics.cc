@@ -1,6 +1,6 @@
 #include <itensor/all.h>
-#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -8,7 +8,6 @@
 
 using namespace std;
 using namespace itensor;
-namespace fs = std::filesystem;
 
 // Ising chain with a dephasing impurity on the first site (arXiv:2404.04255):
 //   H = -sum_j Z_j Z_{j+1} + Jxx sum_j X_j X_{j+1} + Jzzz sum_j Z_j Z_{j+2} + hx sum_j X_j,
@@ -27,8 +26,8 @@ namespace fs = std::filesystem;
 //    theorem: Z_1 is applied to the ket and the state is evolved further).
 //
 //
-// Output (data/): <root>.txt (t, maxD, Tr rho), <root>_xj.txt (t, <X_1>, ..., <X_N>),
-//                 <root>_Tness<Tness>_z1z1.txt (t, Re, Im, |.| of <Z_1(t) Z_1(0)>)
+// Output (data/<run>/): observables.txt (t, maxD, Tr rho), xj.txt (t, <X_1>, ..., <X_N>),
+//                      z1z1.txt (t, Re, Im, |.| of <Z_1(t) Z_1(0)>)
 //
 // Usage: ./impurity_dynamics input.txt
 //   input parameters (with defaults in the code): N, hx, Jxx, Jzzz, gamma, Tness, T, dt, max_dim,
@@ -98,12 +97,12 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Output
 
-    fs::create_directories("data");
-    string root = tinyformat::format("data/impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_gamma%.3f_dt%.4f_D%d", N, Jxx, Jzzz, hx, gamma, dt, max_dim);
+    string dir = make_run_directory("data", tinyformat::format("impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_hz%.3f_gamma%.3f_Tness%g_T%g_dt%.4f_D%d",
+                                                               N, Jxx, Jzzz, hx, hz, gamma, Tness, T, dt, max_dim), argv[1]);
 
-    ofstream out(root + ".txt");
+    ofstream out(dir + "observables.txt");
     out << setprecision(14) << "# t . maxD . Tr(rho)\n";
-    ofstream out_xj(root + "_xj.txt");
+    ofstream out_xj(dir + "xj.txt");
     out_xj << setprecision(14) << "# t . <X_1> . ... . <X_N>\n";
 
     // ---------------------------------
@@ -135,7 +134,7 @@ int main(int argc, char* argv[])
     A.mapPrime(1, 0);
     rho.set(N+1, A);
 
-    ofstream out_corr(tinyformat::format("%s_Tness%.1f_z1z1.txt", root, Tness));
+    ofstream out_corr(dir + "z1z1.txt");
     out_corr << setprecision(14) << "# t . Re . Im . abs of <Z_1(t) Z_1(0)>\n";
 
     int steps_corr = compute_steps_per_measure(t_corr, dt);

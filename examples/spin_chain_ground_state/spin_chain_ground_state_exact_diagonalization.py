@@ -17,7 +17,7 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import eigsh
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from exact_diagonalization_tools import read_input, save_and_compare, tn_root  # noqa: E402
+from exact_diagonalization_tools import read_input, run_directory, save_and_compare  # noqa: E402
 
 PAULI = {'x': sp.csr_matrix([[0., 1.], [1., 0.]]),
          'y': sp.csr_matrix([[0., -1j], [1j, 0.]]),
@@ -88,16 +88,16 @@ def main(input_file):
 
     energy, psi = ground_state(spin_chain_hamiltonian(N, J, J2, h), N, conserve_sz)
 
-    root = tn_root('data/spin_chain_N%d_J%.3f_%.3f_%.3f_J2%.3f_%.3f_%.3f_hx%.3f_hz%.3f',
-                   N, J['x'], J['y'], J['z'], J2['x'], J2['y'], J2['z'], h['x'], h['z'])
+    run = 'spin_chain_N%d_J%.3f_%.3f_%.3f_J2%.3f_%.3f_%.3f_hx%.3f_hz%.3f' % (
+        N, J['x'], J['y'], J['z'], J2['x'], J2['y'], J2['z'], h['x'], h['z'])
+    run_dir = run_directory(run + '_sz' if conserve_sz else run)
     comparisons = {'energy': None}
     print(f'ED ground-state energy: {energy:.12f}')
-    if os.path.exists(root + '.txt'):
-        tn_energy, tn_variance, _ = np.loadtxt(root + '.txt')
+    if os.path.exists(run_dir + 'energy.txt'):
+        tn_energy, tn_variance, _ = np.loadtxt(run_dir + 'energy.txt')
         comparisons['energy'] = {'E': abs(tn_energy - energy), 'variance': abs(tn_variance)}
-        print(f'Comparison with {root}.txt: |E_TN - E_ED| = {abs(tn_energy - energy):.2e}, TN variance = {tn_variance:.2e}')
-    comparisons['profile'] = save_and_compare(root + '_profile_ED.txt', profile(psi, N), 'j <Z_j> <Z_jZ_j+1> S',
-                                              root + '_profile.txt')
+        print(f'Comparison with {run_dir}energy.txt: |E_TN - E_ED| = {abs(tn_energy - energy):.2e}, TN variance = {tn_variance:.2e}')
+    comparisons['profile'] = save_and_compare(profile(psi, N), 'j <Z_j> <Z_jZ_j+1> S', run_dir + 'profile.txt')
     return comparisons
 
 

@@ -1,13 +1,12 @@
 #include <itensor/all.h>
-#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include "mytn.h"
 
 using namespace std;
 using namespace itensor;
-namespace fs = std::filesystem;
 
 // <psi_0| Z_j(t) |psi_0> of a spin-1/2 chain,
 //   H = sum_j (Jx X_j X_{j+1} + Jy Y_j Y_{j+1} + Jz Z_j Z_{j+1}) + sum_j (hx X_j + hy Y_j + hz Z_j),
@@ -19,7 +18,7 @@ namespace fs = std::filesystem;
 // With the same propagator the two pictures agree up to truncation. A field hy != 0 makes H complex,
 // so that U^dag Z U and U Z U^dag (evolution backwards in time) give different results.
 //
-// Output (data/): <root>.txt with t, <Z_j> in the Schroedinger and in the Heisenberg picture, largest
+// Output (data/<run>/): observables.txt with t, <Z_j> in the Schroedinger and in the Heisenberg picture, largest
 // bond dimension of the state and of the operator.
 //
 // Usage: ./heisenberg_picture input.txt
@@ -67,9 +66,9 @@ int main(int argc, char* argv[])
     MPS psi = psi0;
     MPO O   = Z;
 
-    fs::create_directories("data");
-    string root = tinyformat::format("data/heisenberg_%s_N%d_site%d_J%.2f_%.2f_%.2f_h%.2f_%.2f_%.2f_dt%.4f", propagator, N, site, Jx, Jy, Jz, hx, hy, hz, dt);
-    ofstream out(root + ".txt");
+    string dir = make_run_directory("data", tinyformat::format("heisenberg_%s_N%d_site%d_J%.2f_%.2f_%.2f_h%.2f_%.2f_%.2f_%s%s_T%g_dt%.4f",
+                                                               propagator, N, site, Jx, Jy, Jz, hx, hy, hz, basis, config, T, dt), argv[1]);
+    ofstream out(dir + "observables.txt");
     out << setprecision(14) << "# t . <Z_j> (Schroedinger) . <Z_j> (Heisenberg) . maxD state . maxD operator\n";
 
     int steps_measure = compute_steps_per_measure(t_measure, dt);

@@ -1,6 +1,6 @@
 #include <itensor/all.h>
-#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -8,7 +8,6 @@
 
 using namespace std;
 using namespace itensor;
-namespace fs = std::filesystem;
 
 // Thermal state of the Ising chain H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ] with the same
 // energy as the product state |+x...+x>, i.e. the state the quench of ising_quench thermalizes to,
@@ -18,7 +17,7 @@ namespace fs = std::filesystem;
 // state rho(0) ~ Id by imaginary-time steps (first order in dbeta), until the energy density reaches
 // that of |+x...+x>, -J ((N-1)/N + hx).
 //
-// Output (data/): <root>_energy.txt (beta, energy density) and <root>_gf.txt (same format as the
+// Output (data/<run>/): energy.txt (beta, energy density) and gf.txt (same format as the
 // generating functions of ising_quench).
 //
 // Usage: ./ising_thermal input.txt
@@ -70,10 +69,9 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Imaginary-time evolution: rho -> expH rho expH, until the target energy is reached
 
-    fs::create_directories("data");
-    string root = tinyformat::format("data/ising_thermal_N%d_J%.2f_hx%.2f_hz%.2f", N, J, hx, hz);
+    string dir = make_run_directory("data", tinyformat::format("ising_thermal_N%d_J%.2f_hx%.2f_hz%.2f_dbeta%g_D%d", N, J, hx, hz, dbeta, max_dim), argv[1]);
 
-    ofstream out_energy(root + "_energy.txt");
+    ofstream out_energy(dir + "energy.txt");
     out_energy << setprecision(13) << "# beta . energy density\n";
 
     double beta   = 0.;
@@ -102,7 +100,7 @@ int main(int argc, char* argv[])
     vector<vector<complex<double> > > G;
 
     for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(&rho, sites, l, theta));
-    write_generating_function(root + "_gf.txt", theta, G);
+    write_generating_function(dir + "gf.txt", theta, G);
 
     return 0;
 }

@@ -1,6 +1,6 @@
 #include <itensor/all.h>
-#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -8,16 +8,15 @@
 
 using namespace std;
 using namespace itensor;
-namespace fs = std::filesystem;
 
 // Quench in the Ising chain with longitudinal (hx) and transverse (hz) fields,
 //   H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ],
 // starting from a product state polarized along x, and full counting statistics of the
 // magnetization S^x_A of a block A of l = 1..N/2 sites centered in the chain (arXiv:2005.01679).
 //
-// Every t_measure the program writes to data/:
-//   <root>_entropy.txt    t, S_1, ..., S_{N-1}  (entanglement entropy across each bond, natural log)
-//   <root>_gf_t<t>.txt    theta, Re G_1, Im G_1, ..., Re G_{N/2}, Im G_{N/2}
+// Every t_measure the program writes to data/<run>/:
+//   entropy.txt    t, S_1, ..., S_{N-1}  (entanglement entropy across each bond, natural log)
+//   gf_t<t>.txt    theta, Re G_1, Im G_1, ..., Re G_{N/2}, Im G_{N/2}
 // with the generating function G_l(theta) = <exp(i theta S^x_A)> for a block of l sites.
 //
 // Usage: ./ising_quench input.txt
@@ -67,10 +66,9 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Output
 
-    fs::create_directories("data");
-    string root = tinyformat::format("data/ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_D%d_%s", N, J, hx, hz, max_dim, state);
+    string dir = make_run_directory("data", tinyformat::format("ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_%s_T%g_dt%g_D%d", N, J, hx, hz, state, T, dt, max_dim), argv[1]);
 
-    ofstream out_entropy(root + "_entropy.txt");
+    ofstream out_entropy(dir + "entropy.txt");
     out_entropy << setprecision(10) << "# t . S_1 . ... . S_{N-1}\n";
 
     vector<double> theta = make_theta_grid(number_points);
@@ -97,7 +95,7 @@ int main(int argc, char* argv[])
         vector<vector<complex<double> > > G;
 
         for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(&psi, sites, l, theta));
-        write_generating_function(tinyformat::format("%s_gf_t%.2f.txt", root, t), theta, G);
+        write_generating_function(tinyformat::format("%sgf_t%.2f.txt", dir, t), theta, G);
 
         cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << compute_entanglement_entropy(&psi, N/2, true) << "\n";
     }

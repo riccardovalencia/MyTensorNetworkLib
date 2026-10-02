@@ -2,7 +2,8 @@
  * @file output.h
  * @brief Data management: output files.
  *
- * The callers choose the file names (e.g. with tinyformat::format, encoding the parameters).
+ * The callers choose the file names. The examples write each run into its own folder
+ * <folder>/<run name>/ (make_run_directory), the run name encoding the parameters.
  */
 #ifndef MYTN_IO_OUTPUT_H
 #define MYTN_IO_OUTPUT_H
@@ -14,6 +15,22 @@
 
 using namespace std;
 using namespace itensor;
+
+/**
+ * @brief Create the folder <folder>/<run_name>/ (and its parents) if needed, and copy the input
+ *        file of the run into it as input.txt.
+ * @code
+ * string dir = make_run_directory("data", tinyformat::format("rydberg_N%d_D%d", N, max_dim), argv[1]);
+ * ofstream out(dir + "observables.txt");
+ * @endcode
+ * @param folder     Parent folder (e.g. "data").
+ * @param run_name   Name of the run, encoding all the parameters that change the results, so that
+ *                   different inputs never share a folder.
+ * @param input_file Input file of the run (not copied if empty).
+ * @return The path of the folder, ending with '/'.
+ */
+string
+make_run_directory(const string& folder, const string& run_name, const string& input_file = "");
 
 /**
  * @brief Write one value per site: lines "j value", j = 1, 2, ...

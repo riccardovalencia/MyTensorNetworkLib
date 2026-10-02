@@ -2,7 +2,22 @@
 
 Complete simulations built on MyTensorNetworkLib. Each folder contains one or more programs
 `<name>.cc`, a sample input `input_<name>.txt` for each of them (small parameters, a few seconds of
-run time) and writes its results to `<folder>/data/`.
+run time), and the scripts `<name>_exact_diagonalization.py` (check) and `plot_<name>.py` (figures).
+
+## Output layout
+
+Every run writes into its own folder, named after all the parameters that change its results, with a
+copy of its input file; data and figures are kept apart:
+
+```
+<folder>/data/<run>/input.txt                      input of the run: rerun it with ./<name> data/<run>/input.txt
+<folder>/data/<run>/observables.txt, nj.txt, ...   TN results
+<folder>/data/<run>/<file>_exact_diagonalization.txt   ED result for <file>.txt (from the ED script)
+<folder>/plots/<run>/<figure>.png                  figures (from the plot script)
+```
+
+e.g. `rydberg_chain_tebd/data/rydberg_N12_M2_V2_2.00_Om_0.300_T5_dt0.05_D64/`. The folder is created by
+`make_run_directory` ([../io/output.h](../io/output.h)); the ED and plot scripts find the same folder.
 
 ## Build and run
 
@@ -25,8 +40,8 @@ cd rydberg_chain_tebd
 
 The Python scripts `<name>_exact_diagonalization.py` are meant to quickly compare the tensor-network
 (TN) results of the program `<name>` with exact diagonalization (ED) on small systems. Each script reads
-the same input file as the TN program, solves the same model exactly and, if the TN output is present
-in `data/`, prints the maximum difference of each observable (expected: of the order of the Trotter /
+the same input file as the TN program, solves the same model exactly, writes its results next to the
+TN files of the run and, if the TN output is present, prints the maximum difference of each observable (expected: of the order of the Trotter /
 truncation errors of the TN run):
 
 ```bash
@@ -51,15 +66,15 @@ Each program `<name>` has a script `plot_<name>.py` that plots its results; the 
 [plot_utils.py](plot_utils.py). Site-resolved quantities (densities, magnetizations, entanglement
 entropy of each cut) get a heatmap over sites and time, profiles at a few times and the time trace
 of every site; the other observables are plotted against time (or field, site). Exact-diagonalization
-results are optional: they are overlaid as dashed lines when present in `data/` (run the
-`<name>_exact_diagonalization.py` script first), and the plots work without them. The figures are saved next to the data
-as `<file prefix>_<name>.png`:
+results are optional: they are overlaid as dashed lines when present in the run folder (run the
+`<name>_exact_diagonalization.py` script first), and the plots work without them. The figures are saved
+in `plots/<run>/`:
 
 ```bash
 cd rydberg_chain_tebd
 ./rydberg_chain_tebd input_rydberg_chain_tebd.txt
 python3 plot_rydberg_chain_tebd.py                     # latest run in data/
-python3 plot_rydberg_chain_tebd.py data/rydberg_N12_M2_V2_2.00_Om_0.300_D64 --show   # a given run, open the figures
+python3 plot_rydberg_chain_tebd.py rydberg_N12_M2_V2_2.00_Om_0.300_T5_dt0.05_D64 --show   # a given run, open the figures
 ```
 
 ## Input files

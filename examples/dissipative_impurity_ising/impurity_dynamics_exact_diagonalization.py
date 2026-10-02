@@ -14,7 +14,7 @@ Majorana covariance matrix C: this gives the exact dynamics for large N.
 Otherwise the Lindblad equation is integrated for the full density matrix (N <= 8).
 
 Usage: python3 impurity_dynamics_exact_diagonalization.py input_impurity_dynamics.txt
-Output: data/<root>_exact_diagonalization_xj.txt and ..._z1z1.txt, compared with the TN files.
+Output: data/<run>/xj_exact_diagonalization.txt and z1z1_exact_diagonalization.txt, compared with the TN files.
 """
 import os
 import sys
@@ -22,7 +22,7 @@ from functools import reduce
 import numpy as np
 from scipy.integrate import solve_ivp
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from exact_diagonalization_tools import read_input, save_and_compare, lindblad_evolution
+from exact_diagonalization_tools import read_input, run_directory, save_and_compare, lindblad_evolution
 
 MAX_DENSE_SITES = 8
 
@@ -138,10 +138,11 @@ def main(input_file):
         sys.exit(f'Jxx or Jzzz != 0 needs the full density matrix: use N <= {MAX_DENSE_SITES}.')
     xj = xj[:len(times)]
 
-    root = 'data/impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_gamma%.3f_dt%.4f_D%d' % (N, Jxx, Jzzz, hx, gamma, dt, max_dim)
+    run_dir = run_directory('impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_hz%.3f_gamma%.3f_Tness%g_T%g_dt%.4f_D%d' % (
+        N, Jxx, Jzzz, hx, p.get('hz', 0.), gamma, Tness, T, dt, max_dim))
     return {
-        'xj':   save_and_compare(root + '_exact_diagonalization_xj.txt', xj, 't ' + ' '.join(f'X_{j}' for j in range(1, N + 1)), root + '_xj.txt'),
-        'z1z1': save_and_compare(root + '_exact_diagonalization_z1z1.txt', z1z1, 't Re Im abs', root + '_Tness%.1f_z1z1.txt' % Tness),
+        'xj':   save_and_compare(xj, 't ' + ' '.join(f'X_{j}' for j in range(1, N + 1)), run_dir + 'xj.txt'),
+        'z1z1': save_and_compare(z1z1, 't Re Im abs', run_dir + 'z1z1.txt'),
     }
 
 

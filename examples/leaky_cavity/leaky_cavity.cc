@@ -1,7 +1,7 @@
 #include <itensor/all.h>
 #include <functional>
-#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -9,7 +9,6 @@
 
 using namespace std;
 using namespace itensor;
-namespace fs = std::filesystem;
 
 // N spin-1/2 (e.g. Rydberg atoms) coupled to a single lossy cavity mode a:
 //   H = omega0 a^dag a + h S^z + (g/sqrt(N)) * coupling + V sum_j n_j n_{j+1},   n = (1 - Z)/2,
@@ -24,8 +23,8 @@ namespace fs = std::filesystem;
 // The initial state is the vacuum times all spins in the coherent state (theta, phi = 0).
 //
 // Usage: ./leaky_cavity input.txt   (see input.txt; missing entries take the defaults below)
-// Output (data/): <root>_obs.txt (t, Tr rho, <X_1>, <Z_1>, <a^dag a>, maxD),
-//                 <root>_xj.txt, <root>_zj.txt (t, <X_j> / <Z_j> for j = 1..N); values divided by Tr rho.
+// Output (data/<run>/): observables.txt (t, Tr rho, <X_1>, <Z_1>, <a^dag a>, maxD),
+//                      xj.txt, zj.txt (t, <X_j> / <Z_j> for j = 1..N); values divided by Tr rho.
 
 int main(int argc, char* argv[])
 {
@@ -106,10 +105,9 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Output
 
-    fs::create_directories("data");
-    string root = tinyformat::format("data/leaky_cavity_%s_N%d_maxocc%d_h%.2f_gratio%.2f_V%.2f_kappa%.2f_D%d",
-                                     coupling, N, max_occ, h, g_ratio, V, kappa, max_dim);
-    ofstream out(root + "_obs.txt"), out_x(root + "_xj.txt"), out_z(root + "_zj.txt");
+    string dir = make_run_directory("data", tinyformat::format("leaky_cavity_%s_N%d_maxocc%d_h%.2f_gratio%.2f_V%.2f_kappa%.2f_theta%g_T%g_dt%g_D%d",
+                                                               coupling, N, max_occ, h, g_ratio, V, kappa, theta / M_PI, T, dt, max_dim), argv[1]);
+    ofstream out(dir + "observables.txt"), out_x(dir + "xj.txt"), out_z(dir + "zj.txt");
     out   << setprecision(8) << "# t . Tr(rho) . <X_1> . <Z_1> . <a^dag a> . maxD\n";
     out_x << setprecision(8) << "# t . <X_1> . ... . <X_N>\n";
     out_z << setprecision(8) << "# t . <Z_1> . ... . <Z_N>\n";

@@ -15,7 +15,7 @@ import numpy as np
 from scipy.linalg import expm
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from exact_diagonalization_tools import read_input, save_and_compare, tn_root  # noqa: E402
+from exact_diagonalization_tools import read_input, run_directory, save_and_compare  # noqa: E402
 
 PAULI = {'x': np.array([[0., 1.], [1., 0.]], dtype=complex),
          'y': np.array([[0., -1j], [1j, 0.]]),
@@ -60,13 +60,13 @@ def main(input_file):
         values.append(np.vdot(psi, Z @ psi).real)
         psi = step @ psi
 
-    root = tn_root('data/heisenberg_%s_N%d_site%d_J%.2f_%.2f_%.2f_h%.2f_%.2f_%.2f_dt%.4f', p.get('propagator', 'gates'),
-                   N, site, J['x'], J['y'], J['z'], h['x'], h['y'], h['z'], dt)
+    tn_file = run_directory('heisenberg_%s_N%d_site%d_J%.2f_%.2f_%.2f_h%.2f_%.2f_%.2f_%s%s_T%g_dt%.4f' % (
+        p.get('propagator', 'gates'), N, site, J['x'], J['y'], J['z'], h['x'], h['y'], h['z'], basis, config, T, dt)) + 'observables.txt'
     data = np.column_stack([times, values, values])
-    comparisons = {'expectation': save_and_compare(root + '_ED.txt', data, 't Z_Schroedinger Z_Heisenberg', root + '.txt'),
+    comparisons = {'expectation': save_and_compare(data, 't Z_Schroedinger Z_Heisenberg', tn_file),
                    'pictures': None}
-    if os.path.exists(root + '.txt'):
-        tn = np.loadtxt(root + '.txt', ndmin=2)
+    if os.path.exists(tn_file):
+        tn = np.loadtxt(tn_file, ndmin=2)
         comparisons['pictures'] = {'Z_S - Z_H': np.abs(tn[:, 1] - tn[:, 2]).max()}
         print(f'|Schroedinger - Heisenberg| = {comparisons["pictures"]["Z_S - Z_H"]:.2e}')
     return comparisons

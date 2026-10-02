@@ -9,15 +9,15 @@ at max_occ, initial state |0> (x) (cos(theta/2)|up_z> + sin(theta/2)|down_z>)^N.
 The Lindblad equation is integrated for the full density matrix: only small N and max_occ.
 
 Usage: python3 leaky_cavity_exact_diagonalization.py input_leaky_cavity.txt
-Output: data/<root>_exact_diagonalization_obs.txt (t, <X_1>, <Z_1>, <a^dag a>),
-        compared with the TN file <root>_obs.txt.
+Output: data/<run>/observables_exact_diagonalization.txt (t, <X_1>, <Z_1>, <a^dag a>),
+        compared with the TN file observables.txt.
 """
 import os
 import sys
 import numpy as np
 import quimb as qu
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from exact_diagonalization_tools import read_input, save_and_compare, lindblad_evolution
+from exact_diagonalization_tools import read_input, run_directory, save_and_compare, lindblad_evolution
 
 
 def main(input_file):
@@ -60,8 +60,9 @@ def main(input_file):
     obs = [op(X, 1), op(Z, 1), op(a.H @ a, 0)]
     data = [[t] + [np.real(np.trace(O @ rho)) / np.real(np.trace(rho)) for O in obs] for t, rho in zip(times, rhos)]
 
-    root = 'data/leaky_cavity_%s_N%d_maxocc%d_h%.2f_gratio%.2f_V%.2f_kappa%.2f_D%d' % (coupling, N, max_occ, h, g_ratio, V, kappa, max_dim)
-    return {'obs': save_and_compare(root + '_exact_diagonalization_obs.txt', data, 't X_1 Z_1 n_photon', root + '_obs.txt', [2, 3, 4])}
+    run = 'leaky_cavity_%s_N%d_maxocc%d_h%.2f_gratio%.2f_V%.2f_kappa%.2f_theta%g_T%g_dt%g_D%d' % (
+        coupling, N, max_occ, h, g_ratio, V, kappa, p.get('theta', 0.9), T, p.get('dt', 0.01), max_dim)
+    return {'obs': save_and_compare(data, 't X_1 Z_1 n_photon', run_directory(run) + 'observables.txt', [2, 3, 4])}
 
 
 if __name__ == '__main__':

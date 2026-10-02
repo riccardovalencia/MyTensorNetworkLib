@@ -1,6 +1,6 @@
 #include <itensor/all.h>
-#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -8,7 +8,6 @@
 
 using namespace std;
 using namespace itensor;
-namespace fs = std::filesystem;
 
 // Closed dynamics of N spin-1/2 coupled to a single cavity mode a (pure state, no losses):
 //   H = omega0 a^dag a + h S^z + (g/sqrt(N)) * coupling,
@@ -18,7 +17,7 @@ namespace fs = std::filesystem;
 // all spins in the coherent state (theta, phi = 0). Benchmarked with exact diagonalization.
 //
 // Usage: ./cavity_unitary input.txt
-// Output (data/): <root>.txt with t, fidelity |<psi(0)|psi(t)>|^2, <S^x>/N, <S^z>/N (Pauli units),
+// Output (data/<run>/): observables.txt with t, fidelity |<psi(0)|psi(t)>|^2, <S^x>/N, <S^z>/N (Pauli units),
 //                 <a^dag a>/N, maxD.
 
 int main(int argc, char* argv[])
@@ -52,9 +51,9 @@ int main(int argc, char* argv[])
     for(TebdGate gate : make_light_matter_gates(sites, omega0, h, g/sqrt(N), dt, "long-range", coupling)) gates.push_back(gate);
     Args args = {"Cutoff=", cut_off, "MaxDim=", max_dim};
 
-    fs::create_directories("data");
-    string root = tinyformat::format("data/cavity_unitary_%s_N%d_maxocc%d_omega%.2f_h%.2f_g%.2f", coupling, N, max_occ, omega0, h, g);
-    ofstream out(root + ".txt");
+    string dir = make_run_directory("data", tinyformat::format("cavity_unitary_%s_N%d_maxocc%d_omega%.2f_h%.2f_g%.2f_theta%g_T%g_dt%g_D%d",
+                                                               coupling, N, max_occ, omega0, h, g, theta / M_PI, T, dt, max_dim), argv[1]);
+    ofstream out(dir + "observables.txt");
     out << "# t . fidelity . <S^x>/N . <S^z>/N . <a^dag a>/N . maxD\n" << setprecision(8);
 
     for(int k = 0 ; k < total_steps ; k++)

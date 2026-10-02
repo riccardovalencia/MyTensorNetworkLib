@@ -2,7 +2,8 @@
 
 The ED scripts (<example>/<name>_exact_diagonalization.py) read the same input files as the
 tensor-network (TN) programs, solve the same problem exactly for small systems and compare the
-results with the TN output, if present in data/. Each script defines main(input_file), which returns
+results with the TN output, if present. Each run writes into data/<run>/ (run name encoding the
+parameters); the ED result of a TN file X.txt is written next to it as X_exact_diagonalization.txt. Each script defines main(input_file), which returns
 the comparisons ({output: {column: max |TN - ED|}}), so that it can be used by the tests (tests/).
 """
 import os
@@ -38,9 +39,15 @@ def read_input(path):
     return params
 
 
-def tn_root(fmt, *args):
-    """C-style file prefix, as built by the TN programs with tinyformat::format."""
-    return fmt % args
+def run_directory(run_name):
+    """Folder data/<run_name>/ of a run (as built by make_run_directory in the TN programs)."""
+    return os.path.join('data', run_name) + '/'
+
+
+def ed_file_name(tn_file):
+    """ED counterpart X_exact_diagonalization.txt of a TN file X.txt (same folder)."""
+    base, extension = os.path.splitext(tn_file)
+    return f'{base}_exact_diagonalization{extension}'
 
 
 def compare_tables(ed, tn, columns=None):
@@ -61,14 +68,15 @@ def compare_tables(ed, tn, columns=None):
     return len(rows), [np.abs(tn[i_tn, c_tn] - ed[i_ed, c_ed]).max() for c_ed, c_tn in zip(range(1, ed.shape[1]), columns)]
 
 
-def save_and_compare(ed_file, data, header, tn_file, columns=None):
-    """Save the ED data and compare it with the TN output tn_file, if it exists.
+def save_and_compare(data, header, tn_file, columns=None):
+    """Save the ED data next to the TN file (ed_file_name) and compare it with tn_file, if it exists.
 
     data, TN data: one row per time, first column = time.
     columns: indices of the TN columns to compare with the ED columns 1, 2, ... (default: same order).
     Prints and returns {column name: max |TN - ED|} over the rows with the same first column;
     returns None if tn_file does not exist or has no row in common with the ED data.
     """
+    ed_file = ed_file_name(tn_file)
     os.makedirs(os.path.dirname(ed_file) or '.', exist_ok=True)
     np.savetxt(ed_file, data, header=header)
     print(f'ED results written to {ed_file}')

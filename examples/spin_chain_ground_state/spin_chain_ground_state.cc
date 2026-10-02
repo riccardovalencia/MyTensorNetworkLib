@@ -1,13 +1,12 @@
 #include <itensor/all.h>
-#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include "mytn.h"
 
 using namespace std;
 using namespace itensor;
-namespace fs = std::filesystem;
 
 // Ground state of a spin-1/2 chain with nearest- and next-nearest-neighbour couplings,
 //   H = sum_j (Jx X_j X_{j+1} + Jy Y_j Y_{j+1} + Jz Z_j Z_{j+1})
@@ -15,9 +14,10 @@ namespace fs = std::filesystem;
 // with find_ground_state (DMRG with random restarts). With conserve_sz = 1 the search is restricted
 // to the sector S^z = 0 of the Neel state (needs hx = 0, Jx = Jy, J2x = J2y and N even).
 //
-// Output (data/): <root>.txt         energy, variance <H^2> - <H>^2, convergence flag (1/0)
-//                 <root>_restarts.txt final energy of every DMRG run
-//                 <root>_profile.txt  j, <Z_j>, <Z_j Z_{j+1}>, entanglement entropy (log2) of the bond (j, j+1)
+// Output (data/<run>/, run name with suffix _sz for conserve_sz = 1):
+//                 energy.txt   energy, variance <H^2> - <H>^2, convergence flag (1/0)
+//                 restarts.txt final energy of every DMRG run
+//                 profile.txt  j, <Z_j>, <Z_j Z_{j+1}>, entanglement entropy (log2) of the bond (j, j+1)
 //
 // Usage: ./spin_chain_ground_state input.txt
 //   input parameters (with defaults in the code): N, Jx, Jy, Jz, J2x, J2y, J2z, hx, hz, conserve_sz,
@@ -61,18 +61,18 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Output
 
-    fs::create_directories("data");
-    string root = tinyformat::format("data/spin_chain_N%d_J%.3f_%.3f_%.3f_J2%.3f_%.3f_%.3f_hx%.3f_hz%.3f", N, Jx, Jy, Jz, J2x, J2y, J2z, hx, hz);
+    string run = tinyformat::format("spin_chain_N%d_J%.3f_%.3f_%.3f_J2%.3f_%.3f_%.3f_hx%.3f_hz%.3f", N, Jx, Jy, Jz, J2x, J2y, J2z, hx, hz);
+    string dir = make_run_directory("data", conserve_sz ? run + "_sz" : run, argv[1]);
 
-    ofstream out(root + ".txt");
+    ofstream out(dir + "energy.txt");
     out << setprecision(14) << "# E . <H^2>-<H>^2 . converged\n";
     out << ground_state.energy << " " << ground_state.variance << " " << ground_state.converged << endl;
 
-    ofstream out_restarts(root + "_restarts.txt");
+    ofstream out_restarts(dir + "restarts.txt");
     out_restarts << setprecision(14) << "# restart . E\n";
     for(size_t r = 0 ; r < ground_state.restart_energies.size() ; r++) out_restarts << r+1 << " " << ground_state.restart_energies[r] << endl;
 
-    ofstream out_profile(root + "_profile.txt");
+    ofstream out_profile(dir + "profile.txt");
     out_profile << setprecision(14) << "# j . <Z_j> . <Z_j Z_{j+1}> . S(j,j+1)\n";
     vector<double> z = measure_magnetization(&psi, sites, "z");
     for(int j = 1 ; j <= N ; j++)

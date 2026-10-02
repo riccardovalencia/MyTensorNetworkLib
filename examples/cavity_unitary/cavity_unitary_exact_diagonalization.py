@@ -6,15 +6,15 @@
 with the boson truncated at max_occ and the initial state |0> (x) (cos(theta/2)|up_z> + sin(theta/2)|down_z>)^N.
 
 Usage: python3 cavity_unitary_exact_diagonalization.py input_cavity_unitary.txt
-Output: data/<root>_exact_diagonalization.txt (t, fidelity, <S^x>/N, <S^z>/N, <a^dag a>/N),
-        compared with the TN file <root>.txt.
+Output: data/<run>/observables_exact_diagonalization.txt (t, fidelity, <S^x>/N, <S^z>/N, <a^dag a>/N),
+        compared with the TN file observables.txt.
 """
 import os
 import sys
 import numpy as np
 import quimb as qu
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-from exact_diagonalization_tools import read_input, save_and_compare
+from exact_diagonalization_tools import read_input, run_directory, save_and_compare
 
 
 def main(input_file):
@@ -54,8 +54,9 @@ def main(input_file):
     data = [[t, abs(qu.fidelity(psi, psi0)) ** 2] + [np.real(qu.expec(O, psi)) for O in (Sx, Sz, n_photon)]
             for t, psi in zip(times, evo.at_times(times))]
 
-    root = 'data/cavity_unitary_%s_N%d_maxocc%d_omega%.2f_h%.2f_g%.2f' % (coupling, N, max_occ, omega0, h, g)
-    return {'obs': save_and_compare(root + '_exact_diagonalization.txt', data, 't fidelity Sx/N Sz/N n_photon/N', root + '.txt')}
+    run = 'cavity_unitary_%s_N%d_maxocc%d_omega%.2f_h%.2f_g%.2f_theta%g_T%g_dt%g_D%d' % (
+        coupling, N, max_occ, omega0, h, g, p.get('theta', 0.5), T, dt, p.get('max_dim', 50))
+    return {'obs': save_and_compare(data, 't fidelity Sx/N Sz/N n_photon/N', run_directory(run) + 'observables.txt')}
 
 
 if __name__ == '__main__':

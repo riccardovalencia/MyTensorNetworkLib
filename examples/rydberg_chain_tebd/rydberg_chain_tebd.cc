@@ -1,16 +1,15 @@
 #include <itensor/all.h>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <cmath>
-#include <filesystem>
 #include <random>
 #include "mytn.h"
 
 using namespace std;
 using namespace itensor;
-namespace fs = std::filesystem;
 
 // Example: closed dynamics of a 1D Rydberg chain via TEBD.
 //
@@ -29,10 +28,11 @@ namespace fs = std::filesystem;
 //
 // Usage: ./rydberg_chain_tebd input.txt
 //   input parameters (with defaults in the code): N, M, V2, Omega, T, dt, max_dim, sigmax, seed
-// Output: data/<file_root>.txt     -> t, fidelity with initial state, half-chain entropy, max bond dimension
-//         data/<file_root>_entropy.txt -> t, entanglement entropy S_j of the cut (j, j+1), j = 1..N-1
-//         data/<file_root>_nj.txt  -> t, Rydberg density n_j on each site
-//         data/<file_root>_Vj.txt  -> couplings V_j between sites j and j+1
+// Output, in data/<run>/ (run = rydberg_N.._M.._V2_.._Om_.._T.._dt.._D..[_sigmax.._seed..]), with a copy of the input:
+//         observables.txt -> t, fidelity with initial state, half-chain entropy, max bond dimension
+//         entropy.txt     -> t, entanglement entropy S_j of the cut (j, j+1), j = 1..N-1
+//         nj.txt          -> t, Rydberg density n_j on each site
+//         Vj.txt          -> couplings V_j between sites j and j+1
 
 int main(int argc, char* argv[])
 {
@@ -113,27 +113,27 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Output files
 
-    fs::create_directories("data");
-    string file_root = tinyformat::format("data/rydberg_N%d_M%d_V2_%.2f_Om_%.3f_D%d", N, M, V2, Omega, max_dim);
-    if(sigmax > 0) file_root += tinyformat::format("_sigmax%.5f_seed%d", sigmax, seed);
+    string run = tinyformat::format("rydberg_N%d_M%d_V2_%.2f_Om_%.3f_T%g_dt%g_D%d", N, M, V2, Omega, T, dt, max_dim);
+    if(sigmax > 0) run += tinyformat::format("_sigmax%.5f_seed%d", sigmax, seed);
+    string dir = make_run_directory("data", run, argv[1]);
 
     // couplings V_j (also used by rydberg_chain_tebd_exact_diagonalization.py)
-    ofstream save_file_V(file_root + "_Vj.txt");
+    ofstream save_file_V(dir + "Vj.txt");
     save_file_V << setprecision(16);
     for(double v : Vj) save_file_V << v << "\n";
     save_file_V.close();
 
-    ofstream save_file(file_root + ".txt");
+    ofstream save_file(dir + "observables.txt");
     save_file << "# t . fidelity . entropy . MaxD\n";
     save_file << setprecision(12);
 
-    ofstream save_file_nj(file_root + "_nj.txt");
+    ofstream save_file_nj(dir + "nj.txt");
     save_file_nj << "# t";
     for(int j : range1(N)) save_file_nj << " . " << j;
     save_file_nj << "\n";
     save_file_nj << setprecision(12);
 
-    ofstream save_file_entropy(file_root + "_entropy.txt");
+    ofstream save_file_entropy(dir + "entropy.txt");
     save_file_entropy << "# t . S_1 . ... . S_{N-1}\n" << setprecision(12);
 
     // ---------------------------------
