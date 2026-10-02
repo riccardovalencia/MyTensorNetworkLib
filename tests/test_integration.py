@@ -71,16 +71,30 @@ def run_and_compare(example, program, input_name, **overrides):
             shutil.rmtree(work, ignore_errors=True)
 
 
+def select(comparisons, outputs, keep=True):
+    """The comparisons of the given outputs (keep=True) or of all the others (keep=False)."""
+    return {output: columns for output, columns in comparisons.items() if (output in outputs) == keep}
+
+
 def max_difference(comparisons):
     """Largest |TN - ED| over all outputs and columns, with its label 'output:column'."""
     return max((diff, f'{output}:{column}') for output, columns in comparisons.items() for column, diff in columns.items())
 
 
-def convergence_ratio(example, program, input_name, dt):
-    """max |TN - ED| with time step dt divided by the one with dt/2 (~2^order for a method of that order)."""
-    coarse = max_difference(run_and_compare(example, program, input_name, dt=dt))[0]
-    fine = max_difference(run_and_compare(example, program, input_name, dt=dt / 2))[0]
-    return coarse / fine
+def convergence_ratio(example, program, input_name, step, parameter='dt', outputs=None, exclude=()):
+    """max |TN - ED| with the step `parameter` = step divided by the one with step/2 (~2^order for a method
+    of that order), over the given outputs (default: all) except those in exclude."""
+    def error(value):
+        comparisons = run_and_compare(example, program, input_name, **{parameter: value})
+        if outputs is not None:
+            comparisons = select(comparisons, outputs)
+        return max_difference(select(comparisons, exclude, keep=False))[0]
+    return error(step) / error(step / 2)
+
+
+# outputs of ising_quench that depend on the thermal state (imaginary-time step dbeta), not on dt
+THERMAL_OUTPUTS = ('thermal_gf', 'distance')
+TOLERANCE_THERMAL = 1e-3
 
 
 class TensorNetworkVsExactDiagonalization(unittest.TestCase):
@@ -103,7 +117,7 @@ class TensorNetworkVsExactDiagonalization(unittest.TestCase):
     def test_ising_quench(self):
         """Spin-chain gates (make_ising_gates), entanglement entropy and full counting statistics."""
         comparisons = run_and_compare('ising_full_counting_statistics', 'ising_quench', 'ising_quench.txt')
-        self.assert_matches_exact_diagonalization(comparisons, 5e-5)
+        self.assert_matches_exact_diagonalization(select(comparisons, THERMAL_OUTPUTS, keep=False), 5e-5)
 
     def test_cavity_dicke(self):
         """Spin-boson chain with all-to-all Dicke coupling via swap gates (make_light_matter_gates)."""
@@ -117,10 +131,11 @@ class TensorNetworkVsExactDiagonalization(unittest.TestCase):
 
     # ---- imaginary time ----------------------------------------------------------------------
 
-    def test_ising_thermal(self):
-        """Thermal state by imaginary-time evolution of the purified MPO, generating functions."""
-        comparisons = run_and_compare('ising_full_counting_statistics', 'ising_thermal', 'ising_thermal.txt')
-        self.assert_matches_exact_diagonalization(comparisons, 5e-4)
+    def test_ising_thermalization(self):
+        """Thermal state with the energy of the initial state of the quench (find_thermal_state, imaginary-time
+        evolution of the identity MPO): its generating functions and their distance from the evolved ones."""
+        comparisons = run_and_compare('ising_full_counting_statistics', 'ising_quench', 'ising_quench.txt')
+        self.assert_matches_exact_diagonalization(select(comparisons, THERMAL_OUTPUTS), TOLERANCE_THERMAL)
 
     # ---- open systems, purified density matrices ---------------------------------------------
 
@@ -251,7 +266,13 @@ class TimeStepConvergence(unittest.TestCase):
 
     def test_second_order_trotter(self):
         """make_symmetric_sweep: one symmetric sweep per step is a second-order Trotter step."""
-        self.assert_order(convergence_ratio('ising_full_counting_statistics', 'ising_quench', 'ising_quench.txt', 0.02), 2)
+        self.assert_order(convergence_ratio('ising_full_counting_statistics', 'ising_quench', 'ising_quench.txt', 0.02,
+                                            exclude=THERMAL_OUTPUTS), 2)
+
+    def test_first_order_imaginary_time(self):
+        """find_thermal_state: first-order imaginary-time steps (toExpH), the target energy matched within the step."""
+        self.assert_order(convergence_ratio('ising_full_counting_statistics', 'ising_quench', 'ising_quench.txt', 0.002,
+                                            parameter='dbeta', outputs=THERMAL_OUTPUTS), 1)
 
     def test_first_order_dissipative_step(self):
         """tebd_step with dissipative gates: rho + dt D rho is first order in dt."""

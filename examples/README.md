@@ -159,10 +159,12 @@ H = -sum Z_j Z_{j+1} + Jxx sum X_j X_{j+1} + Jzzz sum Z_j Z_{j+2} + hx sum X_j, 
 ### `ising_full_counting_statistics`
 Ising chain in longitudinal and transverse fields, H = -J sum (X_j X_{j+1} + hx X_j + hz Z_j), and
 full counting statistics of the block magnetization (arXiv:2005.01679).
-- `ising_quench`: TEBD from a product state along x (`state` = `up`, `down`, `wall`); every `t_measure` the entanglement entropy across each bond and the generating function
-  G_l(theta) = <exp(i theta S^x_A)> of blocks of l = 1..N/2 sites.
-  Inputs: `N`, `J`, `hx`, `hz`, `T`, `dt`, `max_dim`, `cut_off`, `state`, `t_measure`, `number_points`,
-  `max_block_size`.
-- `ising_thermal`: thermal state at the energy of |+x...+x> (imaginary-time evolution of the identity)
-  and its generating function. Inputs: `N`, `J`, `hx`, `hz`, `dbeta`, `number_points`, `max_block_size`,
-  `max_dim`, `cut_off`.
+- `ising_quench`: does the state thermalize? TEBD from a product state along x (`state` = `up`, `down`,
+  `wall`), compared with the thermal state that has the energy of the initial state, <psi(0)|H|psi(0)>
+  (`find_thermal_state`, imaginary-time evolution of the identity). Every `t_measure`: the entanglement
+  entropy across each bond, the generating function G_l(theta) = <exp(i theta S^x_A)> of blocks of
+  l = 1..`max_block_size` sites, and its distance from the thermal one, D_l(t) = max_theta |G_l(theta, t) - G_l^thermal(theta)|
+  (`distance_to_thermal.txt`; also `thermal.txt` with beta, `thermal_gf.txt`). With hx != 0 (non-integrable)
+  D_l(t) decays down to finite-size fluctuations.
+  Inputs: `N`, `J`, `hx`, `hz`, `state`, `T`, `dt`, `t_measure`, `max_dim`, `cut_off`, `number_points`,
+  `max_block_size`, `dbeta`, `thermal_max_dim`.

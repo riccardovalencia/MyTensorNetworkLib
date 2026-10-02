@@ -37,10 +37,10 @@ when the tests were written, so that a regression is caught while round-off and 
 | Test | Input | What it exercises | max \|TN - ED\| | Tolerance |
 |---|---|---|---|---|
 | `test_rydberg_chain` | `rydberg_chain.txt` | three-site gates in three layers (`make_rydberg_gates_nnn`) | 1.2e-5 | 5e-5 |
-| `test_ising_quench` | `ising_quench.txt` | spin-chain gates (`make_ising_gates`), entanglement entropy, full counting statistics | 1.8e-5 | 5e-5 |
+| `test_ising_quench` | `ising_quench.txt` | spin-chain gates (`make_ising_gates`), entanglement entropy, full counting statistics (thermal outputs excluded) | 1.8e-5 | 5e-5 |
 | `test_cavity_dicke` | `cavity_dicke.txt` | boson-spin swap gates, Dicke coupling (`make_light_matter_gates`) | 2.0e-3 | 5e-3 |
 | `test_cavity_tavis_cummings` | `cavity_tavis.txt` | same, Tavis-Cummings coupling | 3.2e-5 | 1e-4 |
-| `test_ising_thermal` | `ising_thermal.txt` | imaginary-time evolution of a purified MPO, generating functions of a mixed state | 1.4e-4 | 5e-4 |
+| `test_ising_thermalization` | `ising_quench.txt` | thermal state at the energy of the initial state (`find_thermal_state`), its generating functions and their distance from the evolved ones | 3.2e-4 | 1e-3 |
 | `test_leaky_cavity` | `leaky_cavity.txt` | Lindblad dynamics: `make_purified_gates`, local dissipators, purified-state observables | 4.5e-4 | 1.5e-3 |
 | `test_impurity_integrable` | `impurity_integrable.txt` | impurity gates and dissipator on the central bond, regression theorem; exact free-fermion solution | 1.5e-3 | 5e-3 |
 | `test_impurity_xx_coupling` | `impurity_xx.txt` | same with an XX coupling (dense Lindblad solution) | 2.9e-3 | 1e-2 |
@@ -58,12 +58,13 @@ the tests fail (|Z_S - Z_H| ~ 0.2-0.5).
 | `test_mpo_propagator` | `heisenberg_mpo.txt` | first-order MPO toExpH(H, i dt), N = 6, dt = 0.02 | 9.5e-7 | 3.3e-2 | 1e-5, 1e-1 |
 
 `TimeStepConvergence`: the TN error is a discretization error with the expected order. Each test
-runs the same input with time steps dt and dt/2 and checks the ratio of the errors (at least 80% of
-2^order).
+runs the same input with steps dt and dt/2 (dbeta and dbeta/2 for the imaginary time) and checks the
+ratio of the errors (at least 80% of 2^order).
 
 | Test | Input, dt | Expected order | Ratio |
 |---|---|---|---|
 | `test_second_order_trotter` | `ising_quench.txt`, 0.02 | 2 (symmetric sweep, `make_symmetric_sweep`) | 4.00 |
+| `test_first_order_imaginary_time` | `ising_quench.txt`, dbeta 0.002 | 1 (first-order imaginary-time steps of `find_thermal_state`) | 1.99 |
 | `test_first_order_dissipative_step` | `impurity_nnn.txt`, 0.02 | 1 (first-order dissipative gates) | 2.01 |
 | `test_first_order_local_long_range_splitting` | `cavity_dicke.txt`, 0.005 | 1 (local and photon-matter sweeps in sequence) | 2.01 |
 

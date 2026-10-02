@@ -130,12 +130,14 @@ def plot_site_map(path, quantity, site_label='site j', title=''):
     return fig
 
 
-def plot_generating_function(path, title=''):
+def plot_generating_function(path, title='', reference=None, reference_label='reference'):
     """Generating functions G_l(theta) of a file with rows "theta Re G_1 Im G_1 Re G_2 ...":
-    real and imaginary parts, one line per block size l (ED dashed, if any)."""
+    real and imaginary parts, one line per block size l (ED dashed, if any; the file reference, e.g. the
+    thermal state, dotted red)."""
     import matplotlib.pyplot as plt
     data = load(path)[1]
     ed_data = load_exact_diagonalization(path, data.shape[1])
+    reference_data = load(reference)[1] if reference and os.path.exists(reference) else None
     blocks = (data.shape[1] - 1) // 2
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.6))
     colors = plt.cm.viridis(np.linspace(0, 0.9, blocks))
@@ -144,6 +146,9 @@ def plot_generating_function(path, title=''):
             ax.plot(data[:, 0], data[:, 2 * l - 1 + part], color=color, label=f'l = {l}')
             if ed_data is not None:
                 ax.plot(ed_data[:, 0], ed_data[:, 2 * l - 1 + part], 'k--', lw=0.6)
+            if reference_data is not None:
+                ax.plot(reference_data[:, 0], reference_data[:, 2 * l - 1 + part], 'r:', lw=1,
+                        label=reference_label if l == 1 else None)
         ax.set(xlabel='theta', ylabel=('Re' if part == 0 else 'Im') + ' G_l(theta)')
     axes[0].legend(fontsize='small')
     fig.suptitle(title)

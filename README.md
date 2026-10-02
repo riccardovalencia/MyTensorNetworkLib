@@ -28,6 +28,7 @@ The library is organized by role. Each folder contains pairs `name.h` / `name.cc
 | | `tight_binding.h` | Free fermions: MPOs, single-particle matrices, bond terms and TEBD gates. |
 | | `bosonic_east_model.h`, `bosonic_east_model_states.h` | Bosonic quantum east model: Hamiltonians, TEBD gates, super-bosonic states, dressed operators. |
 | [dynamics](dynamics/) | `time_evolution.h` | One TEBD step (`tebd_step`) for pure states and purified density matrices; measurement intervals. |
+| | `thermal.h` | Thermal states at a given energy, by imaginary-time evolution of the identity MPO (`find_thermal_state`). |
 | | `heisenberg.h` | Operators in the Heisenberg picture: one step O -> U^dag O U with TEBD gates or a propagator MPO (`heisenberg_step`), adjoint MPOs. |
 | | `lindblad.h` | Dissipative gates for Lindblad dynamics on the vectorized density matrix; gates on the bra-ket chain. |
 | | `purified_state.h` | Trace and observables of a density matrix stored as a purified MPS. |

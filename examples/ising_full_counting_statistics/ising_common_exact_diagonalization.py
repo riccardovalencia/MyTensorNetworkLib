@@ -1,4 +1,4 @@
-"""Dense exact diagonalization of the Ising chain of ising_quench / ising_thermal (small N).
+"""Dense exact diagonalization of the Ising chain of ising_quench (small N).
 
     H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ]
 """
@@ -18,6 +18,26 @@ def site_operator(o, j, N):
 def ising_hamiltonian(N, J, hx, hz):
     H = sum(-J * site_operator(X, j, N) @ site_operator(X, j + 1, N) for j in range(N - 1))
     return H + sum(-J * hx * site_operator(X, j, N) - J * hz * site_operator(Z, j, N) for j in range(N))
+
+
+def initial_state(N, state):
+    """Product state along x of ising_quench: up = all |+x>, down = all |-x>, wall = |+x...+x -x...-x>."""
+    config = {'up': '0' * N, 'down': '1' * N, 'wall': '0' * (N // 2) + '1' * (N - N // 2)}[state]
+    plus, minus = np.array([1., 1.]) / np.sqrt(2), np.array([1., -1.]) / np.sqrt(2)
+    return reduce(np.kron, [plus if c == '0' else minus for c in config])
+
+
+def thermal_density_matrix(E, V, energy):
+    """Gibbs state exp(-beta H)/Z with Tr(rho H) = energy, from the eigenvalues E and eigenvectors V of H;
+    returns (rho, beta)."""
+    from scipy.optimize import brentq
+
+    def weights(beta):
+        w = np.exp(-beta * (E - E.min()))
+        return w / w.sum()
+
+    beta = brentq(lambda b: np.sum(weights(b) * E) - energy, 0., 50.)
+    return V @ np.diag(weights(beta)) @ V.conj().T, beta
 
 
 def block_start(N, l):

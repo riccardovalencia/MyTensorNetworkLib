@@ -1,4 +1,5 @@
 #include <itensor/all.h>
+#include <complex>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -12,16 +13,64 @@ using namespace itensor;
 // Quench in the Ising chain with longitudinal (hx) and transverse (hz) fields,
 //   H = -J sum_j [ X_j X_{j+1} + hx X_j + hz Z_j ],
 // starting from a product state polarized along x, and full counting statistics of the
-// magnetization S^x_A of a block A of l = 1..N/2 sites centered in the chain (arXiv:2005.01679).
+// magnetization S^x_A of a block A of l = 1..max_block_size sites centered in the chain (arXiv:2005.01679).
 //
-// Every t_measure the program writes to data/<run>/:
-//   entropy.txt    t, S_1, ..., S_{N-1}  (entanglement entropy across each bond, natural log)
-//   gf_t<t>.txt    theta, Re G_1, Im G_1, ..., Re G_{N/2}, Im G_{N/2}
-// with the generating function G_l(theta) = <exp(i theta S^x_A)> for a block of l sites.
+// Does the state thermalize? The generating function G_l(theta) = <exp(i theta S^x_A)> along the TEBD
+// evolution is compared with the one of the thermal state rho ~ exp(-beta H) with the energy of the
+// initial state, <psi(0)|H|psi(0)> (find_thermal_state, imaginary-time evolution of the identity).
+// For hx != 0 the chain is not integrable and G_l(theta, t) is expected to approach the thermal one
+// (up to finite-size fluctuations); for hx = 0 it relaxes to a generalized Gibbs ensemble instead.
+//
+// Output (data/<run>/):
+//   thermal.txt              beta and energy density of the thermal state, energy density of psi(0)
+//   thermal_gf.txt           theta, Re G_1, Im G_1, ... of the thermal state
+//   and every t_measure:
+//   entropy.txt              t, S_1, ..., S_{N-1}  (entanglement entropy across each bond, natural log)
+//   gf_t<t>.txt              theta, Re G_1, Im G_1, ..., Re G_L, Im G_L  (L = max_block_size)
+//   distance_to_thermal.txt  t, D_1, ..., D_L with D_l(t) = max_theta |G_l(theta, t) - G_l^thermal(theta)|
 //
 // Usage: ./ising_quench input.txt
-//   input parameters (with defaults in the code): N, J, hx, hz, T, dt, max_dim, state
-//        state = up (all |+x>, default), down (all |-x>) or wall (domain wall)
+//   input parameters (with defaults in the code): N, J, hx, hz, state, T, dt, t_measure, max_dim,
+//   cut_off, number_points, max_block_size, dbeta and thermal_max_dim (thermal state)
+//   state = up (all |+x>, default), down (all |-x>) or wall (domain wall)
+
+
+// configuration of make_product_state(sites, config, "x")
+static string
+make_initial_config(const int N, const string& state)
+{
+    if(state == "up")   return string(N, '0');
+    if(state == "down") return string(N, '1');
+    if(state == "wall") return string(N/2, '0') + string(N - N/2, '1');
+    throw ITError("state must be up, down or wall, got " + state);
+}
+
+
+// G_l(theta) for l = 1..max_block_size, of a state (MPS*) or a density matrix (MPO*)
+template <class State>
+static vector<vector<complex<double> > >
+compute_block_generating_functions(State* state, const SpinHalf& sites, const int max_block_size, const vector<double>& theta)
+{
+    vector<vector<complex<double> > > G;
+    for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(state, sites, l, theta));
+    return G;
+}
+
+
+// max_theta |G_l(theta) - G'_l(theta)| for every block size l
+static vector<double>
+compute_distances(const vector<vector<complex<double> > >& G, const vector<vector<complex<double> > >& G_reference)
+{
+    vector<double> distances;
+    for(size_t l = 0 ; l < G.size() ; l++)
+    {
+        double distance = 0.;
+        for(size_t k = 0 ; k < G[l].size() ; k++) distance = max(distance, abs(G[l][k] - G_reference[l][k]));
+        distances.push_back(distance);
+    }
+    return distances;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -29,52 +78,55 @@ int main(int argc, char* argv[])
 
     InputGroup input = InputGroup(argv[1], "input");
 
-    int    N      = input.getInt("N", 16);
-    double J      = input.getReal("J", 1.);
-    double hx     = input.getReal("hx", 0.1);
-    double hz     = input.getReal("hz", 1.);
-    double T      = input.getReal("T", 5.);
-    double dt     = input.getReal("dt", 0.01);
-    int    max_dim = input.getInt("max_dim", 128);
-    string state  = input.getString("state", "up");
-    double t_measure      = input.getReal("t_measure", 0.5);        // time between measurements
-    int    number_points  = input.getInt("number_points", 100);    // values of theta in [-pi, pi)
-    int    max_block_size = input.getInt("max_block_size", N/2);   // largest block
-    double cut_off        = input.getReal("cut_off", 1E-16);       // SVD truncation
-
-
-    Args args = {"Cutoff=", cut_off, "MaxDim=", max_dim};
-
-    // ---------------------------------
-    // Initial product state along x
+    int    N       = input.getInt("N", 16);
+    double J       = input.getReal("J", 1.);
+    double hx      = input.getReal("hx", 0.1);
+    double hz      = input.getReal("hz", 1.);
+    string state   = input.getString("state", "up");
+    double T       = input.getReal("T", 5.);
+    double dt      = input.getReal("dt", 0.01);
+    double t_measure       = input.getReal("t_measure", 0.5);       // time between measurements
+    int    max_dim         = input.getInt("max_dim", 128);          // TEBD
+    double cut_off         = input.getReal("cut_off", 1E-16);       // TEBD
+    int    number_points   = input.getInt("number_points", 100);    // values of theta in [-pi, pi)
+    int    max_block_size  = input.getInt("max_block_size", N/2);   // largest block
+    double dbeta           = input.getReal("dbeta", 0.001);         // thermal state: imaginary-time step
+    int    thermal_max_dim = input.getInt("thermal_max_dim", 1000); // thermal state: MPO products
 
     SpinHalf sites = SpinHalf(N, {"ConserveQNs=", false});
+    MPS psi = make_product_state(sites, make_initial_config(N, state), "x");
+    vector<double> theta = make_theta_grid(number_points);
 
-    string config;
-    if(state == "up")        config = string(N, '0');
-    else if(state == "down") config = string(N, '1');
-    else if(state == "wall") config = string(N/2, '0') + string(N - N/2, '1');
-    else { cerr << "Unknown state " << state << " (use up, down or wall)\n"; return 1; }
-
-    MPS psi = make_product_state(sites, config, "x");
+    string dir = make_run_directory("data", tinyformat::format("ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_%s_T%g_dt%g_D%d_dbeta%g",
+                                                               N, J, hx, hz, state, T, dt, max_dim, dbeta), argv[1]);
 
     // ---------------------------------
-    // Second-order Trotter gates: forward sweep with dt/2, then the reversed sweep
+    // Thermal state with the energy of the initial state
 
+    AutoMPO H_terms = make_spin_chain_terms(sites, {-J, 0., 0.}, {0., 0., 0.}, {-J*hx, 0., -J*hz});
+    double  energy  = real(innerC(psi, toMPO(H_terms), psi));
+    ThermalState thermal = find_thermal_state(H_terms, energy, dbeta, {"Cutoff", 1E-14, "MaxDim", thermal_max_dim});
+    vector<vector<complex<double> > > G_thermal = compute_block_generating_functions(&thermal.rho, sites, max_block_size, theta);
+
+    write_generating_function(dir + "thermal_gf.txt", theta, G_thermal);
+    ofstream out_thermal(dir + "thermal.txt");
+    out_thermal << setprecision(13) << "# beta . energy density (thermal state) . energy density of psi(0)\n"
+                << thermal.beta << " " << thermal.energy / N << " " << energy / N << endl;
+    cerr << "thermal state: beta = " << thermal.beta << "  energy density = " << thermal.energy / N
+         << "  (psi(0): " << energy / N << ")\n";
+
+    // ---------------------------------
+    // TEBD evolution (second-order Trotter steps), compared with the thermal state
+
+    Args args = {"Cutoff=", cut_off, "MaxDim=", max_dim};
     vector<TebdGate> gates = make_ising_gates(sites, J, hx, hz, dt);
-
-    // ---------------------------------
-    // Output
-
-    string dir = make_run_directory("data", tinyformat::format("ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_%s_T%g_dt%g_D%d", N, J, hx, hz, state, T, dt, max_dim), argv[1]);
 
     ofstream out_entropy(dir + "entropy.txt");
     out_entropy << setprecision(10) << "# t . S_1 . ... . S_{N-1}\n";
-
-    vector<double> theta = make_theta_grid(number_points);
-
-    // ---------------------------------
-    // Time evolution
+    ofstream out_distance(dir + "distance_to_thermal.txt");
+    out_distance << setprecision(10) << "# t";
+    for(int l = 1 ; l <= max_block_size ; l++) out_distance << " . D_" << l;
+    out_distance << "\n";
 
     int n_measure         = int(T / t_measure + 1E-9);
     int steps_per_measure = compute_steps_per_measure(t_measure, dt);
@@ -92,13 +144,16 @@ int main(int argc, char* argv[])
         for(int b = 1 ; b < N ; b++) out_entropy << " " << compute_entanglement_entropy(&psi, b, true);
         out_entropy << endl;
 
-        vector<vector<complex<double> > > G;
-
-        for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(&psi, sites, l, theta));
+        vector<vector<complex<double> > > G = compute_block_generating_functions(&psi, sites, max_block_size, theta);
         write_generating_function(tinyformat::format("%sgf_t%.2f.txt", dir, t), theta, G);
 
-        cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << compute_entanglement_entropy(&psi, N/2, true) << "\n";
-    }
+        vector<double> distances = compute_distances(G, G_thermal);
+        out_distance << t;
+        for(double d : distances) out_distance << " " << d;
+        out_distance << endl;
 
+        cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << compute_entanglement_entropy(&psi, N/2, true)
+             << "  D_L = " << distances.back() << "\n";
+    }
     return 0;
 }
