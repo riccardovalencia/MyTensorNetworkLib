@@ -2,7 +2,8 @@
 
 Each script plots the most recent run found in data/ (or the run whose file prefix, the part of the
 data file names before the suffix, is given as argument), saves the figures as <prefix>_<name>.png
-and, with --show, opens them. Exact-diagonalization results, if present, are overlaid as dashed lines.
+and, with --show, opens them. Exact-diagonalization (ED) results are optional: they are overlaid as
+dashed lines when their file exists and matches the TN data, and skipped otherwise.
 
     python3 plot_rydberg_chain_tebd.py                              # latest run
     python3 plot_rydberg_chain_tebd.py data/rydberg_N12_..._D64 --show
@@ -43,9 +44,16 @@ def load(path):
     return names, np.loadtxt(path, ndmin=2)
 
 
-def existing(path):
-    """path if the file exists, otherwise None (for optional ED files)."""
-    return path if path and os.path.exists(path) else None
+def load_optional(path, number_columns=None):
+    """Data of an optional (ED) file, or None if it does not exist or has a different number of
+    columns than the TN data (e.g. a file left by a run with other parameters)."""
+    if not path or not os.path.exists(path):
+        return None
+    data = load(path)[1]
+    if number_columns is not None and data.shape[1] != number_columns:
+        print(f'skipped {path}: {data.shape[1]} columns instead of {number_columns}')
+        return None
+    return data
 
 
 def plot_columns(path, ed=None, ed_columns=None, title='', marker=''):
@@ -60,7 +68,7 @@ def plot_columns(path, ed=None, ed_columns=None, title='', marker=''):
     ncols = min(3, len(columns))
     nrows = -(-len(columns) // ncols)
     fig, axes = plt.subplots(nrows, ncols, figsize=(4.5 * ncols, 3.2 * nrows), squeeze=False)
-    ed_data = load(ed)[1] if existing(ed) else None
+    ed_data = load_optional(ed)
     ed_of = dict(zip(ed_columns or columns, range(1, ed_data.shape[1]))) if ed_data is not None else {}
     for ax, c in zip(axes.flat, columns):
         ax.plot(data[:, 0], data[:, c], marker=marker, label='TN')
@@ -83,7 +91,7 @@ def plot_site_map(path, quantity, ed=None, site_label='site j', title=''):
     data = load(path)[1]
     t, values = data[:, 0], data[:, 1:]
     sites = np.arange(1, values.shape[1] + 1)
-    ed_data = load(ed)[1] if existing(ed) else None
+    ed_data = load_optional(ed, data.shape[1])
 
     fig, (ax_map, ax_profiles, ax_traces) = plt.subplots(1, 3, figsize=(15, 4))
     mesh = ax_map.pcolormesh(sites, t, values, shading='nearest', cmap='viridis')
@@ -119,7 +127,7 @@ def plot_generating_function(path, ed=None, title=''):
     real and imaginary parts, one line per block size l (ED dashed)."""
     import matplotlib.pyplot as plt
     data = load(path)[1]
-    ed_data = load(ed)[1] if existing(ed) else None
+    ed_data = load_optional(ed, data.shape[1])
     blocks = (data.shape[1] - 1) // 2
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.6))
     colors = plt.cm.viridis(np.linspace(0, 0.9, blocks))

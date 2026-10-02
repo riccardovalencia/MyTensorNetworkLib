@@ -51,7 +51,8 @@ Each program `<name>` has a script `plot_<name>.py` that plots its results; the 
 [plot_utils.py](plot_utils.py). Site-resolved quantities (densities, magnetizations, entanglement
 entropy of each cut) get a heatmap over sites and time, profiles at a few times and the time trace
 of every site; the other observables are plotted against time (or field, site). Exact-diagonalization
-results, if present in `data/`, are overlaid as dashed lines. The figures are saved next to the data
+results are optional: they are overlaid as dashed lines when present in `data/` (run the
+`<name>_exact_diagonalization.py` script first), and the plots work without them. The figures are saved next to the data
 as `<file prefix>_<name>.png`:
 
 ```bash
