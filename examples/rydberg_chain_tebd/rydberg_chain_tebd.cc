@@ -30,6 +30,7 @@ namespace fs = std::filesystem;
 // Usage: ./rydberg_chain_tebd input.txt
 //   input parameters (with defaults in the code): N, M, V2, Omega, T, dt, max_dim, sigmax, seed
 // Output: data/<file_root>.txt     -> t, fidelity with initial state, half-chain entropy, max bond dimension
+//         data/<file_root>_entropy.txt -> t, entanglement entropy S_j of the cut (j, j+1), j = 1..N-1
 //         data/<file_root>_nj.txt  -> t, Rydberg density n_j on each site
 //         data/<file_root>_Vj.txt  -> couplings V_j between sites j and j+1
 
@@ -132,6 +133,9 @@ int main(int argc, char* argv[])
     save_file_nj << "\n";
     save_file_nj << setprecision(12);
 
+    ofstream save_file_entropy(file_root + "_entropy.txt");
+    save_file_entropy << "# t . S_1 . ... . S_{N-1}\n" << setprecision(12);
+
     // ---------------------------------
     // Time evolution
 
@@ -150,6 +154,10 @@ int main(int argc, char* argv[])
             save_file_nj << t;
             for(double m : mz) save_file_nj << " " << (1-m)/2.;
             save_file_nj << "\n";
+
+            save_file_entropy << t;
+            for(int j = 1 ; j < N ; j++) save_file_entropy << " " << compute_entanglement_entropy(&psi, j);
+            save_file_entropy << "\n";
 
             cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << EE << "\n";
         }

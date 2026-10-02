@@ -7,8 +7,9 @@ starting from the kink |1...1 0...0> with M excitations.
 With position disorder (sigmax > 0) the couplings V_j are read from the TN output <root>_Vj.txt.
 
 Usage: python3 rydberg_chain_tebd_exact_diagonalization.py input_rydberg_chain_tebd.txt
-Output: data/<root>_exact_diagonalization_obs.txt (t, fidelity, half-chain entropy) and
-        ..._nj.txt (t, n_1, ..., n_N), compared with the TN files <root>.txt and <root>_nj.txt.
+Output: data/<root>_exact_diagonalization_obs.txt (t, fidelity, half-chain entropy), ..._nj.txt
+        (t, n_1, ..., n_N) and ..._entropy.txt (t, S_1, ..., S_{N-1}, entropy of each cut), compared
+        with the TN files <root>.txt, <root>_nj.txt and <root>_entropy.txt.
 """
 import os
 import sys
@@ -54,18 +55,21 @@ def main(input_file):
 
     ts = np.arange(0, T + 1e-9, t_measure)
     evo = qu.Evolution(psi0, H, method='solve')
-    data = []
+    data, entropy = [], []
     for t, psi in zip(ts, evo.at_times(ts)):
         fidelity = abs(qu.fidelity(psi, psi0)) ** 2   # quimb returns |<psi|psi0>|
         S = qu.entropy_subsys(psi, dims, sysa=range(N // 2))
         nj = [np.real(qu.expec(qu.ikron(n, dims, j), psi)) for j in range(N)]
         data.append([t, fidelity, S] + nj)
+        entropy.append([t] + [qu.entropy_subsys(psi, dims, sysa=range(c)) for c in range(1, N)])
     data = np.array(data)
 
     return {
         'obs': save_and_compare(root + '_exact_diagonalization_obs.txt', data[:, :3], 't fidelity S_half', root + '.txt', [1, 2]),
         'nj':  save_and_compare(root + '_exact_diagonalization_nj.txt', data[:, [0] + list(range(3, 3 + N))],
                                 't ' + ' '.join(f'n_{j}' for j in range(1, N + 1)), root + '_nj.txt'),
+        'entropy': save_and_compare(root + '_exact_diagonalization_entropy.txt', np.array(entropy),
+                                    't ' + ' '.join(f'S_{j}' for j in range(1, N)), root + '_entropy.txt'),
     }
 
 

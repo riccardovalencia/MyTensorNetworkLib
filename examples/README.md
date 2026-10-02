@@ -45,6 +45,22 @@ open systems). `impurity_dynamics_exact_diagonalization.py` uses the free-fermio
 Each script also defines `main(input_file)`, which returns the comparisons
 (`{output: {column: max |TN - ED|}}`); the integration tests in [../tests](../tests/) use it.
 
+## Plots
+
+Each program `<name>` has a script `plot_<name>.py` that plots its results; the shared code is in
+[plot_utils.py](plot_utils.py). Site-resolved quantities (densities, magnetizations, entanglement
+entropy of each cut) get a heatmap over sites and time, profiles at a few times and the time trace
+of every site; the other observables are plotted against time (or field, site). Exact-diagonalization
+results, if present in `data/`, are overlaid as dashed lines. The figures are saved next to the data
+as `<file prefix>_<name>.png`:
+
+```bash
+cd rydberg_chain_tebd
+./rydberg_chain_tebd input_rydberg_chain_tebd.txt
+python3 plot_rydberg_chain_tebd.py                     # latest run in data/
+python3 plot_rydberg_chain_tebd.py data/rydberg_N12_M2_V2_2.00_Om_0.300_D64 --show   # a given run, open the figures
+```
+
 ## Input files
 
 All programs read their parameters from a file in the ITensor `InputGroup` format; missing entries
@@ -92,7 +108,8 @@ Closed dynamics of a 1D Rydberg chain (interactions up to next-nearest neighbour
 detunings) from a kink state, with 3-site TEBD gates (`make_rydberg_gates_nnn`).
 Optional gaussian disorder on the atomic positions reproduces Fig. S1 of arXiv:2309.12392.
 - Inputs: `N`, `M` (initial excitations), `V2`, `Omega`, `T`, `dt`, `max_dim`, `cut_off`, `sigmax`, `seed`, `t_measure`.
-- Output: fidelity, half-chain entropy, bond dimension; Rydberg densities `n_j(t)`.
+- Output: fidelity, half-chain entropy, bond dimension; Rydberg densities `n_j(t)`; entanglement entropy
+  `S_j(t)` of every cut (j, j+1).
 
 ### `leaky_cavity`
 N spin-1/2 coupled to a lossy cavity mode (open Dicke or Tavis-Cummings model), optionally with
