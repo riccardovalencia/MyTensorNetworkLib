@@ -125,7 +125,10 @@ int main(int argc, char* argv[])
     }
 
     // ---------------------------------
-    // 3. Autocorrelation <Z_1(t) Z_1(0)>: apply Z on the first ket site and keep evolving
+    // 3. Autocorrelation <Z_1(t) Z_1(0)> = Tr[Z_1 e^{Lt}(Z_1 rho)] (quantum regression theorem): Z_1 acts
+    //    on the ket only (left multiplication, the ket holds the row index of rho), then the state keeps
+    //    evolving. Z_1 on the bra would give rho Z_1, i.e. <Z_1(0) Z_1(t)> = <Z_1(t) Z_1(0)>^*, and on both
+    //    sides Z_1 rho Z_1, not a correlation function (checked against the full Lindblad equation).
 
     rho /= compute_trace_purified(&rho);
     ITensor A = rho(N+1) * 2 * op(sites, "Sz", N+1);
