@@ -72,33 +72,8 @@ int main(int argc, char* argv[])
     // ---------------------------------
     // Atomic positions -> interactions V_j between site j and j+1
 
-    double d1 = pow(1/V1, 1./6);
-    double d2 = pow(1/V2, 1./6);
-
-    vector<vector<double> > rj;
-    double x = 0.;
-    for(int j = 0 ; j < N ; j++)
-    {
-        rj.push_back({x, 0., 0.});
-        x += (j % 2 == 0) ? d1 : d2;
-    }
-
-    if(sigmax > 0)
-    {
-        default_random_engine generator;
-        generator.seed(seed);
-        normal_distribution<double> noise_x(0, sigmax);
-        normal_distribution<double> noise_y(0, sigmax);
-        normal_distribution<double> noise_z(0, 5*sigmax);
-
-        for(vector<double>& r : rj)
-        {
-            r[0] += noise_x(generator);
-            r[1] += noise_y(generator);
-            r[2] += noise_z(generator);
-        }
-    }
-
+    // alternating distances d1, d2 (V1 and V2 for V(r) = 1/r^6); disorder sigma_z = 5 sigma_x = 5 sigma_y
+    vector<vector<double> > rj = make_chain_positions(N, {pow(1/V1, 1./6), pow(1/V2, 1./6)}, {sigmax, sigmax, 5*sigmax}, seed);
     vector<double> Vj = compute_power_law_couplings(rj, 6.);
 
     vector<double> Deltaj, Omegaj;
@@ -151,13 +126,11 @@ int main(int argc, char* argv[])
             save_file << t << " " << fidelity << " " << EE << " " << maxLinkDim(psi) << "\n";
 
             vector<double> mz = measure_magnetization(&psi, sites, "z");
-            save_file_nj << t;
-            for(double m : mz) save_file_nj << " " << (1-m)/2.;
-            save_file_nj << "\n";
+            vector<double> nj;
+            for(double m : mz) nj.push_back((1-m)/2.);
+            write_row(save_file_nj, t, nj);
 
-            save_file_entropy << t;
-            for(int j = 1 ; j < N ; j++) save_file_entropy << " " << compute_entanglement_entropy(&psi, j);
-            save_file_entropy << "\n";
+            write_row(save_file_entropy, t, compute_entanglement_entropies(&psi));
 
             cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << EE << "\n";
         }

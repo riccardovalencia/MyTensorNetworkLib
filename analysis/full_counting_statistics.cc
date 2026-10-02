@@ -4,6 +4,7 @@
  */
 #include "full_counting_statistics.h"
 #include <itensor/all.h>
+#include <algorithm>
 #include <functional>
 #include <cmath>
 #include <complex>
@@ -107,6 +108,46 @@ compute_generating_function( MPO* rho, const SpinHalf sites, int block_size, con
         G.push_back(eltC(trace));
     }
     return G;
+}
+
+
+// G_l for l = 1..max_block_size, for a state (MPS*) or a density matrix (MPO*)
+template <class State>
+static vector<vector<complex<double> > >
+compute_all_blocks( State* state, const SpinHalf& sites, int max_block_size, const vector<double>& theta )
+{
+    vector<vector<complex<double> > > G;
+    for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(state, sites, l, theta));
+    return G;
+}
+
+
+vector<vector<complex<double> > >
+compute_block_generating_functions( MPS* psi, const SpinHalf sites, int max_block_size, const vector<double>& theta )
+{
+    return compute_all_blocks(psi, sites, max_block_size, theta);
+}
+
+
+vector<vector<complex<double> > >
+compute_block_generating_functions( MPO* rho, const SpinHalf sites, int max_block_size, const vector<double>& theta )
+{
+    return compute_all_blocks(rho, sites, max_block_size, theta);
+}
+
+
+// largest |G - G'| over theta, block by block
+vector<double>
+compute_generating_function_distances( const vector<vector<complex<double> > >& G, const vector<vector<complex<double> > >& G_reference )
+{
+    vector<double> distances;
+    for(size_t l = 0 ; l < G.size() ; l++)
+    {
+        double distance = 0.;
+        for(size_t k = 0 ; k < G[l].size() ; k++) distance = max(distance, abs(G[l][k] - G_reference[l][k]));
+        distances.push_back(distance);
+    }
+    return distances;
 }
 
 

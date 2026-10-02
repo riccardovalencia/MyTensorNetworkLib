@@ -341,6 +341,35 @@ make_rydberg_gates_nnn(const SiteSet sites , const vector<double> Deltaj, const 
 }
 
 
+// positions along x from the cyclic spacings, then the gaussian displacements (only if some sigma > 0,
+// so that the random generator is not used otherwise); one unit normal distribution per direction,
+// scaled by sigma, so that a zero sigma is allowed
+vector<vector<double> >
+make_chain_positions(const int N, const vector<double> spacings, const vector<double> sigma, const unsigned seed)
+{
+    vector<vector<double> > rj;
+    double x = 0.;
+    for(int j = 0 ; j < N ; j++)
+    {
+        rj.push_back({x, 0., 0.});
+        x += spacings[j % spacings.size()];
+    }
+    if(sigma[0] > 0 || sigma[1] > 0 || sigma[2] > 0)
+    {
+        default_random_engine generator;
+        generator.seed(seed);
+        normal_distribution<double> noise_x(0, 1), noise_y(0, 1), noise_z(0, 1);
+        for(vector<double>& r : rj)
+        {
+            r[0] += sigma[0] * noise_x(generator);
+            r[1] += sigma[1] * noise_y(generator);
+            r[2] += sigma[2] * noise_z(generator);
+        }
+    }
+    return rj;
+}
+
+
 // V_j = 1/|r_j - r_{j+1}|^alpha from the Euclidean distance of consecutive atoms
  
 vector<double>

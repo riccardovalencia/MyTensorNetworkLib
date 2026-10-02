@@ -88,6 +88,22 @@ measure_local_operator( MPS* psi, const ITensor& O, const int site )
 }
 
 
+// Contract rho site by site with the identity (trace) on every site but `site`, where O^T is inserted:
+// Tr(rho O) = sum_{s,s'} <s'|rho|s> <s|O|s'>, i.e. rho(s, s') contracted with O(s', s)
+Cplx
+measure_local_operator( const MPO& rho, const ITensor& O, const int site )
+{
+    ITensor contraction;
+    for(int j = 1 ; j <= length(rho) ; j++)
+    {
+        Index s = noPrime(findIndex(rho(j), "Site,0"));
+        ITensor local = (j == site) ? swapPrime(O, 0, 1) : delta(dag(s), prime(s));
+        contraction = (j == 1) ? rho(j) * local : contraction * rho(j) * local;
+    }
+    return eltC(contraction);
+}
+
+
 // Optionally reverse (and conjugate) psi_seed, retag its link indices (unique per insertion), then
 // copy its tensors on start, start+1, ...: the first and last tensors get the external link of *psi
 // as an extra index, filled only at value 1 (the seed is a product with the rest of *psi across it).

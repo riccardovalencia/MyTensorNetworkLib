@@ -6,6 +6,7 @@
 #define MYTN_MPS_ENTANGLEMENT_H
 
 #include <itensor/all.h>
+#include <vector>
 
 using namespace std;
 using namespace itensor;
@@ -20,5 +21,14 @@ using namespace itensor;
  */
 double
 compute_entanglement_entropy( MPS* psi, int site, bool natural_log = false );
+
+/**
+ * @brief Entanglement entropy of every cut: S_j across the bond (j, j+1) for j = 1..N-1.
+ * @param psi         State; its orthogonality center is moved.
+ * @param natural_log Use the natural logarithm instead of log2 (default).
+ * @return N-1 values.
+ */
+vector<double>
+compute_entanglement_entropies( MPS* psi, bool natural_log = false );
 
 #endif

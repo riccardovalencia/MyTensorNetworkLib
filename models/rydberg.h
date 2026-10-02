@@ -61,6 +61,18 @@ MPO
 make_pxp_mpo(const SiteSet s, const double omega);
 
 /**
+ * @brief Positions {x, y, z} of N atoms along x, with the spacings repeated cyclically (e.g. {d1, d2}
+ *        for alternating distances) and, optionally, independent gaussian displacements.
+ * @param N        Number of atoms (the first one at the origin).
+ * @param spacings Distances between consecutive atoms, used cyclically.
+ * @param sigma    Standard deviations {sigma_x, sigma_y, sigma_z} of the displacements (default: none).
+ * @param seed     Seed of the displacements (the draws are x, y, z for each atom in order).
+ * @return N positions.
+ */
+vector<vector<double> >
+make_chain_positions(const int N, const vector<double> spacings, const vector<double> sigma = {0., 0., 0.}, const unsigned seed = 1);
+
+/**
  * @brief Nearest-neighbour couplings V_j = 1/|r_j - r_{j+1}|^alpha from atomic positions.
  * @param rj    Positions {x, y, z} of the N atoms, in order along the chain.
  * @param alpha Power-law exponent (6 for van der Waals interactions).

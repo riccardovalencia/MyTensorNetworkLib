@@ -37,58 +37,6 @@ using namespace itensor;
 //   state = up (all |+x>, default), down (all |-x>) or wall (domain wall)
 
 
-// configuration of make_product_state(sites, config, "x")
-static string
-make_initial_config(const int N, const string& state)
-{
-    if(state == "up")   return string(N, '0');
-    if(state == "down") return string(N, '1');
-    if(state == "wall") return string(N/2, '0') + string(N - N/2, '1');
-    throw ITError("state must be up, down or wall, got " + state);
-}
-
-
-// G_l(theta) for l = 1..max_block_size, of a state (MPS*) or a density matrix (MPO*)
-template <class State>
-static vector<vector<complex<double> > >
-compute_block_generating_functions(State* state, const SpinHalf& sites, const int max_block_size, const vector<double>& theta)
-{
-    vector<vector<complex<double> > > G;
-    for(int l = 1 ; l <= max_block_size ; l++) G.push_back(compute_generating_function(state, sites, l, theta));
-    return G;
-}
-
-
-// Tr(rho X_j) for every site, with the MPO of X_j = 2 S^x_j
-static vector<double>
-measure_magnetization_x(const MPO& rho, const SiteSet& sites)
-{
-    vector<double> xj;
-    for(int j = 1 ; j <= length(sites) ; j++)
-    {
-        AutoMPO ampo(sites);
-        ampo += 2., "Sx", j;
-        xj.push_back(real(traceC(rho, toMPO(ampo))));
-    }
-    return xj;
-}
-
-
-// max_theta |G_l(theta) - G'_l(theta)| for every block size l
-static vector<double>
-compute_distances(const vector<vector<complex<double> > >& G, const vector<vector<complex<double> > >& G_reference)
-{
-    vector<double> distances;
-    for(size_t l = 0 ; l < G.size() ; l++)
-    {
-        double distance = 0.;
-        for(size_t k = 0 ; k < G[l].size() ; k++) distance = max(distance, abs(G[l][k] - G_reference[l][k]));
-        distances.push_back(distance);
-    }
-    return distances;
-}
-
-
 int main(int argc, char* argv[])
 {
     if(argc != 2) { cerr << "Usage: " << argv[0] << " input.txt\n"; return 1; }
@@ -111,7 +59,7 @@ int main(int argc, char* argv[])
     int    thermal_max_dim = input.getInt("thermal_max_dim", 1000); // thermal state: MPO products
 
     SpinHalf sites = SpinHalf(N, {"ConserveQNs=", false});
-    MPS psi = make_product_state(sites, make_initial_config(N, state), "x");
+    MPS psi = make_product_state(sites, make_standard_config(N, state), "x");
     vector<double> theta = make_theta_grid(number_points);
 
     string dir = make_run_directory("data", tinyformat::format("ising_quench_N%d_J%.2f_hx%.2f_hz%.2f_%s_T%g_dt%g_D%d_dbeta%g",
@@ -126,7 +74,7 @@ int main(int argc, char* argv[])
     vector<vector<complex<double> > > G_thermal = compute_block_generating_functions(&thermal.rho, sites, max_block_size, theta);
 
     write_generating_function(dir + "thermal_gf.txt", theta, G_thermal);
-    write_site_values(dir + "thermal_xj.txt", measure_magnetization_x(thermal.rho, sites), 13);
+    write_site_values(dir + "thermal_xj.txt", measure_magnetization(thermal.rho, sites, "x"), 13);
     ofstream out_thermal(dir + "thermal.txt");
     out_thermal << setprecision(13) << "# beta . energy density (thermal state) . energy density of psi(0)\n"
                 << thermal.beta << " " << thermal.energy / N << " " << energy / N << endl;
@@ -160,21 +108,14 @@ int main(int argc, char* argv[])
             psi.normalize();
         }
 
-        out_xj << t;
-        for(double x : measure_magnetization(&psi, sites, "x")) out_xj << " " << x;
-        out_xj << endl;
-
-        out_entropy << t;
-        for(int b = 1 ; b < N ; b++) out_entropy << " " << compute_entanglement_entropy(&psi, b, true);
-        out_entropy << endl;
+        write_row(out_xj, t, measure_magnetization(&psi, sites, "x"));
+        write_row(out_entropy, t, compute_entanglement_entropies(&psi, true));
 
         vector<vector<complex<double> > > G = compute_block_generating_functions(&psi, sites, max_block_size, theta);
         write_generating_function(tinyformat::format("%sgf_t%.2f.txt", dir, t), theta, G);
 
-        vector<double> distances = compute_distances(G, G_thermal);
-        out_distance << t;
-        for(double d : distances) out_distance << " " << d;
-        out_distance << endl;
+        vector<double> distances = compute_generating_function_distances(G, G_thermal);
+        write_row(out_distance, t, distances);
 
         cerr << "t = " << t << "  maxD = " << maxLinkDim(psi) << "  S(N/2) = " << compute_entanglement_entropy(&psi, N/2, true)
              << "  D_L = " << distances.back() << "\n";

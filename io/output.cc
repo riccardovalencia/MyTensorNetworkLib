@@ -42,6 +42,16 @@ write_ground_state( const string& dir, const GroundState& ground_state )
 }
 
 
+// x, then the values separated by spaces, then a newline (flushed, so that the file can be read during the run)
+void
+write_row( ostream& out, const double x, const vector<double>& values )
+{
+    out << x;
+    for(double v : values) out << " " << v;
+    out << endl;
+}
+
+
 // one line per entry, prefixed with its 1-based site
 void
 write_site_values( const string file_name, const vector<double>& values, int precision )

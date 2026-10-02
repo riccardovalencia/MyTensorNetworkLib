@@ -119,9 +119,9 @@ int main(int argc, char* argv[])
 
         double t = k*dt;
         out << t << " " << maxLinkDim(rho) << " " << compute_trace_purified(&rho) << endl;
-        out_xj << t;
-        for(complex<double> x : measure_magnetization_purified(&rho, "x", true)) out_xj << " " << x.real();
-        out_xj << endl;
+        vector<double> xj;
+        for(complex<double> x : measure_magnetization_purified(&rho, "x", true)) xj.push_back(x.real());
+        write_row(out_xj, t, xj);
         cerr << "t = " << t << "  maxD = " << maxLinkDim(rho) << "\n";
     }
 

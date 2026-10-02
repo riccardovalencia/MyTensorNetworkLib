@@ -56,6 +56,31 @@ vector<complex<double> >
 compute_generating_function( MPO* rho, const SpinHalf sites, int block_size, const vector<double>& theta );
 
 /**
+ * @brief Generating functions G_l(theta) of the blocks of l = 1..max_block_size sites (centered),
+ *        in the format of write_generating_function (io/output.h).
+ * @param psi            State; its orthogonality center is moved.
+ * @param sites          Spin-1/2 site set.
+ * @param max_block_size Largest block.
+ * @param theta          Values of theta.
+ * @return G[l-1][k] = G_l(theta[k]).
+ */
+vector<vector<complex<double> > >
+compute_block_generating_functions( MPS* psi, const SpinHalf sites, int max_block_size, const vector<double>& theta );
+
+/** @brief Same for a density matrix given as an MPO (normalized to Tr(rho) = 1). */
+vector<vector<complex<double> > >
+compute_block_generating_functions( MPO* rho, const SpinHalf sites, int max_block_size, const vector<double>& theta );
+
+/**
+ * @brief Distance between two sets of generating functions (e.g. of an evolving state and of the
+ *        thermal state): D_l = max_theta |G_l(theta) - G'_l(theta)| for every block l.
+ * @param G, G_reference Generating functions on the same theta grid (as from compute_block_generating_functions).
+ * @return One distance per block.
+ */
+vector<double>
+compute_generating_function_distances( const vector<vector<complex<double> > >& G, const vector<vector<complex<double> > >& G_reference );
+
+/**
  * @brief MPO of sum_{j=start}^{start+block_size-1} S^x_j.
  * @param sites      Spin-1/2 site set.
  * @param start      First site of the block.

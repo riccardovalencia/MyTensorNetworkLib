@@ -15,14 +15,14 @@ The library is organized by role. Each folder contains pairs `name.h` / `name.cc
 | Folder | Header | Content |
 |---|---|---|
 | [mps](mps/) | `gates.h` | Gate containers (`TebdGate`, `DissipativeGate`, `OperatorPair`), `apply_gate(s)`, symmetric Trotter sweeps (`make_symmetric_sweep`), weights of terms shared by overlapping gates (`count_gates_containing`). |
-| | `entanglement.h` | Von Neumann entanglement entropy. |
-| | `mps_tools.h` | Embedding an MPS into another (`insert_state`), swaps, product-state tensors (`set_site_tensor`), local and two-point expectation values, density matrices. |
-| [dof](dof/) | `spin_half.h` | Spin-1/2 product states (`make_product_state`), Pauli operators, magnetization and correlations. |
+| | `entanglement.h` | Von Neumann entanglement entropy of one cut or of all the cuts (`compute_entanglement_entropies`). |
+| | `mps_tools.h` | Embedding an MPS into another (`insert_state`), swaps, product-state tensors (`set_site_tensor`), local and two-point expectation values (states and density-matrix MPOs), density matrices. |
+| [dof](dof/) | `spin_half.h` | Spin-1/2 product states (`make_product_state`, standard configurations `make_standard_config`, `make_init_state`), Pauli operators, magnetization (states and density matrices) and correlations. |
 | | `boson.h` | Bosonic Fock, coherent, squeezed and cat states; occupations, Fock-space probabilities, squeezing. |
 | | `fermion.h` | Product states of spinful fermions (`InitState` and MPS). |
 | | `spin_boson.h` | Boson + spins site sets (cavity QED) and their purified (bra-ket) version; initial states. |
 | [models](models/) | `spin_chain.h` | Short-range spin chains: MPO (or AutoMPO terms) with nearest- and next-nearest-neighbour couplings (`make_spin_chain_mpo`, `make_spin_chain_terms`), bond terms and TEBD gates, Ising chain in longitudinal and transverse fields. |
-| | `rydberg.h` | Rydberg arrays (up to next-nearest-neighbour interactions), PXP model. |
+| | `rydberg.h` | Rydberg arrays (up to next-nearest-neighbour interactions), atom positions with disorder, PXP model. |
 | | `light_matter.h` | Dicke and Tavis-Cummings models (one boson coupled to all spins). |
 | | `impurity.h` | Impurity models on the purified density matrix (Kondo-like, dissipative spin impurity). |
 | | `tight_binding.h` | Free fermions: MPOs, single-particle matrices, bond terms and TEBD gates. |
@@ -34,8 +34,8 @@ The library is organized by role. Each folder contains pairs `name.h` / `name.cc
 | | `purified_state.h` | Trace and observables of a density matrix stored as a purified MPS. |
 | | `adiabatic.h` | Adiabatic ramps (bosonic quantum east model). |
 | [ground_state](ground_state/) | `dmrg.h` | Ground states with DMRG (`find_ground_state`): bond-dimension ramp, noise, convergence check, random restarts; Fermi sea. |
-| [analysis](analysis/) | `full_counting_statistics.h` | Generating function and cumulants of the subsystem magnetization. |
-| [io](io/) | `output.h` | Run folders with a copy of the input (`make_run_directory`), output files: site profiles, tables, generating functions, ground-state energies and convergence (`write_ground_state`). |
+| [analysis](analysis/) | `full_counting_statistics.h` | Generating functions of the block magnetization (one block or all blocks, states or density matrices), their distance, cumulants. |
+| [io](io/) | `output.h` | Run folders with a copy of the input (`make_run_directory`), output files: rows of a time series (`write_row`), site profiles, tables, generating functions, ground-state energies and convergence (`write_ground_state`). |
 | [examples](examples/) | | Complete simulations, each with an exact-diagonalization check (see [examples/README.md](examples/README.md)). |
 | [tests](tests/) | | Integration tests: tensor networks against exact diagonalization (see [tests/README.md](tests/README.md)). |
 | [legacy](legacy/) | | Old code kept for reference, not compiled. |

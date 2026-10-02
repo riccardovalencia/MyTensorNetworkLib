@@ -48,9 +48,7 @@ int main(int argc, char* argv[])
     GroundState ground_state;
     if(conserve_sz)
     {
-        InitState neel(sites);
-        for(int j = 1 ; j <= N ; j++) neel.set(j, j % 2 == 1 ? "Up" : "Dn");
-        ground_state = find_ground_state(H, neel, dmrg_parameters);
+        ground_state = find_ground_state(H, make_init_state(sites, make_standard_config(N, "neel")), dmrg_parameters);
     }
     else ground_state = find_ground_state(H, dmrg_parameters);
 

@@ -129,15 +129,14 @@ int main(int argc, char* argv[])
         double norm = compute_trace_purified(&rho);
         out << t << " " << norm << " " << expectation(X, 2)/norm << " " << expectation(Z, 2)/norm
             << " " << expectation(Nb, 1)/norm << " " << maxLinkDim(rho) << endl;
-        out_x << t;
-        out_z << t;
+        vector<double> xj, zj;
         for(int j = 1 ; j <= N ; j++)
         {
-            out_x << " " << expectation(X, j+1)/norm;
-            out_z << " " << expectation(Z, j+1)/norm;
+            xj.push_back(expectation(X, j+1)/norm);
+            zj.push_back(expectation(Z, j+1)/norm);
         }
-        out_x << endl;
-        out_z << endl;
+        write_row(out_x, t, xj);
+        write_row(out_z, t, zj);
         cerr << t << " " << norm << "\n";
     }
     return 0;

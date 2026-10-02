@@ -94,6 +94,17 @@ Cplx
 measure_local_operator( MPS* psi, const ITensor& O, const int site );
 
 /**
+ * @brief Tr(rho O) for an operator O on a single site and a density matrix rho given as an MPO
+ *        normalized to Tr(rho) = 1 (e.g. a thermal state, dynamics/thermal.h).
+ * @param rho  Density matrix (MPO with indices s, s').
+ * @param O    Operator with indices (s, s') of the site.
+ * @param site Site.
+ * @return Tr(rho O).
+ */
+Cplx
+measure_local_operator( const MPO& rho, const ITensor& O, const int site );
+
+/**
  * @brief Two-point function <psi| op_i op_j |psi> for operators on sites i != j.
  * @param psi   State; its orthogonality center is moved to min(i,j).
  * @param sites Site set of psi.

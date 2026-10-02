@@ -59,6 +59,25 @@ MPS
 make_product_state(const SiteSet sites , const string config , const string basis = "z");
 
 /**
+ * @brief Configuration string (for make_product_state, make_init_state) of a standard state of N spins.
+ * @param N    Number of sites.
+ * @param name "up" (00...0), "down" (11...1), "wall" (0...01...1, first N/2 sites '0') or "neel" (0101...).
+ * @throws ITError for another name.
+ */
+string
+make_standard_config(const int N, const string& name);
+
+/**
+ * @brief InitState of a configuration in the z basis ('0' = "Up", '1' = "Dn"), e.g. to fix the
+ *        sector of a search with conserved quantum numbers (find_ground_state).
+ * @param sites  Spin-1/2 site set of N sites.
+ * @param config One character per site, '0' or '1'.
+ * @throws ITError on a wrong length or characters other than '0'/'1'.
+ */
+InitState
+make_init_state(const SiteSet& sites, const string& config);
+
+/**
  * @brief Local magnetization (spins) or occupation (bosons) on every site.
  * @param psi       State; its orthogonality center is moved.
  * @param sites     Site set (spin-1/2 and/or boson sites).
@@ -67,6 +86,16 @@ make_product_state(const SiteSet sites , const string config , const string basi
  */
 vector<double>
 measure_magnetization(MPS* psi, const SiteSet sites , string direction);
+
+/**
+ * @brief As measure_magnetization for a density matrix: Tr(rho sigma^direction_j) on spin-1/2 sites,
+ *        Tr(rho n_j) on boson sites.
+ * @param rho       Density matrix (MPO with indices s, s'), normalized to Tr(rho) = 1.
+ * @param sites     Site set.
+ * @param direction "x", "y" or "z".
+ */
+vector<double>
+measure_magnetization(const MPO& rho, const SiteSet& sites, const string& direction);
 
 /**
  * @brief Number of kinks, sum_j <n_j (1 - n_{j+1})> (pairs |down_z>_j |up_z>_{j+1}).

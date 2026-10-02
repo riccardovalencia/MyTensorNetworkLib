@@ -5,6 +5,7 @@
 #include "entanglement.h"
 #include <itensor/all.h>
 #include <cmath>
+#include <vector>
 
 using namespace std;
 using namespace itensor;
@@ -27,4 +28,14 @@ compute_entanglement_entropy( MPS* psi, int site, bool natural_log )
         if(p > 1E-12) entropy += -p * (natural_log ? log(p) : log2(p));
     }
     return entropy;
+}
+
+
+// one SVD per bond, moving the orthogonality center along the chain
+vector<double>
+compute_entanglement_entropies( MPS* psi, bool natural_log )
+{
+    vector<double> entropies;
+    for(int j = 1 ; j < length(*psi) ; j++) entropies.push_back(compute_entanglement_entropy(psi, j, natural_log));
+    return entropies;
 }

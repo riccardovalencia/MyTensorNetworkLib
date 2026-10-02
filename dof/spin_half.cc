@@ -79,6 +79,42 @@ make_product_state(const SiteSet sites , const string config , const string basi
 
 
 // ----------------------------------------------------------
+// standard configurations and their InitState
+
+string
+make_standard_config(const int N, const string& name)
+{
+    if(name == "up")   return string(N, '0');
+    if(name == "down") return string(N, '1');
+    if(name == "wall") return string(N/2, '0') + string(N - N/2, '1');
+    if(name == "neel")
+    {
+        string config;
+        for(int j = 1 ; j <= N ; j++) config += (j % 2 == 1) ? '0' : '1';
+        return config;
+    }
+    throw ITError("make_standard_config: name must be up, down, wall or neel, got " + name);
+}
+
+
+// '0' -> "Up", '1' -> "Dn" on every site
+InitState
+make_init_state(const SiteSet& sites, const string& config)
+{
+    if(int(config.size()) != length(sites))
+        throw ITError(tinyformat::format("make_init_state: config \"%s\" has %d characters, but there are %d sites", config, config.size(), length(sites)));
+    InitState state(sites);
+    for(int j = 1 ; j <= length(sites) ; j++)
+    {
+        if(config[j-1] != '0' && config[j-1] != '1')
+            throw ITError(tinyformat::format("make_init_state: invalid character '%c' in config (only '0' and '1' allowed)", config[j-1]));
+        state.set(j, config[j-1] == '0' ? "Up" : "Dn");
+    }
+    return state;
+}
+
+
+// ----------------------------------------------------------
 // Pauli matrix with input index `in` and output index `out` (spin-1/2: 1 = up_z, 2 = down_z),
 // set element by element
 
@@ -135,6 +171,17 @@ measure_magnetization(MPS* psi, const SiteSet sites , string direction)
     vector<double> mj;
     for(int j = 1 ; j <= length(sites) ; j++)
         mj.push_back(real(measure_local_operator(psi, make_magnetization_operator(sites(j), direction), j)));
+    return mj;
+}
+
+
+// Tr(rho O_j) with the operator of measure_magnetization on each site
+vector<double>
+measure_magnetization(const MPO& rho, const SiteSet& sites, const string& direction)
+{
+    vector<double> mj;
+    for(int j = 1 ; j <= length(sites) ; j++)
+        mj.push_back(real(measure_local_operator(rho, make_magnetization_operator(sites(j), direction), j)));
     return mj;
 }
 

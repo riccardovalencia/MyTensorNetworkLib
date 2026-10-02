@@ -35,6 +35,15 @@ string
 make_run_directory(const string& folder, const string& run_name, const string& input_file = "");
 
 /**
+ * @brief Write one line "x values[0] values[1] ..." (e.g. a time and one value per site).
+ * @param out    Output stream (e.g. an ofstream with its header already written).
+ * @param x      First column (time, field, ...).
+ * @param values Other columns.
+ */
+void
+write_row( ostream& out, const double x, const vector<double>& values );
+
+/**
  * @brief Write one value per site: lines "j value", j = 1, 2, ...
  * @param file_name File to (over)write.
  * @param values    values[j-1] is written on line j.
