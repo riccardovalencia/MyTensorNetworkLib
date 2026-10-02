@@ -25,11 +25,10 @@ using namespace itensor;
 // (plus n_{j+1}/2 on the last bond, so that every site gets its term once)
 
 ITensor
-make_bosonic_east_model_bond_hamiltonian( const SiteSet sites , const int size , const double J , const double c , const int j )
-	{
+make_bosonic_east_model_bond_hamiltonian( const SiteSet sites , const int size , const double J , const double U , const int j )
+{
     ITensor hterm;
 
-	double U = 1 - 2*c;		
 	ITensor Nj  = op(sites, "N" , j);					
 	ITensor Idj = op(sites, "Id",j);
 
@@ -59,9 +58,9 @@ make_number_squared(const SiteSet& sites, const int j)
 // bond term plus the non-hermitian density-noise term -i gamma/2 n_j^2 (and n_{j+1}^2 on the last bond)
 
 ITensor
-make_bosonic_east_model_bond_hamiltonian_dephasing( const SiteSet sites , const int size , const double J , const double c , const double gamma, const int j )
+make_bosonic_east_model_bond_hamiltonian_dephasing( const SiteSet sites , const int size , const double J , const double U , const double gamma, const int j )
 {
-	ITensor hterm = make_bosonic_east_model_bond_hamiltonian(sites, size, J, c, j);
+	ITensor hterm = make_bosonic_east_model_bond_hamiltonian(sites, size, J, U, j);
 	hterm += -0.5 * gamma * Cplx_i * make_number_squared(sites, j) * op(sites, "Id", j+1);
 	if(j==size - 1) hterm += -0.5 * gamma * Cplx_i * op(sites, "Id", j) * make_number_squared(sites, j+1);
     return hterm;
@@ -74,11 +73,10 @@ make_bosonic_east_model_bond_hamiltonian_dephasing( const SiteSet sites , const 
 // the n_j/2 terms are split in two halves between the bonds sharing site j.
 
 ITensor
-make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int size , const int n0, const double J , const double c , const int j )
-	{
+make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int size , const int n0, const double J , const double U , const int j )
+{
     ITensor hterm;
 
-	double U = 1 - 2*c;		
 	ITensor Nj  = op(sites, "N" , j);					
 	ITensor Idj = op(sites, "Id", j);
 	ITensor Sxj = op(sites, "A" , j) + op(sites, "Adag" , j);
@@ -105,7 +103,7 @@ make_bosonic_east_model_bond_hamiltonian_n0( const SiteSet sites , const int siz
 // the non-hermitian open case), then the reversed sweep. No symmetry sector is fixed (no site 0).
 
 vector<TebdGate>
-make_bosonic_east_model_gates(const SiteSet sites, const int size, const double dt, const double J, const double c , const string dynamics ,const double gamma)
+make_bosonic_east_model_gates(const SiteSet sites, const int size, const double dt, const double J, const double U , const string dynamics ,const double gamma)
 {
     if(dynamics != "closed" && dynamics != "open")
         throw ITError("make_bosonic_east_model_gates: dynamics must be \"closed\" or \"open\"");
@@ -113,8 +111,8 @@ make_bosonic_east_model_gates(const SiteSet sites, const int size, const double 
     vector<TebdGate> gates;
 	for(int j = 1; j <= size-1; j++)
 	{
-		ITensor hterm = (dynamics == "closed") ? make_bosonic_east_model_bond_hamiltonian( sites , size , J , c , j )
-		                                       : make_bosonic_east_model_bond_hamiltonian_dephasing( sites , size , J , c , gamma, j );
+		ITensor hterm = (dynamics == "closed") ? make_bosonic_east_model_bond_hamiltonian( sites , size , J , U , j )
+		                                       : make_bosonic_east_model_bond_hamiltonian_dephasing( sites , size , J , U , gamma, j );
 		gates.push_back(TebdGate({j,j+1}, BondGate(sites,j,j+1,BondGate::tReal,dt/2.,hterm).gate()));
 	}
     return make_symmetric_sweep(gates);
@@ -126,13 +124,12 @@ make_bosonic_east_model_gates(const SiteSet sites, const int size, const double 
 //   H = - 0.5 n0 (J sigma^x_first - U n_first - 1)                      (only if n0 != 0)
 //       - 0.5 sum_{j=first}^{size-1} n_j (J sigma^x_{j+1} - U n_{j+1} - 1)
 //       + 0.5 (1 - symmetry) n_size
-// with sigma^x = a + a^dag and U = 1 - 2c. The virtual site 0 with occupation n0 couples to site first.
+// with sigma^x = a + a^dag. The virtual site 0 with occupation n0 couples to site first.
 
 static AutoMPO
-make_bosonic_east_model_terms( const SiteSet& sites, int size, int first, int n0, double symmetry, double J, double c, double prefactor = 1. )
+make_bosonic_east_model_terms( const SiteSet& sites, int size, int first, int n0, double symmetry, double J, double U, double prefactor = 1. )
 {
-	double U  = 1 - 2*c;
-	auto ampo = AutoMPO(sites);
+	AutoMPO ampo(sites);
 
 	if(n0 != 0)
 		{
@@ -156,19 +153,19 @@ make_bosonic_east_model_terms( const SiteSet& sites, int size, int first, int n0
 }
 
 
-// the shared terms from site 1, with J = e^{-s}; the MPO is exact (no compression)
+// the shared terms from site 1; the MPO is exact (no compression)
 MPO
-make_bosonic_east_model_mpo( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+make_bosonic_east_model_mpo( const SiteSet sites, int size , int n0, double symmetry , double J, double U)
 {
-	return toMPO(make_bosonic_east_model_terms(sites, size, 1, n0, symmetry, exp(-s), c), {"Exact=",true});
+	return toMPO(make_bosonic_east_model_terms(sites, size, 1, n0, symmetry, J, U), {"Exact=",true});
 }
 
 
 // the shared terms plus Omega (a + a^dag) on the bulk sites
 MPO
-make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, double symmetry , double s, double c, double Omega)
+make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, double symmetry , double J, double U, double Omega)
 {
-	auto ampo = make_bosonic_east_model_terms(sites, size, 1, n0, symmetry, exp(-s), c);
+	AutoMPO ampo = make_bosonic_east_model_terms(sites, size, 1, n0, symmetry, J, U);
 	for(int j = 2 ; j <= size-1 ; j++)
 		{
 		ampo += Omega , "A"    , j;
@@ -180,24 +177,23 @@ make_bosonic_east_model_mpo_with_drift( const SiteSet sites, int size , int n0, 
 
 // the shared terms with prefactor -1
 MPO
-make_bosonic_east_model_mpo_minus( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+make_bosonic_east_model_mpo_minus( const SiteSet sites, int size , int n0, double symmetry , double J, double U)
 {
-	return toMPO(make_bosonic_east_model_terms(sites, size, 1, n0, symmetry, exp(-s), c, -1.), {"Exact=",true});
+	return toMPO(make_bosonic_east_model_terms(sites, size, 1, n0, symmetry, J, U, -1.), {"Exact=",true});
 }
 
 
 // AutoMPO: bulk east-model terms, epsilon/2 n_j^2 on every site and the hopping on every bond
 MPO
-make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , double s, double c, double epsilon, double t)
+make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , double J, double U, double epsilon, double t)
 {
-	double U = 1-2*c;
-	auto ampo = AutoMPO(sites);
+	AutoMPO ampo(sites);
 
 
 	for(int j = 1 ; j <= size-1 ; j++)
 		{
-		ampo += - exp(-s) * 0.5 , "N" , j , "A" , j+1;
-		ampo += - exp(-s) * 0.5 , "N" , j , "Adag" , j+1;
+		ampo += - J * 0.5 , "N" , j , "A" , j+1;
+		ampo += - J * 0.5 , "N" , j , "Adag" , j+1;
 		ampo += 0.5 * U , "N", j , "N" , j+1 ;
 		ampo += 0.5 , "N", j , "Id", j+1;
 
@@ -222,7 +218,7 @@ make_bosonic_east_model_mpo_onsite_hopping( const SiteSet sites, int size , doub
 MPO
 make_bosonic_east_model_mpo_onsite( const SiteSet sites, int size , double epsilon)
 {
-	auto ampo = AutoMPO(sites);
+	AutoMPO ampo(sites);
 
 
 	for(int j = 1 ; j <= size-1 ; j++)
@@ -245,7 +241,7 @@ MPO
 make_bosonic_east_model_mpo_onsite_nonext( const SiteSet sites, int size , int n0, double symmetry , double c )
 {
 
-	auto ampo = AutoMPO(sites);
+	AutoMPO ampo(sites);
 
 	ampo +=   n0 * 0.5 , "Id", 1;
 
@@ -277,9 +273,9 @@ make_bosonic_east_model_mpo_onsite_nonext( const SiteSet sites, int size , int n
 // sector fixed by n0 from a state of the form |n0>|psi>.
 
 MPO
-make_bosonic_east_model_mpo_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double s, double c)
+make_bosonic_east_model_mpo_n0_untouched( const SiteSet sites, int size , int n0, double symmetry , double J, double U)
 {
-	return toMPO(make_bosonic_east_model_terms(sites, size, 2, n0, symmetry, exp(-s), c), {"Exact=",true});
+	return toMPO(make_bosonic_east_model_terms(sites, size, 2, n0, symmetry, J, U), {"Exact=",true});
 }
 
 
@@ -289,9 +285,9 @@ make_bosonic_east_model_mpo_n0_untouched( const SiteSet sites, int size , int n0
 // operators acting on site 1).
 
 MPO
-make_bosonic_east_model_mpo_n0_not_fixed( const SiteSet sites, int size , double symmetry , double s, double c)
+make_bosonic_east_model_mpo_n0_not_fixed( const SiteSet sites, int size , double symmetry , double J, double U)
 {
-	return toMPO(make_bosonic_east_model_terms(sites, size, 1, 0, symmetry, exp(-s), c), {"Exact=",true});
+	return toMPO(make_bosonic_east_model_terms(sites, size, 1, 0, symmetry, J, U), {"Exact=",true});
 }
 
 
@@ -299,9 +295,9 @@ make_bosonic_east_model_mpo_n0_not_fixed( const SiteSet sites, int size , double
 // tau = i dt), used to evolve operators
 
 MPO
-make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , double symmetry , double J, double c, double dt)
+make_bosonic_east_model_evolution_mpo( const SiteSet sites, int size , double symmetry , double J, double U, double dt)
 {
-	return toExpH(make_bosonic_east_model_terms(sites, size, 1, 0, symmetry, J, c), Cplx_i * dt);
+	return toExpH(make_bosonic_east_model_terms(sites, size, 1, 0, symmetry, J, U), Cplx_i * dt);
 }
 
 
@@ -323,12 +319,13 @@ read_symmetry_eigenvalue(const string& symmetry_sector_dir, int symmetry_sector,
 }
 
 
-// symmetry eigenvalue from file, then <H^2> - <H>^2 with the MPO of the sector
+// symmetry eigenvalue from the file of (s, c), then <H^2> - <H>^2 with the MPO of the sector
+// (J = e^{-s}, U = 1 - 2c); innerC also handles complex states
 double 
 compute_bosonic_east_model_energy_variance(MPS *psi , const SiteSet sites, int size , int cut_off_fock_space, int n0, int symmetry_sector, double s, double c, const string symmetry_sector_dir)
 {
 	double symmetry = read_symmetry_eigenvalue(symmetry_sector_dir, symmetry_sector, cut_off_fock_space, s, c);
-	MPO H = make_bosonic_east_model_mpo( sites, size , n0, symmetry , s, c);
-	double energy = inner(*psi,H,*psi);
-	return inner(*psi,H,H,*psi) - energy * energy;
+	MPO H = make_bosonic_east_model_mpo( sites, size , n0, symmetry , exp(-s), 1 - 2*c);
+	double energy = real(innerC(*psi,H,*psi));
+	return real(innerC(H,*psi,H,*psi)) - energy * energy;
 }

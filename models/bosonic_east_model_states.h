@@ -3,7 +3,7 @@
  * @brief "Super-bosonic" states of the bosonic quantum east model (bosonic east model), dressed operators,
  *        and overlaps between states computed in different truncations or sectors.
  *
- * See models/bosonic_east_model.h for the conventions (s, c, n0, symmetry).
+ * See models/bosonic_east_model.h for the conventions (J = e^{-s}, U = 1 - 2c, n0, symmetry).
  */
 #ifndef MYTN_MODELS_BOSONIC_EAST_MODEL_STATES_H
 #define MYTN_MODELS_BOSONIC_EAST_MODEL_STATES_H
@@ -35,36 +35,39 @@ make_super_bosonic_state(MPS ground_state, const SiteSet sites, const SiteSet gr
  * @param psi_coherent   State to overwrite (also returned).
  * @param sites_coherent Boson site set.
  * @param alpha          Coherent amplitude.
- * @param s, c           Target bosonic east model parameters.
+ * @param J_target       Final facilitated hopping amplitude (e^{-s}).
+ * @param U              Density-density coefficient (1 - 2c).
  * @param dt             Time step of the ramp.
  * @param T              Duration of the ramp.
  */
 MPS
-make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double s, const double c, double dt, double T);
+make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double J_target, const double U, double dt, double T);
 
 /**
  * @brief As make_super_bosonic_coherent_state, starting from a squeezed vacuum on site 1.
  * @param psi_coherent   State to overwrite (also returned).
  * @param sites_coherent Boson site set.
  * @param alpha          Squeezing parameter r of the initial state.
- * @param s, c           Target bosonic east model parameters.
+ * @param J_target       Final facilitated hopping amplitude (e^{-s}).
+ * @param U              Density-density coefficient (1 - 2c).
  * @param dt             Time step of the ramp.
  * @param T              Duration of the ramp.
  */
 MPS
-make_super_bosonic_squeezed_state( MPS *psi_coherent, const SiteSet sites_coherent, const double alpha, const double s, const double c, double dt, double T);
+make_super_bosonic_squeezed_state( MPS *psi_coherent, const SiteSet sites_coherent, const double alpha, const double J_target, const double U, double dt, double T);
 
 /**
- * @brief Dress an operator with a linear ramp of the bosonic east model hopping from 0 to e^{-s}:
+ * @brief Dress an operator with a linear ramp of the bosonic east model hopping from 0 to J_target:
  *        O -> U^dag O U with U the time-ordered evolution of duration T.
- * @param O     Operator (MPO) to dress.
- * @param sites Boson site set.
- * @param s, c  Target bosonic east model parameters (final hopping e^{-s}).
- * @param dt    Time step of the ramp.
- * @param T     Duration of the ramp.
+ * @param O        Operator (MPO) to dress.
+ * @param sites    Boson site set.
+ * @param J_target Final facilitated hopping amplitude (e^{-s}).
+ * @param U        Density-density coefficient (1 - 2c).
+ * @param dt       Time step of the ramp.
+ * @param T        Duration of the ramp.
  */
 MPO
-make_dressed_operator(MPO O, const SiteSet sites, const double s, const double c, double dt, double T);
+make_dressed_operator(MPO O, const SiteSet sites, const double J_target, const double U, double dt, double T);
 
 /**
  * @brief Overlap between ground states in sectors with different n0: the state with the larger n0 is

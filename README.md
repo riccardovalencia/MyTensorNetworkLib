@@ -136,6 +136,13 @@ Drivers written for previous versions need `#include "mytn.h"` instead of `spin_
 `transverse_field_ising_chain.h` or `core.h`, and the following renames. Functions that used to fill a vector passed
 by reference (`vector<BondGate>& gates`, `ITensor* hterm`) now return it.
 
+The bosonic east model functions take the couplings that enter the Hamiltonian, J = e^{-s} and U = 1 - 2c,
+instead of s and c: pass `exp(-s), 1 - 2*c` where you passed `s, c` (and `1 - 2*c` where you passed `c` next to J).
+This concerns the MPOs (`make_bosonic_east_model_mpo*`, except `_onsite` and `_onsite_nonext`), the bond terms and
+gates, `make_bosonic_east_model_evolution_mpo`, `evolve_adiabatic_*_ramp`, `make_super_bosonic_*_state` and
+`make_dressed_operator`. The functions that read or name data files (`compute_bosonic_east_model_energy_variance`,
+`compute_overlap_*`, `load_*`, `write_dmrg_input*`) still take s and c.
+
 | Old name | New name |
 |---|---|
 | `adiabatic_transformation_linear_protocol` / `_tanh_protocol` | `evolve_adiabatic_linear_ramp` / `evolve_adiabatic_tanh_ramp` |
@@ -225,7 +232,8 @@ two sites; the three-site gates (`make_rydberg_gates_nnn`, `make_spin_impurity_n
 correctly for N <= 5; `compute_overlap_different_n0/_cutoffs` return |overlap|^2; `load_ground_state_max_bond_dimension`
 looks in the right folder for versions after the first; `gates_tavis_cummings` exchanged a and a^dag;
 `make_pauli_operator`, `make_magnetization_operator` and `make_identity_operator` also work on sites with conserved
-quantum numbers (the input index is `dag`-ed).
+quantum numbers (the input index is `dag`-ed); `compute_bosonic_east_model_energy_variance` also works on complex
+states (e.g. after a time evolution).
 
 ## License
 

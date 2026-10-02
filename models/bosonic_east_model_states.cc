@@ -39,10 +39,10 @@ make_super_bosonic_state(MPS state_to_insert, const SiteSet sites, const SiteSet
 // coherent state on site 1, then the linear adiabatic ramp of the hopping
 
 MPS
-make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double s, const double c, double dt, double T)
+make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_coherent, const complex<double> alpha, const double J_target, const double U, double dt, double T)
 {
 	set_coherent_state_on_site( psi_coherent, sites_coherent, 1, alpha );
-	evolve_adiabatic_linear_ramp( psi_coherent, sites_coherent, s, c, dt, T);
+	evolve_adiabatic_linear_ramp( psi_coherent, sites_coherent, J_target, U, dt, T);
 
 	return *psi_coherent;
 }
@@ -50,32 +50,30 @@ make_super_bosonic_coherent_state( MPS *psi_coherent, const SiteSet sites_cohere
 
 // squeezed vacuum on site 1, then the linear adiabatic ramp of the hopping
 MPS
-make_super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeezed, const double alpha, const double s, const double c, double dt, double T)
+make_super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeezed, const double alpha, const double J_target, const double U, double dt, double T)
 {
 	set_squeezed_state_on_site( psi_squeezed, sites_squeezed, 1, alpha );
-	evolve_adiabatic_linear_ramp( psi_squeezed, sites_squeezed, s, c, dt, T);
+	evolve_adiabatic_linear_ramp( psi_squeezed, sites_squeezed, J_target, U, dt, T);
 
 	return *psi_squeezed;
 
 }
 
 
-// Heisenberg picture along the ramp J(t) = e^{-s} t / T: at every step O -> e^{i dt H} O e^{-i dt H}
+// Heisenberg picture along the ramp J(t) = J_target t / T: at every step O -> e^{i dt H} O e^{-i dt H}
 // with first-order MPOs of the evolution (make_bosonic_east_model_evolution_mpo), compressed
 // (cutoff 1E-14, at most 1000 states).
 MPO
-make_dressed_operator(MPO O,  const SiteSet sites, double s, double c, double dt, double T)
+make_dressed_operator(MPO O,  const SiteSet sites, double J_target, double U, double dt, double T)
 {
-
 	int size = length(sites);
-	double J_target = exp(-s);
 	int number_step = int(T/dt);
 
 	for(int step=1; step<=int(number_step); step++)
 	{
 		double J = J_target * step * dt / T;
-		MPO expH  = make_bosonic_east_model_evolution_mpo( sites, size , 0.0 , J,  c, dt);
-		MPO expHd = make_bosonic_east_model_evolution_mpo( sites, size , 0.0 , J,  c, -1*dt);
+		MPO expH  = make_bosonic_east_model_evolution_mpo( sites, size , 0.0 , J,  U, dt);
+		MPO expHd = make_bosonic_east_model_evolution_mpo( sites, size , 0.0 , J,  U, -1*dt);
 		
 		O = nmultMPO( O , prime(expH) ,{"MaxDim",1000,"Cutoff",1E-14}); 
 		O.mapPrime(2,1);
