@@ -1,12 +1,12 @@
 input
 {
-N = 12
+N = 60
 J = 1.0
 hx = 0.1
-hz = 1.0
-T = 3
+hz = 0.1
+T = 60
 dt = 0.01
-max_dim = 64
+max_dim = 256
 cut_off = 1E-16
 state = up
 t_measure = 0.5
