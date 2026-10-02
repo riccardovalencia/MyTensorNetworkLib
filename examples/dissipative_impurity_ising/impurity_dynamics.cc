@@ -26,7 +26,8 @@ using namespace itensor;
 //    theorem: Z_1 is applied to the ket and the state is evolved further).
 //
 //
-// Output (data/<run>/): observables.txt (t, maxD, Tr rho), xj.txt (t, <X_1>, ..., <X_N>),
+// Output (data/<run>/): ground_state.txt, ground_state_restarts.txt (DMRG energy, variance, convergence),
+//                      observables.txt (t, maxD, Tr rho), xj.txt (t, <X_1>, ..., <X_N>),
 //                      z1z1.txt (t, Re, Im, |.| of <Z_1(t) Z_1(0)>)
 //
 // Usage: ./impurity_dynamics input.txt
@@ -99,6 +100,7 @@ int main(int argc, char* argv[])
 
     string dir = make_run_directory("data", tinyformat::format("impurity_N%d_Jxx%.3f_Jzzz%.3f_hx%.3f_hz%.3f_gamma%.3f_Tness%g_T%g_dt%.4f_D%d",
                                                                N, Jxx, Jzzz, hx, hz, gamma, Tness, T, dt, max_dim), argv[1]);
+    write_ground_state(dir, ground_state);   // initial state of the dynamics
 
     ofstream out(dir + "observables.txt");
     out << setprecision(14) << "# t . maxD . Tr(rho)\n";

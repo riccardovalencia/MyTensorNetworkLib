@@ -14,7 +14,7 @@ using namespace itensor;
 // state is twice degenerate in the ordered phase (small hx) and DMRG returns one of the two states:
 // fix dmrg_seed to make the output reproducible.
 //
-// Output (data/<run>/): scan.txt with hx, energy, energy variance <H^2> - <H>^2 and the magnetization
+// Output (data/<run>/): scan.txt with hx, energy, energy variance <H^2> - <H>^2, DMRG convergence flag and the magnetization
 // <X>, <Y>, <Z> of the central site.
 //
 // Usage: ./ground_state_scan input.txt
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 
     string dir = make_run_directory("data", tinyformat::format("ground_state_scan_N%d_Jxx%.3f_Jzzz%.3f_hz%.3f_hx%g_%g_%g", N, Jxx, Jzzz, hz, hx_min, hx_max, dhx), argv[1]);
     ofstream out(dir + "scan.txt");
-    out << setprecision(8) << "# hx . E . <H^2>-<H>^2 . <X_N/2> . <Y_N/2> . <Z_N/2>\n";
+    out << setprecision(8) << "# hx . E . <H^2>-<H>^2 . converged . <X_N/2> . <Y_N/2> . <Z_N/2>\n";
 
     for(double hx = hx_min ; hx <= hx_max + 1E-9 ; hx += dhx)
     {
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
         GroundState ground_state = find_ground_state(H, dmrg_parameters);
         MPS psi = ground_state.psi;
 
-        out << hx << " " << ground_state.energy << " " << ground_state.variance;
+        out << hx << " " << ground_state.energy << " " << ground_state.variance << " " << ground_state.converged;
         for(string d : {"x", "y", "z"}) out << " " << measure_magnetization(&psi, sites, d)[j_meas-1];
         out << endl;
         cerr << "hx = " << hx << "  E = " << ground_state.energy << "\n";

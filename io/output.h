@@ -1,6 +1,7 @@
 /**
  * @file output.h
- * @brief Data management: output files.
+ * @brief Data management: run folders and output files (site profiles, tables, generating functions,
+ *        ground-state energies).
  *
  * The callers choose the file names. The examples write each run into its own folder
  * <folder>/<run name>/ (make_run_directory), the run name encoding the parameters.
@@ -9,6 +10,7 @@
 #define MYTN_IO_OUTPUT_H
 
 #include <itensor/all.h>
+#include "../ground_state/dmrg.h"
 #include <complex>
 #include <string>
 #include <vector>
@@ -62,23 +64,13 @@ void
 write_generating_function( const string file_name, const vector<double>& theta, const vector<vector<complex<double> > >& G );
 
 /**
- * @brief Write the DMRG parameters of a bosonic east model run to "input.txt" (and to stderr).
- * @param size                   Number of sites.
- * @param s, c                   bosonic east model parameters.
- * @param simmetry_sector        Symmetry sector.
- * @param cut_off_fock_space     Fock-space cutoff.
- * @param scaling_bond_dimension Factor of the bond dimension between DMRG rounds.
- * @param bond_dimension         Initial bond dimension.
- * @param precision_dmrg         Convergence threshold.
+ * @brief Write the result of find_ground_state into the folder dir:
+ *        ground_state.txt (energy, variance <H^2> - <H>^2, convergence flag 1/0) and
+ *        ground_state_restarts.txt (final energy of every DMRG run).
+ * @param dir          Folder, ending with '/' (e.g. from make_run_directory).
+ * @param ground_state Result of find_ground_state.
  */
 void
-write_dmrg_input(int size , double s , double c , double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
-
-/**
- * @brief As write_dmrg_input (same arguments), including the on-site interaction epsilon and the
- *        hopping t of make_bosonic_east_model_mpo_onsite_hopping.
- */
-void
-write_dmrg_input_hopping(int size , double s , double c , double epsilon, double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg );
+write_ground_state( const string& dir, const GroundState& ground_state );
 
 #endif

@@ -34,8 +34,7 @@ The library is organized by role. Each folder contains pairs `name.h` / `name.cc
 | | `adiabatic.h` | Adiabatic ramps (bosonic quantum east model). |
 | [ground_state](ground_state/) | `dmrg.h` | Ground states with DMRG (`find_ground_state`): bond-dimension ramp, noise, convergence check, random restarts; Fermi sea. |
 | [analysis](analysis/) | `full_counting_statistics.h` | Generating function and cumulants of the subsystem magnetization. |
-| [io](io/) | `output.h` | Output files (site profiles, tables, generating functions, DMRG parameters). |
-| | `load.h` | Loading stored states. |
+| [io](io/) | `output.h` | Run folders with a copy of the input (`make_run_directory`), output files: site profiles, tables, generating functions, ground-state energies and convergence (`write_ground_state`). |
 | [examples](examples/) | | Complete simulations, each with an exact-diagonalization check (see [examples/README.md](examples/README.md)). |
 | [tests](tests/) | | Integration tests: tensor networks against exact diagonalization (see [tests/README.md](tests/README.md)). |
 | [legacy](legacy/) | | Old code kept for reference, not compiled. |
@@ -96,7 +95,7 @@ MPO H = make_spin_chain_mpo(sites, {1., 1., 1.}, {0.3, 0.3, 0.3}, {0., 0., 0.1})
 DmrgParameters parameters;          // max_dim 200, cutoff 1E-12, noise 1E-6, tolerance 1E-10, 30 sweeps
 parameters.number_restarts = 4;     // 4 runs from random states, the lowest energy is kept
 GroundState ground_state = find_ground_state(H, parameters);
-// ground_state.psi, .energy, .variance, .converged, .restart_energies
+// ground_state.psi, .energy, .variance, .converged, .restart_energies; write_ground_state(dir, ground_state) saves them
 ```
 
 With conserved quantum numbers, pass the product state that fixes the sector instead:
@@ -144,7 +143,7 @@ instead of s and c: pass `exp(-s), 1 - 2*c` where you passed `s, c` (and `1 - 2*
 This concerns the MPOs (`make_bosonic_east_model_mpo*`, except `_onsite` and `_onsite_nonext`), the bond terms and
 gates, `make_bosonic_east_model_evolution_mpo`, `evolve_adiabatic_*_ramp`, `make_super_bosonic_*_state` and
 `make_dressed_operator`. The functions that read or name data files (`compute_bosonic_east_model_energy_variance`,
-`compute_overlap_*`, `load_*`, `write_dmrg_input*`) still take s and c.
+`compute_overlap_*`) still take s and c.
 
 | Old name | New name |
 |---|---|
@@ -209,11 +208,8 @@ gates, `make_bosonic_east_model_evolution_mpo`, `evolve_adiabatic_*_ramp`, `make
 | `perform_DMRG`, `perform_DMRG_soft` | `find_ground_state(H, parameters)` (no output files: write `energy` and `variance` in the program) |
 | `perform_DMRG_meanfield` | `find_ground_state(H, parameters)` with `max_dim = 1` (and several restarts) |
 | `perform_DMRG_variance` | `find_ground_state` of the MPO (H - E)^2 (`nmultMPO`) |
-| `print_input_DMRG(_hopping)` | `write_dmrg_input(_hopping)` |
 | `printing_generating_function` | `write_generating_function` |
 | `scalar_product_different_n0` / `_cutoff` | `compute_overlap_different_n0` / `compute_overlap_different_cutoffs` (with `symmetry_sector_dir`) |
-| `search_ground_state_max_bond_chi(_no_v)` | `load_ground_state_max_bond_dimension(_no_version)` (with `symmetry_sector_dir`) |
-| `search_state_adiabatic_coherent` | `load_adiabatic_state` |
 | `super_bosonic_state` / `_coherent_state` / `_squeezed_state` | `make_super_bosonic_state` / `_coherent_state` / `_squeezed_state` |
 | `swap_gate` | `swap_sites` |
 | `theta_step` | `make_theta_grid` |
@@ -225,6 +221,10 @@ files and write with `write_site_values` / `write_site_table`), `build_single_st
 `build_TEBD_dt_step_H_open` (deprecated since 2022; use `make_bosonic_east_model_gates(..., "open", gamma)`),
 `gates_coherent_unfolded_kondo_impurity_model_energy_basis` (it needs gates on non-consecutive sites), and
 `initialize_excited_state` (initial guess of `perform_DMRG_variance`; `find_ground_state` starts from random states).
+The DMRG input/output tied to the bosonic east model runs (`print_input_DMRG(_hopping)`, `search_ground_state_max_bond_chi(_no_v)`,
+`search_state_adiabatic_coherent`, which read and wrote one fixed folder layout) are replaced by the generic
+`write_ground_state` (energy, variance, convergence and the energy of every restart of `find_ground_state`); states
+can be stored and read back with ITensor's `writeToFile` / `readFromFile`.
 
 Behaviour fixes with respect to the previous versions: `measure_magnetization` and the purified-state measurements
 return `<sigma^y>` with the correct sign, and `measure_local_operator_purified` no longer transposes the operator
@@ -232,8 +232,7 @@ when measuring all sites; `make_spin_boson_state` uses the azimuthal angle `phi`
 on-site fields on every site; `make_purified_gates` maps the gates to the correct sites of the bra-ket chain; the
 two-site dissipators (`make_two_site_dissipative_gates`, `make_multisite_dissipative_gates`) use the full identity on
 two sites; the three-site gates (`make_rydberg_gates_nnn`, `make_spin_impurity_nnn_gates`) split the on-site terms
-correctly for N <= 5; `compute_overlap_different_n0/_cutoffs` return |overlap|^2; `load_ground_state_max_bond_dimension`
-looks in the right folder for versions after the first; `gates_tavis_cummings` exchanged a and a^dag;
+correctly for N <= 5; `compute_overlap_different_n0/_cutoffs` return |overlap|^2; `gates_tavis_cummings` exchanged a and a^dag;
 `make_pauli_operator`, `make_magnetization_operator` and `make_identity_operator` also work on sites with conserved
 quantum numbers (the input index is `dag`-ed); `compute_bosonic_east_model_energy_variance` also works on complex
 states (e.g. after a time evolution).

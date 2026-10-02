@@ -8,9 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <string>
-#include <utility>
 #include <vector>
 
 using namespace std;
@@ -29,46 +27,18 @@ make_run_directory(const string& folder, const string& run_name, const string& i
 }
 
 
-//----------------------------------------------------------------------
-// Summary of the DMRG parameters of a bosonic quantum east model run; extra_physical lists
-// additional physical parameters (name, value). It is written to "input.txt" and to stderr.
-
-static void
-write_dmrg_summary(int size , double s , double c , const vector<pair<string,double> >& extra_physical, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
-{
-	ostringstream text;
-	text << "Input: \n \n"
-	     << "Physical quantities.\n"
-	     << "size : " << size << "\n"
-	     << "s : " << s  << "\n"
-	     << "c : " << c << "\n";
-	for(const pair<string,double>& parameter : extra_physical) text << parameter.first << " : " << parameter.second << "\n";
-	text << "simmetry_sector : " << simmetry_sector << "\n \n"
-	     << "Numerical quantities.\n"
-	     << "cut_off_fock_space : " << cut_off_fock_space << "\n"
-	     << "starting bond dimension (then it is increased of a factor " << scaling_bond_dimension << " in the folowing DMRG) : " << bond_dimension << "\n"
-	     << "precision dmrg : " << precision_dmrg << "\n";
-
-	string input_file = "input.txt";
-	cout << "FileName = " << input_file << endl;
-	ofstream(input_file) << text.str();
-	cerr << "\n\n" << text.str();
-}
-
-
-// summary without extra physical parameters
+// two small tables: the result of the returned run, the energy of every restart
 void
-write_dmrg_input(int size , double s , double c ,double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
+write_ground_state( const string& dir, const GroundState& ground_state )
 {
-	write_dmrg_summary(size, s, c, {}, simmetry_sector, cut_off_fock_space, scaling_bond_dimension, bond_dimension, precision_dmrg);
-}
+    ofstream out(dir + "ground_state.txt");
+    out << setprecision(14) << "# E . <H^2>-<H>^2 . converged\n";
+    out << ground_state.energy << " " << ground_state.variance << " " << ground_state.converged << "\n";
 
-
-// summary with epsilon and t
-void
-write_dmrg_input_hopping(int size , double s , double c , double epsilon , double t, double simmetry_sector , int cut_off_fock_space , int scaling_bond_dimension , int bond_dimension , double precision_dmrg )
-{
-	write_dmrg_summary(size, s, c, {{"epsilon", epsilon}, {"t", t}}, simmetry_sector, cut_off_fock_space, scaling_bond_dimension, bond_dimension, precision_dmrg);
+    ofstream out_restarts(dir + "ground_state_restarts.txt");
+    out_restarts << setprecision(14) << "# restart . E\n";
+    for(size_t r = 0 ; r < ground_state.restart_energies.size() ; r++)
+        out_restarts << r+1 << " " << ground_state.restart_energies[r] << "\n";
 }
 
 

@@ -15,9 +15,9 @@ using namespace itensor;
 // to the sector S^z = 0 of the Neel state (needs hx = 0, Jx = Jy, J2x = J2y and N even).
 //
 // Output (data/<run>/, run name with suffix _sz for conserve_sz = 1):
-//                 energy.txt   energy, variance <H^2> - <H>^2, convergence flag (1/0)
-//                 restarts.txt final energy of every DMRG run
-//                 profile.txt  j, <Z_j>, <Z_j Z_{j+1}>, entanglement entropy (log2) of the bond (j, j+1)
+//                 ground_state.txt, ground_state_restarts.txt  energy, variance, convergence flag;
+//                                    energy of every DMRG run (write_ground_state)
+//                 profile.txt        j, <Z_j>, <Z_j Z_{j+1}>, entanglement entropy (log2) of the bond (j, j+1)
 //
 // Usage: ./spin_chain_ground_state input.txt
 //   input parameters (with defaults in the code): N, Jx, Jy, Jz, J2x, J2y, J2z, hx, hz, conserve_sz,
@@ -64,13 +64,7 @@ int main(int argc, char* argv[])
     string run = tinyformat::format("spin_chain_N%d_J%.3f_%.3f_%.3f_J2%.3f_%.3f_%.3f_hx%.3f_hz%.3f", N, Jx, Jy, Jz, J2x, J2y, J2z, hx, hz);
     string dir = make_run_directory("data", conserve_sz ? run + "_sz" : run, argv[1]);
 
-    ofstream out(dir + "energy.txt");
-    out << setprecision(14) << "# E . <H^2>-<H>^2 . converged\n";
-    out << ground_state.energy << " " << ground_state.variance << " " << ground_state.converged << endl;
-
-    ofstream out_restarts(dir + "restarts.txt");
-    out_restarts << setprecision(14) << "# restart . E\n";
-    for(size_t r = 0 ; r < ground_state.restart_energies.size() ; r++) out_restarts << r+1 << " " << ground_state.restart_energies[r] << endl;
+    write_ground_state(dir, ground_state);
 
     ofstream out_profile(dir + "profile.txt");
     out_profile << setprecision(14) << "# j . <Z_j> . <Z_j Z_{j+1}> . S(j,j+1)\n";

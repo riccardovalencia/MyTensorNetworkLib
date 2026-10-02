@@ -93,10 +93,10 @@ def main(input_file):
     run_dir = run_directory(run + '_sz' if conserve_sz else run)
     comparisons = {'energy': None}
     print(f'ED ground-state energy: {energy:.12f}')
-    if os.path.exists(run_dir + 'energy.txt'):
-        tn_energy, tn_variance, _ = np.loadtxt(run_dir + 'energy.txt')
+    if os.path.exists(run_dir + 'ground_state.txt'):
+        tn_energy, tn_variance, _ = np.loadtxt(run_dir + 'ground_state.txt')
         comparisons['energy'] = {'E': abs(tn_energy - energy), 'variance': abs(tn_variance)}
-        print(f'Comparison with {run_dir}energy.txt: |E_TN - E_ED| = {abs(tn_energy - energy):.2e}, TN variance = {tn_variance:.2e}')
+        print(f'Comparison with {run_dir}ground_state.txt: |E_TN - E_ED| = {abs(tn_energy - energy):.2e}, TN variance = {tn_variance:.2e}')
     comparisons['profile'] = save_and_compare(profile(psi, N), 'j <Z_j> <Z_jZ_j+1> S', run_dir + 'profile.txt')
     return comparisons
 

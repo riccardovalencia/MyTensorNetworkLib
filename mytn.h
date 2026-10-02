@@ -10,7 +10,7 @@
  *                 purified density matrices
  * - ground_state/ DMRG drivers
  * - analysis/     full counting statistics
- * - io/           data management: output files, loading stored states
+ * - io/           data management: run folders, output files
  */
 #ifndef MYTN_ALL_H
 #define MYTN_ALL_H
@@ -43,6 +43,5 @@
 #include "analysis/full_counting_statistics.h"
 
 #include "io/output.h"
-#include "io/load.h"
 
 #endif
