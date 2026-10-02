@@ -1,0 +1,19 @@
+input
+{
+N = 10
+Jx = 1.0
+Jy = 0.0
+Jz = 0.5
+hx = 0.4
+hy = 0.3
+hz = 0.6
+config = 0110100101
+basis = x
+site = 5
+T = 1.0
+dt = 0.05
+t_measure = 0.1
+max_dim = 256
+cut_off = 1E-14
+propagator = gates
+}

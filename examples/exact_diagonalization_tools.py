@@ -13,7 +13,8 @@ import numpy as np
 def read_input(path):
     """Read an ITensor InputGroup file ("input { key = value ... }") into a dict.
 
-    Values are converted to int or float when possible, otherwise kept as strings.
+    Values are converted to int or float when possible, otherwise kept as strings; integers with
+    leading zeros (e.g. a configuration "0110") stay strings.
     """
     with open(path) as f:
         text = f.read()
@@ -24,6 +25,9 @@ def read_input(path):
         if not line:
             continue
         key, value = [s.strip() for s in line.split('=', 1)]
+        if re.fullmatch(r'0\d+', value):
+            params[key] = value
+            continue
         for convert in (int, float):
             try:
                 value = convert(value)

@@ -35,9 +35,9 @@ add_spin_coupling(AutoMPO& ampo, const vector<double> J, const int j, const int 
 }
 
 
-// AutoMPO with fields on every site, J on the bonds (j, j+1) and J2 on (j, j+2)
-MPO
-make_spin_chain_mpo(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h)
+// fields on every site, J on the bonds (j, j+1) and J2 on (j, j+2)
+AutoMPO
+make_spin_chain_terms(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h)
 {
     int N = length(sites);
     AutoMPO ampo(sites);
@@ -49,7 +49,14 @@ make_spin_chain_mpo(const SiteSet sites, const vector<double> J, const vector<do
     }
     for(int j = 1 ; j < N   ; j++) add_spin_coupling(ampo, J,  j, j+1);
     for(int j = 1 ; j < N-1 ; j++) add_spin_coupling(ampo, J2, j, j+2);
-    return toMPO(ampo);
+    return ampo;
+}
+
+
+MPO
+make_spin_chain_mpo(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h)
+{
+    return toMPO(make_spin_chain_terms(sites, J, J2, h));
 }
 
 

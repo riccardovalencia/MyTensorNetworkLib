@@ -3,6 +3,7 @@
  * @brief Implementation of bosonic_east_model_states.h (interfaces documented in the header, logic commented here).
  */
 #include "bosonic_east_model_states.h"
+#include "../dynamics/heisenberg.h"
 #include "../dof/boson.h"
 #include "../dynamics/adiabatic.h"
 #include "../models/bosonic_east_model.h"
@@ -60,27 +61,22 @@ make_super_bosonic_squeezed_state( MPS *psi_squeezed, const SiteSet sites_squeez
 }
 
 
-// Heisenberg picture along the ramp J(t) = J_target t / T: at every step O -> e^{i dt H} O e^{-i dt H}
-// with first-order MPOs of the evolution (make_bosonic_east_model_evolution_mpo), compressed
-// (cutoff 1E-14, at most 1000 states).
+// Along the ramp J(t) = J_target t / T, step after step (first-order propagators
+// U_k = make_bosonic_east_model_evolution_mpo), O -> U_k O U_k^dag: this is heisenberg_step with the
+// inverse propagator (-dt). The result is U O U^dag with U = U_n ... U_1; the MPO products are
+// compressed with cutoff 1E-14 and at most 1000 states.
 MPO
 make_dressed_operator(MPO O,  const SiteSet sites, double J_target, double U, double dt, double T)
 {
 	int size = length(sites);
 	int number_step = int(T/dt);
+	Args args = {"MaxDim", 1000, "Cutoff", 1E-14};
 
-	for(int step=1; step<=int(number_step); step++)
+	for(int step = 1 ; step <= number_step ; step++)
 	{
 		double J = J_target * step * dt / T;
-		MPO expH  = make_bosonic_east_model_evolution_mpo( sites, size , 0.0 , J,  U, dt);
-		MPO expHd = make_bosonic_east_model_evolution_mpo( sites, size , 0.0 , J,  U, -1*dt);
-		
-		O = nmultMPO( O , prime(expH) ,{"MaxDim",1000,"Cutoff",1E-14}); 
-		O.mapPrime(2,1);
-		O = nmultMPO( expHd , prime(O) ,{"MaxDim",1000,"Cutoff",1E-14}); 
-		O.mapPrime(2,1);
-
-	}	
+		O = heisenberg_step(O, make_bosonic_east_model_evolution_mpo(sites, size, 0.0, J, U, -dt), args);
+	}
 	return O;
 }
 

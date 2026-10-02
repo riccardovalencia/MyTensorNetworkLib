@@ -58,7 +58,8 @@ make_super_bosonic_squeezed_state( MPS *psi_coherent, const SiteSet sites_cohere
 
 /**
  * @brief Dress an operator with a linear ramp of the bosonic east model hopping from 0 to J_target:
- *        O -> U^dag O U with U the time-ordered evolution of duration T.
+ *        O -> U O U^dag with U the time-ordered evolution of duration T (the dressed O acts on the
+ *        dressed states U|psi> as O acts on |psi>). Built with heisenberg_step (dynamics/heisenberg.h).
  * @param O        Operator (MPO) to dress.
  * @param sites    Boson site set.
  * @param J_target Final facilitated hopping amplitude (e^{-s}).

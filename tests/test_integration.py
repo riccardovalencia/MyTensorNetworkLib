@@ -214,6 +214,34 @@ class GroundStateSearch(unittest.TestCase):
         self.assertLess(errors[2], 1e-8)
 
 
+class HeisenbergPicture(unittest.TestCase):
+    """<psi_0| Z_j(t) |psi_0> from the evolved operator (heisenberg_step, dynamics/heisenberg.h) against
+    the evolved state, through the example heisenberg_picture. H has a field along y, so it is complex
+    and U^dag Z U differs from U Z U^dag (backward evolution): a wrong order of the products is caught."""
+
+    example = ('heisenberg_picture', 'heisenberg_picture')
+
+    def assert_pictures_agree(self, input_name, pictures_tolerance, exact_tolerance):
+        comparisons = run_and_compare(*self.example, input_name)
+        self.assertIsNotNone(comparisons['pictures'], 'no TN result')
+        pictures = comparisons['pictures']['Z_S - Z_H']
+        exact = max(comparisons['expectation'].values())
+        print(f'\n  |Z_S - Z_H| = {pictures:.2e} (tolerance {pictures_tolerance:.0e}), '
+              f'max |TN - ED| = {exact:.2e} (tolerance {exact_tolerance:.0e})', file=sys.stderr, end=' ')
+        self.assertLess(pictures, pictures_tolerance)
+        self.assertLess(exact, exact_tolerance)
+
+    def test_gates_10_spins(self):
+        """10 spins, TEBD gates: tebd_step on the state, heisenberg_step on the MPO of Z_5. The pictures
+        agree up to truncation; both carry the second-order Trotter error with respect to ED."""
+        self.assert_pictures_agree('heisenberg_gates.txt', 1e-5, 3e-3)
+
+    def test_mpo_propagator(self):
+        """6 spins, first-order MPO propagator W = toExpH(H, i dt): applyMPO on the state,
+        heisenberg_step(O, W) on the operator (the overload used by make_dressed_operator)."""
+        self.assert_pictures_agree('heisenberg_mpo.txt', 1e-5, 1e-1)
+
+
 class TimeStepConvergence(unittest.TestCase):
     """The TN error is a discretization error: it decreases with the order of the time step."""
 

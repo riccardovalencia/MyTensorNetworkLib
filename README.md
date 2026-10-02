@@ -21,13 +21,14 @@ The library is organized by role. Each folder contains pairs `name.h` / `name.cc
 | | `boson.h` | Bosonic Fock, coherent, squeezed and cat states; occupations, Fock-space probabilities, squeezing. |
 | | `fermion.h` | Product states of spinful fermions (`InitState` and MPS). |
 | | `spin_boson.h` | Boson + spins site sets (cavity QED) and their purified (bra-ket) version; initial states. |
-| [models](models/) | `spin_chain.h` | Short-range spin chains: MPO with nearest- and next-nearest-neighbour couplings (`make_spin_chain_mpo`), bond terms and TEBD gates, Ising chain in longitudinal and transverse fields. |
+| [models](models/) | `spin_chain.h` | Short-range spin chains: MPO (or AutoMPO terms) with nearest- and next-nearest-neighbour couplings (`make_spin_chain_mpo`, `make_spin_chain_terms`), bond terms and TEBD gates, Ising chain in longitudinal and transverse fields. |
 | | `rydberg.h` | Rydberg arrays (up to next-nearest-neighbour interactions), PXP model. |
 | | `light_matter.h` | Dicke and Tavis-Cummings models (one boson coupled to all spins). |
 | | `impurity.h` | Impurity models on the purified density matrix (Kondo-like, dissipative spin impurity). |
 | | `tight_binding.h` | Free fermions: MPOs, single-particle matrices, bond terms and TEBD gates. |
 | | `bosonic_east_model.h`, `bosonic_east_model_states.h` | Bosonic quantum east model: Hamiltonians, TEBD gates, super-bosonic states, dressed operators. |
 | [dynamics](dynamics/) | `time_evolution.h` | One TEBD step (`tebd_step`) for pure states and purified density matrices; measurement intervals. |
+| | `heisenberg.h` | Operators in the Heisenberg picture: one step O -> U^dag O U with TEBD gates or a propagator MPO (`heisenberg_step`), adjoint MPOs. |
 | | `lindblad.h` | Dissipative gates for Lindblad dynamics on the vectorized density matrix; gates on the bra-ket chain. |
 | | `purified_state.h` | Trace and observables of a density matrix stored as a purified MPS. |
 | | `adiabatic.h` | Adiabatic ramps (bosonic quantum east model). |
@@ -107,10 +108,10 @@ The [examples](examples/) are built all at once by `examples/Makefile` (`cd exam
 
 ## Tests
 
-[tests/](tests/) contains integration tests: each example is run on a small input and compared with exact diagonalization, the time-step convergence order of the TEBD schemes is checked, and the DMRG ground-state search is tested where DMRG can get stuck (frustration, conserved quantities, quasi-degenerate ground states, metastable states, truncation).
+[tests/](tests/) contains integration tests: each example is run on a small input and compared with exact diagonalization, the time-step convergence order of the TEBD schemes is checked, the DMRG ground-state search is tested where DMRG can get stuck (frustration, conserved quantities, quasi-degenerate ground states, metastable states, truncation), and operators evolved in the Heisenberg picture are compared with states evolved in the Schroedinger picture.
 
 ```bash
-cd tests && make test LIBRARY_DIR=/path/to/itensor     # ~45 s; needs numpy, scipy and quimb
+cd tests && make test LIBRARY_DIR=/path/to/itensor     # ~70 s; needs numpy, scipy and quimb
 ```
 
 ## Conventions

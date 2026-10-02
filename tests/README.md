@@ -13,7 +13,7 @@ make test TEST=test_integration.TensorNetworkVsExactDiagonalization.test_leaky_c
 ```
 
 Requirements: the ITensor v3 installation used for the library, Python 3.11+ with numpy, scipy and quimb
-(the same as the ED scripts of the examples). The whole suite takes about 45 seconds.
+(the same as the ED scripts of the examples). The whole suite takes about 70 seconds.
 Set `MYTN_KEEP_TEST_DATA=1` to keep the temporary folders with the TN and ED outputs of each test.
 
 ## How a test works
@@ -45,6 +45,17 @@ when the tests were written, so that a regression is caught while round-off and 
 | `test_impurity_integrable` | `impurity_integrable.txt` | impurity gates and dissipator on the central bond, regression theorem; exact free-fermion solution | 1.5e-3 | 5e-3 |
 | `test_impurity_xx_coupling` | `impurity_xx.txt` | same with an XX coupling (dense Lindblad solution) | 2.9e-3 | 1e-2 |
 | `test_impurity_next_nearest_neighbour` | `impurity_nnn.txt` | three-site impurity gates (`make_spin_impurity_nnn_gates`) on N = 5 | 3.1e-3 | 1e-2 |
+
+`HeisenbergPicture`: <psi_0| Z_j(t) |psi_0> from the operator evolved with `heisenberg_step`
+([../dynamics/heisenberg.h](../dynamics/heisenberg.h)) against the state evolved in the Schroedinger
+picture with the same propagator, through the example `heisenberg_picture`. The field hy makes H complex,
+so that the backward evolution U Z U^dag gives a different result: computing it instead of U^dag Z U makes
+the tests fail (|Z_S - Z_H| ~ 0.2-0.5).
+
+| Test | Input | Propagator | \|Z_S - Z_H\| | max \|TN - ED\| | Tolerances (pictures, ED) |
+|---|---|---|---|---|---|
+| `test_gates_10_spins` | `heisenberg_gates.txt` | second-order TEBD gates, N = 10, dt = 0.05 | 3.0e-7 | 8.7e-4 | 1e-5, 3e-3 |
+| `test_mpo_propagator` | `heisenberg_mpo.txt` | first-order MPO toExpH(H, i dt), N = 6, dt = 0.02 | 9.5e-7 | 3.3e-2 | 1e-5, 1e-1 |
 
 `TimeStepConvergence`: the TN error is a discretization error with the expected order. Each test
 runs the same input with time steps dt and dt/2 and checks the ratio of the errors (at least 80% of

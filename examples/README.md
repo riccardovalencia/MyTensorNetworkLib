@@ -68,6 +68,15 @@ sweeps only), `dmrg_tolerance` (1E-10, relative energy change between sweeps), `
 
 ## List of examples
 
+### `heisenberg_picture`
+<psi_0| Z_j(t) |psi_0> of a spin-1/2 chain with fields along x, y, z, from a product state, in the
+Schroedinger picture (evolved state) and in the Heisenberg picture (evolved MPO of Z_j, `heisenberg_step`),
+with either TEBD gates (`propagator = gates`) or the first-order MPO toExpH(H, i dt) (`propagator = mpo`;
+much slower, keep N <= 6). The two pictures agree up to truncation.
+- Inputs: `N`, `Jx`, `Jy`, `Jz`, `hx`, `hy`, `hz`, `config`, `basis` (initial product state, see
+  `make_product_state`), `site`, `T`, `dt`, `t_measure`, `max_dim`, `cut_off`, `propagator`.
+- Output: t, <Z_j> in the two pictures, bond dimensions of the state and of the operator.
+
 ### `spin_chain_ground_state`
 Ground state of a spin-1/2 chain with nearest- and next-nearest-neighbour couplings and fields,
 H = sum_j (Jx X_j X_{j+1} + Jy Y_j Y_{j+1} + Jz Z_j Z_{j+1}) + sum_j (J2x X_j X_{j+2} + ...) + sum_j (hx X_j + hz Z_j),

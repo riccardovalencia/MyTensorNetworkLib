@@ -6,7 +6,8 @@
  * - mps/          model-independent MPS tools (gates, entanglement, state manipulation)
  * - dof/          degrees of freedom: spin-1/2, bosons, fermions, spin-boson (states, local observables)
  * - models/       Hamiltonians and TEBD gates of specific models
- * - dynamics/     open-system and adiabatic dynamics, purified density matrices
+ * - dynamics/     TEBD steps, open systems, operators in the Heisenberg picture, adiabatic ramps,
+ *                 purified density matrices
  * - ground_state/ DMRG drivers
  * - analysis/     full counting statistics
  * - io/           data management: output files, loading stored states
@@ -33,6 +34,7 @@
 
 #include "dynamics/lindblad.h"
 #include "dynamics/time_evolution.h"
+#include "dynamics/heisenberg.h"
 #include "dynamics/purified_state.h"
 #include "dynamics/adiabatic.h"
 

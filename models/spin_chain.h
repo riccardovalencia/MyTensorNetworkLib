@@ -31,6 +31,13 @@ MPO
 make_spin_chain_mpo(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h);
 
 /**
+ * @brief Terms of make_spin_chain_mpo as an AutoMPO (same arguments), e.g. for toExpH(terms, Cplx_i * dt),
+ *        the first-order propagator exp(-i dt H).
+ */
+AutoMPO
+make_spin_chain_terms(const SiteSet sites, const vector<double> J, const vector<double> J2, const vector<double> h);
+
+/**
  * @brief Two-site term on the bond (j, j+1) of the spin chain of make_spin_chain_gates.
  *
  * The bond couplings enter in full; the fields of sites j and j+1 are divided by the number of
